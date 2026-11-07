@@ -56,6 +56,12 @@ const router = createRouter({
           component: () => import('@/views/access/AccessListView.vue'),
           meta: { title: '名单管理' },
         },
+        {
+          path: 'approval-tasks',
+          name: 'ApprovalTasks',
+          component: () => import('@/views/approval/ApprovalTasksView.vue'),
+          meta: { title: '审批任务' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
