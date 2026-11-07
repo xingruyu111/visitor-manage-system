@@ -363,6 +363,25 @@ class ContainerizedIntegrationTest {
         assertThat(out.get("direction")).isEqualTo("OUT");
         assertThat(visitorRecordMapper.selectById(recordId).getStatus()).isEqualTo(4);
         assertThat(visitLogMapper.selectCount(null)).isEqualTo(2L);
+
+        Map<String, Object> blockedReentry = exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken());
+        assertThat(blockedReentry.get("code")).isEqualTo(400);
+        assertThat(blockedReentry.get("message")).asString().contains("次数");
+
+        VisitorPass multi = visitorPassMapper.selectById(pass.getId());
+        multi.setMaxEntries(2);
+        visitorPassMapper.updateById(multi);
+
+        Map<String, Object> reentry = data(exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken()));
+        assertThat(reentry.get("direction")).isEqualTo("IN");
+        assertThat(visitorRecordMapper.selectById(recordId).getStatus()).isEqualTo(3);
+
+        Map<String, Object> secondOut = data(exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken()));
+        assertThat(secondOut.get("direction")).isEqualTo("OUT");
+        assertThat(visitLogMapper.selectCount(null)).isEqualTo(4L);
     }
 
     @Test
