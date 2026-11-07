@@ -21,6 +21,7 @@ import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AccessCheckService;
@@ -83,6 +84,9 @@ class VisitorModuleIntegrationTest {
     private VisitorPassMapper passMapper;
 
     @Autowired
+    private VisitLogMapper visitLogMapper;
+
+    @Autowired
     private ApprovalTaskMapper taskMapper;
 
     @Autowired
@@ -142,7 +146,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void applyCreatesPendingRecordAndTask() {
-        Map<String, Object> result = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> result = apply(visitorToken, "13800003001", 0);
 
         assertThat(result.get("code")).isEqualTo(200);
         Long recordId = number(data(result).get("recordId"));
@@ -156,7 +160,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void approvedApplicationIssuesPass() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
         Long instanceId = number(data(applied).get("approvalInstanceId"));
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
@@ -168,6 +172,8 @@ class VisitorModuleIntegrationTest {
         assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(1);
         VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
                 .eq(VisitorPass::getRecordId, recordId));
+        pass.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        passMapper.updateById(pass);
         assertThat(pass).isNotNull();
         assertThat(pass.getQrToken()).isNotBlank();
         assertThat(pass.getMaxEntries()).isEqualTo(1);
@@ -179,7 +185,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void rejectedApplicationHasNoPass() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
         Long instanceId = number(data(applied).get("approvalInstanceId"));
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
@@ -194,9 +200,9 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void duplicateOverlappingApplicationRejected() {
-        apply(visitorToken, "13800003001", 1);
+        apply(visitorToken, "13800003001", 0);
 
-        Map<String, Object> second = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> second = apply(visitorToken, "13800003001", 0);
 
         assertThat(second.get("code")).isEqualTo(400);
         assertThat(second.get("message")).asString().contains("已有预约");
@@ -204,7 +210,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void visitorCannotReadOthersRecord() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
 
         Map<String, Object> detail = exchange("/web/visitor/records/" + recordId,
@@ -215,7 +221,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void cancelRevokesPass() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
         Long instanceId = number(data(applied).get("approvalInstanceId"));
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
@@ -227,6 +233,8 @@ class VisitorModuleIntegrationTest {
         assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(5);
         VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
                 .eq(VisitorPass::getRecordId, recordId));
+        pass.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        passMapper.updateById(pass);
         assertThat(pass.getStatus()).isEqualTo(3);
     }
 
@@ -254,7 +262,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void adminOnlySeesOwnSchoolRecords() {
-        apply(visitorToken, "13800003001", 1);
+        apply(visitorToken, "13800003001", 0);
 
         Map<String, Object> own = data(exchange("/web/admin/visitor-records?page=1&size=10",
                 HttpMethod.GET, null, adminToken));
@@ -301,7 +309,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void passIsNotAvailableBeforeApproval() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
 
         Map<String, Object> pass = exchange("/web/visitor/records/" + recordId + "/pass",
@@ -312,7 +320,7 @@ class VisitorModuleIntegrationTest {
 
     @Test
     void cancelAfterRejectIsRejected() {
-        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
         Long recordId = number(data(applied).get("recordId"));
         Long instanceId = number(data(applied).get("approvalInstanceId"));
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
@@ -328,7 +336,7 @@ class VisitorModuleIntegrationTest {
     void blacklistedVisitorIsBlocked() {
         insertList(1, "13800003001", null);
 
-        Map<String, Object> result = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> result = apply(visitorToken, "13800003001", 0);
 
         assertThat(result.get("code")).isEqualTo(403);
         assertThat(result.get("message")).asString().contains("黑名单");
@@ -339,7 +347,7 @@ class VisitorModuleIntegrationTest {
     void whitelistedVisitorIsAutoApprovedWithPass() {
         insertList(2, "13800003001", null);
 
-        Map<String, Object> result = apply(visitorToken, "13800003001", 1);
+        Map<String, Object> result = apply(visitorToken, "13800003001", 0);
 
         assertThat(result.get("code")).isEqualTo(200);
         assertThat(data(result).get("approvalInstanceId")).isNull();
@@ -358,6 +366,62 @@ class VisitorModuleIntegrationTest {
         assertThat(accessListMapper.selectById(list.getId()).getStatus()).isZero();
     }
 
+    @Test
+    void verifyInOutAndEntryLimit() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long recordId = number(data(applied).get("recordId"));
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+        VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        pass.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        passMapper.updateById(pass);
+
+        Map<String, Object> in = exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken);
+        assertThat(in.get("code")).isEqualTo(200);
+        assertThat(data(in).get("direction")).isEqualTo("IN");
+        assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(3);
+
+        Map<String, Object> out = exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken);
+        assertThat(data(out).get("direction")).isEqualTo("OUT");
+        assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(4);
+
+        Map<String, Object> again = exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken);
+        assertThat(again.get("code")).isEqualTo(400);
+        assertThat(again.get("message")).asString().contains("次数");
+
+        assertThat(visitLogMapper.selectCount(null)).isEqualTo(2L);
+    }
+
+    @Test
+    void verifyRejectsInvalidAndExpiredPass() {
+        Map<String, Object> invalid = exchange("/web/guard/verify?token=not-exists",
+                HttpMethod.POST, null, adminToken);
+        assertThat(invalid.get("code")).isEqualTo(404);
+
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long recordId = number(data(applied).get("recordId"));
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+        VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        pass.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        passMapper.updateById(pass);
+        pass.setValidTo(LocalDateTime.now().minusHours(1));
+        passMapper.updateById(pass);
+
+        Map<String, Object> expired = exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken);
+        assertThat(expired.get("code")).isEqualTo(400);
+        assertThat(expired.get("message")).asString().contains("过期");
+    }
     private AccessList insertList(int listType, String value, LocalDateTime effectiveTo) {
         AccessList list = new AccessList();
         list.setSchoolId(1L);

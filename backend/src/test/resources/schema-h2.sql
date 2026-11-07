@@ -262,3 +262,17 @@ CREATE TABLE vst_access_list (
   PRIMARY KEY (id),
   CONSTRAINT uk_access_list UNIQUE (school_id, list_type, target_type, target_value)
 );
+DROP TABLE IF EXISTS vst_visit_log;
+CREATE TABLE vst_visit_log (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  record_id BIGINT NOT NULL,
+  pass_id BIGINT,
+  direction VARCHAR(8) NOT NULL,
+  source VARCHAR(16) NOT NULL DEFAULT 'LOCAL',
+  plate_number VARCHAR(32),
+  guard_id BIGINT,
+  event_time DATETIME NOT NULL,
+  created_at DATETIME,
+  PRIMARY KEY (id)
+);
