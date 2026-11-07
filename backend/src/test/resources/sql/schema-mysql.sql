@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-017）
+-- 容器测试用 MySQL 结构（001-018）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -526,3 +526,11 @@ CREATE TABLE IF NOT EXISTS vst_alarm_record (
   PRIMARY KEY (id),
   CONSTRAINT uk_alarm_record UNIQUE (record_id, alarm_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通行预警记录';
+
+
+-- ============================================================
+-- 门闸通行记录回传：外部记录去重
+-- ============================================================
+
+ALTER TABLE vst_visit_log ADD COLUMN external_id VARCHAR(64) NULL COMMENT '门闸记录ID';
+CREATE UNIQUE INDEX uk_visit_log_external ON vst_visit_log (external_id);

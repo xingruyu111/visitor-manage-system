@@ -276,6 +276,7 @@ CREATE TABLE vst_visit_log (
   source VARCHAR(16) NOT NULL DEFAULT 'LOCAL',
   plate_number VARCHAR(32),
   guard_id BIGINT,
+  external_id VARCHAR(64),
   event_time DATETIME NOT NULL,
   created_at DATETIME,
   PRIMARY KEY (id)

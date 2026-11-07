@@ -8,6 +8,10 @@ import java.util.List;
  */
 public interface GateClient {
 
+    default String protocol() {
+        return "REST";
+    }
+
     boolean isConfigured();
 
     GateOpResult pushPermission(GatePermission permission);

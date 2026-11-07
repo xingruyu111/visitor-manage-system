@@ -22,6 +22,7 @@ public class VisitLog {
     private String source;
     private String plateNumber;
     private Long guardId;
+    private String externalId;
     private LocalDateTime eventTime;
     private LocalDateTime createdAt;
 }

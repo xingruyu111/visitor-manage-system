@@ -2,6 +2,8 @@ package com.visitor.scheduler;
 
 import com.visitor.server.scheduler.VisitorExpireScheduler;
 import com.visitor.server.scheduler.OverstayScheduler;
+import com.visitor.server.scheduler.GateRecordScheduler;
+import com.visitor.server.service.GateRecordIntakeService;
 import com.visitor.server.service.AlarmService;
 import com.visitor.server.service.VisitorService;
 import com.visitor.workflow.ApprovalEngine;
@@ -22,7 +24,18 @@ class SchedulerTest {
     private final VisitorExpireScheduler visitorScheduler = new VisitorExpireScheduler(visitorService);
     private final AlarmService alarmService = mock(AlarmService.class);
     private final OverstayScheduler overstayScheduler = new OverstayScheduler(alarmService);
+    private final GateRecordIntakeService gateRecordIntakeService = mock(GateRecordIntakeService.class);
+    private final GateRecordScheduler gateRecordScheduler = new GateRecordScheduler(gateRecordIntakeService);
 
+    @Test
+    void gateRecordSchedulerDelegatesAndSwallows() {
+        when(gateRecordIntakeService.pull()).thenReturn(2);
+        gateRecordScheduler.pull();
+        verify(gateRecordIntakeService).pull();
+
+        when(gateRecordIntakeService.pull()).thenThrow(new RuntimeException("boom"));
+        assertThatCode(gateRecordScheduler::pull).doesNotThrowAnyException();
+    }
     @Test
     void approvalSchedulerDelegatesToEngine() {
         when(approvalEngine.expireOverdueTasks()).thenReturn(2);

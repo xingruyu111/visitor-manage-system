@@ -64,7 +64,7 @@ public class IntegrationFactory {
     }
 
     public GateClient gate() {
-        return pick(IntegrationKey.GATE, gateClients, client -> "REST", NoopGateClient.INSTANCE);
+        return pick(IntegrationKey.GATE, gateClients, GateClient::protocol, NoopGateClient.INSTANCE);
     }
 
     public FaceClient face() {
