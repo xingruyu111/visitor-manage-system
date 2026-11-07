@@ -2,6 +2,9 @@ package com.visitor.container;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.entity.FormField;
+import com.visitor.domain.entity.ParentSlot;
+import com.visitor.domain.entity.NotifyConfig;
 import com.visitor.domain.entity.ApprovalFlow;
 import com.visitor.domain.entity.VisitLog;
 import com.visitor.domain.entity.ApprovalRule;
@@ -9,6 +12,10 @@ import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.server.mapper.AccessListMapper;
+import com.visitor.server.mapper.FormFieldMapper;
+import com.visitor.server.mapper.ParentSlotMapper;
+import com.visitor.server.mapper.NotifyConfigMapper;
+import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.mapper.ApprovalFlowMapper;
 import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
@@ -148,6 +155,18 @@ class ContainerizedIntegrationTest {
 
     @Autowired
     private VisitLogMapper visitLogMapper;
+
+    @Autowired
+    private FormFieldMapper formFieldMapper;
+
+    @Autowired
+    private ParentSlotMapper parentSlotMapper;
+
+    @Autowired
+    private NotifyConfigMapper notifyConfigMapper;
+
+    @Autowired
+    private NotificationMapper notificationMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -156,6 +175,9 @@ class ContainerizedIntegrationTest {
         staffMapper.delete(null);
         accessListMapper.delete(null);
         visitLogMapper.delete(null);
+        formFieldMapper.delete(null);
+        parentSlotMapper.delete(null);
+        notifyConfigMapper.delete(null);
         classMapper.delete(null);
         departmentMapper.delete(null);
         integrationConfigMapper.delete(null);
@@ -434,6 +456,94 @@ class ContainerizedIntegrationTest {
         list.setCreatedAt(LocalDateTime.now());
         list.setUpdatedAt(LocalDateTime.now());
         accessListMapper.insert(list);
+    }
+    @Test
+    void requiredFormFieldBlocksApplyAgainstRealMysql() {
+        Staff teacher = staff("表单老师", "13900008001");
+        insertApprovalFlowAndRule();
+        FormField field = new FormField();
+        field.setVisitorType("NORMAL");
+        field.setFieldKey("company");
+        field.setLabel("工作单位");
+        field.setFieldType("TEXT");
+        field.setRequired(1);
+        field.setStatus(1);
+        formFieldMapper.insert(field);
+
+        Long visitorId = createUserWithRole("13900008002", RoleEnum.VISITOR);
+        String token = jwtUtil.generate(visitorId, "访客", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        Map<String, Object> body = Map.of(
+                "targetId", teacher.getId(),
+                "visitorType", "NORMAL",
+                "expectedTime", formatter.format(LocalDateTime.now()),
+                "leaveTime", formatter.format(LocalDateTime.now().plusHours(2)));
+
+        Map<String, Object> response = post("/web/visitor/records", token, body);
+
+        assertThat(response.get("code")).isEqualTo(400);
+        assertThat(response.get("message").toString()).contains("工作单位");
+    }
+
+    @Test
+    void parentSlotIsEnforcedAgainstRealMysql() {
+        Staff teacher = staff("时段老师", "13900008003");
+        insertApprovalFlowAndRule();
+        Long visitorId = createUserWithRole("13900008004", RoleEnum.VISITOR);
+        String token = jwtUtil.generate(visitorId, "家长", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null);
+        java.time.LocalDate monday = java.time.LocalDate.now()
+                .with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
+
+        ParentSlot slot = new ParentSlot();
+        slot.setVisitorPhone("13900008004");
+        slot.setWeekday(1);
+        slot.setStartTime(java.time.LocalTime.of(8, 0));
+        slot.setEndTime(java.time.LocalTime.of(18, 0));
+        slot.setEffectiveFrom(monday.minusDays(7));
+        slot.setEffectiveTo(monday.plusDays(7));
+        slot.setStatus(1);
+        parentSlotMapper.insert(slot);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        Map<String, Object> ok = post("/web/visitor/records", token, Map.of(
+                "targetId", teacher.getId(), "visitorType", "PARENT",
+                "expectedTime", monday.atTime(9, 0).format(formatter),
+                "leaveTime", monday.atTime(10, 0).format(formatter)));
+        assertThat(ok.get("code")).isEqualTo(200);
+
+        Map<String, Object> bad = post("/web/visitor/records", token, Map.of(
+                "targetId", teacher.getId(), "visitorType", "PARENT",
+                "expectedTime", monday.plusDays(1).atTime(9, 0).format(formatter),
+                "leaveTime", monday.plusDays(1).atTime(10, 0).format(formatter)));
+        assertThat(bad.get("code")).isEqualTo(400);
+        assertThat(bad.get("message").toString()).contains("家长固定时段");
+    }
+
+    @Test
+    void disabledNotifyTypeSuppressesNotificationsAgainstRealMysql() {
+        Long teacherUserId = createUserWithRole("13900008005", RoleEnum.TEACHER);
+        Staff teacher = staff("通知老师", "13900008005");
+        insertApprovalFlowAndRule();
+        NotifyConfig config = new NotifyConfig();
+        config.setNotifyType("APPROVAL_RESULT");
+        config.setEnabled(0);
+        config.setChannels("SITE");
+        notifyConfigMapper.insert(config);
+
+        Long visitorId = createUserWithRole("13900008006", RoleEnum.VISITOR);
+        String visitorToken = jwtUtil.generate(visitorId, "访客", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null);
+        String teacherToken = jwtUtil.generate(teacherUserId, "老师", List.of(RoleEnum.TEACHER), RoleEnum.TEACHER, 1L);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        Map<String, Object> applied = data(post("/web/visitor/records", visitorToken, Map.of(
+                "targetId", teacher.getId(), "visitorType", "NORMAL",
+                "expectedTime", formatter.format(LocalDateTime.now()),
+                "leaveTime", formatter.format(LocalDateTime.now().plusHours(2)))));
+        Long instanceId = ((Number) applied.get("approvalInstanceId")).longValue();
+        ApprovalTask task = approvalTaskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+
+        assertThat(notificationMapper.selectCount(null)).isZero();
     }
     private void insertApprovalFlowAndRule() {
         approvalFlowMapper.delete(null);
