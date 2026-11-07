@@ -138,3 +138,8 @@ npm run dev                   # http://localhost:5173
 - 分支：`main` 保持可运行，功能开发走 `feat/*`。
 - 提交信息：`feat: `、`fix: `、`refactor: `、`chore: ` 前缀。
 - 敏感配置（数据库密码、JWT 密钥、微信 appId/secret）只放环境变量，不提交仓库。
+
+## 文档
+- [快速启动与接口清单](docs/快速启动与接口清单.md)
+- [需求实现对照表](docs/需求实现对照表.md)
+- [需求对齐改造计划](docs/需求对齐改造计划.md)
