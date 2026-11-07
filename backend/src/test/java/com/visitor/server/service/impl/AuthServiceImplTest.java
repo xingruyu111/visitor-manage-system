@@ -8,6 +8,7 @@ import com.visitor.domain.vo.LoginVO;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.sso.IdentityProvider;
 import com.visitor.security.JwtUtil;
+import com.visitor.security.LoginAttemptService;
 import com.visitor.security.TokenBlacklist;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
@@ -25,7 +26,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthServiceImplTest {
@@ -36,14 +40,40 @@ class AuthServiceImplTest {
     private final JwtUtil jwtUtil = mock(JwtUtil.class);
     private final TokenBlacklist tokenBlacklist = mock(TokenBlacklist.class);
     private final IntegrationFactory integrationFactory = mock(IntegrationFactory.class);
+    private final LoginAttemptService loginAttemptService = mock(LoginAttemptService.class);
 
     private final AuthServiceImpl service = new AuthServiceImpl(userMapper, userRoleMapper,
-            passwordEncoder, jwtUtil, tokenBlacklist, integrationFactory);
+            passwordEncoder, jwtUtil, tokenBlacklist, integrationFactory, loginAttemptService);
 
     @BeforeEach
     void setUp() {
         when(jwtUtil.generate(anyLong(), anyString(), anyList(), any(), any())).thenReturn("token");
         when(jwtUtil.getExpirationMs()).thenReturn(60000L);
+    }
+
+    @Test
+    void loginIsBlockedWhenRateLimited() {
+        doThrow(new BizException(429, "尝试过于频繁"))
+                .when(loginAttemptService).assertAllowed("13700000010");
+
+        assertThatThrownBy(() -> service.login("13700000010", "pass", "127.0.0.1"))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("尝试过于频繁");
+        verify(userMapper, never()).selectOne(any());
+    }
+
+    @Test
+    void wrongPasswordRecordsFailure() {
+        User user = user(1L, 1);
+        when(userMapper.selectOne(any())).thenReturn(user);
+        when(passwordEncoder.matches("bad", "hash")).thenReturn(false);
+        when(user.getPassword()).thenReturn("hash");
+
+        assertThatThrownBy(() -> service.login("13700000010", "bad", "127.0.0.1"))
+                .isInstanceOf(BizException.class)
+                .hasMessage("账号或密码错误");
+
+        verify(loginAttemptService).recordFailure("13700000010");
     }
 
     @Test

@@ -53,6 +53,11 @@ jwt:
   secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRATION:86400000}
 
+security:
+  login:
+    max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    lock-minutes: ${LOGIN_LOCK_MINUTES:10}
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

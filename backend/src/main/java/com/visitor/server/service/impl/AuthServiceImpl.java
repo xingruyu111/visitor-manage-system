@@ -11,6 +11,7 @@ import com.visitor.domain.vo.UserInfoVO;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.sso.IdentityProvider;
 import com.visitor.security.JwtUtil;
+import com.visitor.security.LoginAttemptService;
 import com.visitor.security.TokenBlacklist;
 import com.visitor.security.UserContext;
 import com.visitor.server.mapper.UserMapper;
@@ -39,23 +40,29 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final TokenBlacklist tokenBlacklist;
     private final IntegrationFactory integrationFactory;
+    private final LoginAttemptService loginAttemptService;
 
     public AuthServiceImpl(UserMapper userMapper, UserRoleMapper userRoleMapper,
                            PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-                           TokenBlacklist tokenBlacklist, IntegrationFactory integrationFactory) {
+                           TokenBlacklist tokenBlacklist, IntegrationFactory integrationFactory,
+                           LoginAttemptService loginAttemptService) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklist = tokenBlacklist;
         this.integrationFactory = integrationFactory;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LoginVO login(String phone, String password, String ip) {
+        loginAttemptService.assertAllowed(phone);
+
         User user = findByPhone(phone);
         if (user == null || user.getPassword() == null || !passwordEncoder.matches(password, user.getPassword())) {
+            loginAttemptService.recordFailure(phone);
             throw new BizException(401, "账号或密码错误");
         }
         if (!Integer.valueOf(1).equals(user.getStatus())) {
@@ -74,6 +81,7 @@ public class AuthServiceImpl implements AuthService {
         user.setLastLoginIp(ip);
         userMapper.updateById(user);
 
+        loginAttemptService.clear(phone);
         return buildLoginVO(user, roles, current, token);
     }
 

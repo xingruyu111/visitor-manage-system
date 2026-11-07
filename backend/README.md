@@ -47,6 +47,8 @@ src/main/java/com/visitor/
 | `INTEGRATION_MASTER_KEY` | 集成配置密钥的加密主密钥 | 开发默认值（仅本地） |
 | `JWT_SECRET` | JWT 签名密钥（至少 32 字符） | 开发默认值（仅本地） |
 | `JWT_EXPIRATION` | 令牌有效期（毫秒） | `86400000` |
+| `LOGIN_MAX_ATTEMPTS` | 登录失败锁定阈值 | `5` |
+| `LOGIN_LOCK_MINUTES` | 锁定时长（分钟） | `10` |
 
 本地开发：复制 `.env.example` 为 `backend/.env.local` 填写，然后：
 
