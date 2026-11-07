@@ -20,6 +20,7 @@ import com.visitor.server.service.VisitorService;
 import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.FormFieldService;
 import com.visitor.server.service.ParentSlotService;
+import com.visitor.server.service.AlarmService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.RoleEnum;
@@ -48,12 +49,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final NotificationService notificationService;
     private final FormFieldService formFieldService;
     private final ParentSlotService parentSlotService;
+    private final AlarmService alarmService;
     private final ObjectMapper objectMapper;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -65,6 +67,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.notificationService = notificationService;
         this.formFieldService = formFieldService;
         this.parentSlotService = parentSlotService;
+        this.alarmService = alarmService;
         this.objectMapper = objectMapper;
     }
 
@@ -82,6 +85,7 @@ public class VisitorServiceImpl implements VisitorService {
         validateTime(dto.getExpectedTime(), dto.getLeaveTime());
         String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), null);
         if ("BLACKLIST".equals(access)) {
+            alarmService.notifyBlacklistHit(user.getName(), user.getPhone());
             throw new BizException(403, "该访客已被列入黑名单，禁止入校");
         }
         assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());

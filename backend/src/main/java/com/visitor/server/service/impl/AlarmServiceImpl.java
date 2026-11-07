@@ -96,6 +96,19 @@ public class AlarmServiceImpl implements AlarmService {
         alarmMapper.updateById(alarm);
     }
 
+    @Override
+    public void notifyBlacklistHit(String visitorName, String phone) {
+        List<UserRole> roles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getRole, RoleEnum.SECURITY_ADMIN)
+                .eq(UserRole::getStatus, 1));
+        for (UserRole role : roles) {
+            notificationService.notifyUser(role.getUserId(), "黑名单拦截告警",
+                    (visitorName == null ? "访客" : visitorName) + "（" + (phone == null ? "-" : phone)
+                            + "）命中黑名单，已拦截",
+                    "BLACKLIST_ALERT", "ACCESS_LIST", null);
+        }
+    }
+
     private void notifySecurity(VisitorRecord record) {
         List<UserRole> roles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getRole, RoleEnum.SECURITY_ADMIN)

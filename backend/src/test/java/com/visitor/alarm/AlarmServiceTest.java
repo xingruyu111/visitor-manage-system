@@ -87,6 +87,15 @@ class AlarmServiceTest {
         assertThat(service.page(1, 1, 10).total()).isEqualTo(1);
     }
 
+    @Test
+    void blacklistHitNotifiesSecurity() {
+        createSecurity();
+
+        service.notifyBlacklistHit("可疑访客", "13900000000");
+
+        assertThat(notificationMapper.selectCount(null)).isEqualTo(1L);
+        assertThat(notificationMapper.selectList(null).get(0).getType()).isEqualTo("BLACKLIST_ALERT");
+    }
     private Long createSecurity() {
         User user = new User();
         user.setPhone("13800007777");

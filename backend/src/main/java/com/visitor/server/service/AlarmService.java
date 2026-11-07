@@ -10,4 +10,7 @@ public interface AlarmService {
     PageResult<AlarmRecord> page(Integer handled, int page, int size);
 
     void handle(Long id, Long operatorId);
+
+    /** 黑名单命中时通知保卫处。 */
+    void notifyBlacklistHit(String visitorName, String phone);
 }
