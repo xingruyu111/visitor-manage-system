@@ -86,6 +86,12 @@ const router = createRouter({
           component: () => import('@/views/approval/ApprovalTasksView.vue'),
           meta: { title: '审批任务' },
         },
+        {
+          path: 'alarms',
+          name: 'Alarms',
+          component: () => import('@/views/alarm/AlarmListView.vue'),
+          meta: { title: '通行告警' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
