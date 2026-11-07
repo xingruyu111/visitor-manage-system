@@ -284,6 +284,33 @@ class ApprovalModuleIntegrationTest {
         assertThat(result.get("code")).isEqualTo(403);
     }
 
+    @Test
+    void instancesPageAndCancelWork() {
+        ApprovalInstance instance = start(9L, "TEACHER", teacherStaffId);
+        Map<String, Object> page = data(exchange("/web/approval/instances?page=1&size=5",
+                HttpMethod.GET, null, adminToken));
+        assertThat(((Number) page.get("total")).intValue()).isGreaterThanOrEqualTo(1);
+
+        Map<String, Object> cancel = exchange("/web/approval/instances/" + instance.getId() + "/cancel?reason=test",
+                HttpMethod.POST, null, adminToken);
+        assertThat(cancel.get("code")).isEqualTo(200);
+        assertThat(instanceMapper.selectById(instance.getId()).getStatus()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void flowDetailVersionsAndOfflineWork() {
+        Map<String, Object> detail = data(exchange("/web/websuper/approval-flows/VISIT_DEFAULT?version=1",
+                HttpMethod.GET, null, superToken));
+        assertThat(detail.get("flowCode")).isEqualTo("VISIT_DEFAULT");
+
+        List<?> versions = (List<?>) exchange("/web/websuper/approval-flows/VISIT_DEFAULT/versions",
+                HttpMethod.GET, null, superToken).get("data");
+        assertThat(versions).isNotEmpty();
+
+        Map<String, Object> offline = exchange("/web/websuper/approval-flows/VISIT_DEFAULT/offline",
+                HttpMethod.POST, null, superToken);
+        assertThat(offline.get("code")).isEqualTo(200);
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return approvalEngine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));
