@@ -28,3 +28,8 @@ Thumbs.db
 !.env.example
 logs/
 uploads/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
