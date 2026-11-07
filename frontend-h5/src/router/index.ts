@@ -17,6 +17,18 @@ const router = createRouter({
       meta: { title: '访客预约' },
     },
     {
+      path: '/a/tasks',
+      name: 'ApproverTasks',
+      component: () => import('@/views/approver/TasksView.vue'),
+      meta: { title: '我的审批' },
+    },
+    {
+      path: '/g/verify',
+      name: 'GuardVerify',
+      component: () => import('@/views/guard/VerifyView.vue'),
+      meta: { title: '门卫核验' },
+    },
+    {
       path: '/v/records',
       name: 'VisitorRecords',
       component: () => import('@/views/visitor/RecordsView.vue'),

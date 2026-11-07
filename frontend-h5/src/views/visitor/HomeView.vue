@@ -1,45 +1,56 @@
 <template>
   <div class="page">
-    <van-nav-bar title="访客入口" />
+    <van-nav-bar title="智慧校园访客" />
 
     <div class="content">
       <div class="hero">
         <h2>访客预约</h2>
-        <p>H5 骨架已就绪，后续在此接入微信授权、差异化预约表单与通行码。</p>
+        <p>选择被访人、填写到访时间，提交后由被访人审批，通过后生成通行码。</p>
       </div>
 
-      <van-cell-group inset>
-        <van-cell title="预约申请" is-link />
-        <van-cell title="我的预约" is-link />
-        <van-cell title="常用信息" is-link />
+      <van-cell-group inset title="访客">
+        <van-cell title="预约申请" is-link to="/v/apply" />
+        <van-cell title="我的预约" is-link to="/v/records" />
+      </van-cell-group>
+
+      <van-cell-group inset title="校内人员" class="group">
+        <van-cell title="审批人 · 我的待办" is-link to="/a/tasks" />
+        <van-cell title="门卫 · 扫码核验 / 车主查询" is-link to="/g/verify" />
       </van-cell-group>
 
       <div class="actions">
-        <van-button type="primary" block :loading="loading" @click="checkHealth">
-          测试后端连通
-        </van-button>
-        <p v-if="message" class="result">{{ message }}</p>
+        <van-button block plain type="primary" @click="$router.push('/login')">切换账号登录</van-button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
-import { getHealth } from '@/api/modules/health'
+<script setup lang="ts"></script>
 
-const loading = ref(false)
-const message = ref('')
-
-async function checkHealth() {
-  loading.value = true
-  try {
-    const info = await getHealth()
-    message.value = `后端状态：${info.status}（${info.service}）`
-  } catch {
-    message.value = '调用失败，请确认后端已启动：http://localhost:8080/api'
-  } finally {
-    loading.value = false
-  }
+<style scoped>
+.page {
+  min-height: 100vh;
+  background: #f7f8fa;
 }
-</script>
+.content {
+  padding: 16px 0 24px;
+}
+.hero {
+  padding: 8px 20px 20px;
+}
+.hero h2 {
+  margin: 0 0 8px;
+}
+.hero p {
+  margin: 0;
+  color: #969799;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.group {
+  margin-top: 16px;
+}
+.actions {
+  margin: 24px 16px;
+}
+</style>
