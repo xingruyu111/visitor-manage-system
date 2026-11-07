@@ -27,4 +27,6 @@ public interface VisitorService {
     int deptBatch(Long schoolId, VisitorBatchDTO dto, Long operatorId);
 
     int expireOverdue();
+
+    java.util.List<VisitorRecord> queryByPlate(String plate);
 }

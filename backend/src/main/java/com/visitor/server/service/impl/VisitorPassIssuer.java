@@ -53,6 +53,19 @@ public class VisitorPassIssuer {
         return pass;
     }
 
+    /** 过期：凭证置为过期并通知门闸撤销。 */
+    public void expire(Long recordId) {
+        VisitorPass pass = passMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VisitorPass>()
+                        .eq(VisitorPass::getRecordId, recordId));
+        if (pass != null && pass.getStatus() == 0) {
+            pass.setStatus(2);
+            pass.setUpdatedAt(LocalDateTime.now());
+            passMapper.updateById(pass);
+            gateSyncService.revoke(pass.getPassNo());
+        }
+    }
+
     public void revoke(Long recordId) {
         VisitorPass pass = passMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VisitorPass>()

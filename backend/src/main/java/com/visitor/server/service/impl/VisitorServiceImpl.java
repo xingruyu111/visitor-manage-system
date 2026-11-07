@@ -267,8 +267,30 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
+    public java.util.List<VisitorRecord> queryByPlate(String plate) {
+        RoleEnum role = UserContext.getRole();
+        if (role != RoleEnum.GUARD && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+            throw new BizException(403, "无权查询车主信息");
+        }
+        if (plate == null || plate.isBlank()) {
+            return java.util.List.of();
+        }
+        return recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
+                .eq(VisitorRecord::getPlateNumber, plate.trim().toUpperCase())
+                .in(VisitorRecord::getStatus, 1, 3, 4)
+                .orderByDesc(VisitorRecord::getExpectedTime)
+                .last("LIMIT 5"));
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public int expireOverdue() {
+        for (VisitorRecord record : recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
+                .in(VisitorRecord::getStatus, 0, 1, 2)
+                .lt(VisitorRecord::getLeaveTime, LocalDateTime.now()))) {
+            if (record.getStatus() == 1) {
+                passIssuer.expire(record.getId());
+            }
+        }
         VisitorRecord update = new VisitorRecord();
         update.setStatus(6);
         update.setUpdatedAt(LocalDateTime.now());

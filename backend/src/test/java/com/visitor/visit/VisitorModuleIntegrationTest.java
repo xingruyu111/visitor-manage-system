@@ -129,6 +129,7 @@ class VisitorModuleIntegrationTest {
     private String teacherToken;
     private String adminToken;
     private String deptToken;
+    private String guardToken;
     private String otherAdminToken;
 
     @BeforeEach
@@ -163,6 +164,8 @@ class VisitorModuleIntegrationTest {
         adminToken = token(adminId, "13800003004", RoleEnum.SECURITY_ADMIN, 1L);
         Long deptId = createUser("13800003006", RoleEnum.DEPT_OPERATOR, 1L);
         deptToken = token(deptId, "13800003006", RoleEnum.DEPT_OPERATOR, 1L);
+        Long guardId = createUser("13800003007", RoleEnum.GUARD, 1L);
+        guardToken = token(guardId, "13800003007", RoleEnum.GUARD, 1L);
         otherAdminToken = token(otherAdminId, "13800003005", RoleEnum.SECURITY_ADMIN, 2L);
 
         insertFlow();
@@ -591,6 +594,48 @@ class VisitorModuleIntegrationTest {
         Map<String, Object> bad = exchange("/web/visitor/records", HttpMethod.POST, badBody, visitorToken);
         assertThat(bad.get("code")).isEqualTo(400);
         assertThat(bad.get("message")).asString().contains("家长固定时段");
+    }
+    @Test
+    void guardCanQueryByPlateButVisitorCannot() {
+        String body = """
+                {"targetId":%d,"visitorType":"NORMAL","plateNumber":"粤b12345",
+                 "expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, FORMAT.format(LocalDateTime.now()),
+                FORMAT.format(LocalDateTime.now().plusHours(2)));
+        Map<String, Object> applied = exchange("/web/visitor/records", HttpMethod.POST, body, visitorToken);
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+
+        List<?> found = (List<?>) exchange("/web/guard/query?plate=粤B12345",
+                HttpMethod.GET, null, guardToken).get("data");
+        assertThat(found).hasSize(1);
+
+        Map<String, Object> forbidden = exchange("/web/guard/query?plate=粤B12345",
+                HttpMethod.GET, null, visitorToken);
+        assertThat(forbidden.get("code")).isEqualTo(403);
+    }
+
+    @Test
+    void expiredApprovedRecordExpiresPass() {
+        VisitorRecord record = new VisitorRecord();
+        record.setSchoolId(1L);
+        record.setVisitorUserId(visitorUserId);
+        record.setVisitorName("过期访客");
+        record.setVisitorType("NORMAL");
+        record.setExpectedTime(LocalDateTime.now().minusDays(2));
+        record.setLeaveTime(LocalDateTime.now().minusDays(1));
+        record.setStatus(1);
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        recordMapper.insert(record);
+        VisitorPass pass = passIssuer.issue(record);
+
+        visitorService.expireOverdue();
+
+        assertThat(recordMapper.selectById(record.getId()).getStatus()).isEqualTo(6);
+        assertThat(passMapper.selectById(pass.getId()).getStatus()).isEqualTo(2);
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
