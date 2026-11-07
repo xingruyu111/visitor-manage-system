@@ -17,6 +17,8 @@ public class MpConfig {
     private String secret;
     private String auditTemplateId;
     private String auditResultTemplateId;
+    /** MOCK / REST */
+    private String authMode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

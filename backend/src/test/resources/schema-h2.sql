@@ -300,6 +300,7 @@ CREATE TABLE vst_mp_config (
   secret VARCHAR(128) NOT NULL,
   audit_template_id VARCHAR(64),
   audit_result_template_id VARCHAR(64),
+  auth_mode VARCHAR(16) NOT NULL DEFAULT 'MOCK',
   created_at DATETIME,
   updated_at DATETIME,
   PRIMARY KEY (id)

@@ -20,6 +20,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/web/**", "/h5/**", "/auth/me", "/auth/logout")
                 .excludePathPatterns(
                         "/auth/login",
+                        "/auth/wechat",
                         "/auth/sso/**",
                         "/health",
                         "/error",

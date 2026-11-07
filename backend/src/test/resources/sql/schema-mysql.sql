@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-015）
+-- 容器测试用 MySQL 结构（001-016）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -501,3 +501,10 @@ INSERT IGNORE INTO vst_notify_config (notify_type, enabled, channels, updated_at
 ('EXPIRE_REMINDER', 1, 'SITE', NOW()),
 ('ACCESS_ALERT', 1, 'SITE', NOW()),
 ('BLACKLIST_ALERT', 1, 'SITE', NOW());
+
+
+-- ============================================================
+-- 微信网页授权配置
+-- ============================================================
+
+ALTER TABLE vst_mp_config ADD COLUMN auth_mode VARCHAR(16) NOT NULL DEFAULT 'MOCK' COMMENT 'MOCK/REST';
