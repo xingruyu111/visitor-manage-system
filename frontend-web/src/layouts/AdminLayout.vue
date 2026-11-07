@@ -7,6 +7,10 @@
           <el-icon><Odometer /></el-icon>
           <span>工作台</span>
         </el-menu-item>
+        <el-menu-item index="/visitor-records">
+          <el-icon><Tickets /></el-icon>
+          <span>访客记录</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -25,7 +29,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer } from '@element-plus/icons-vue'
+import { Odometer, Tickets } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

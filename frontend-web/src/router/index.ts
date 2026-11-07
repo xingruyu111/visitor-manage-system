@@ -20,6 +20,12 @@ const router = createRouter({
           component: () => import('@/views/dashboard/DashboardView.vue'),
           meta: { title: '工作台' },
         },
+        {
+          path: 'visitor-records',
+          name: 'VisitorRecords',
+          component: () => import('@/views/visitor/VisitorRecordsView.vue'),
+          meta: { title: '访客记录' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
