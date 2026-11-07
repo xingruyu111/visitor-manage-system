@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-013）
+-- 容器测试用 MySQL 结构（001-014）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -471,3 +471,10 @@ CREATE TABLE IF NOT EXISTS vst_parent_slot (
 
 ALTER TABLE vst_access_list ADD COLUMN released_at DATETIME NULL COMMENT '解除时间';
 ALTER TABLE vst_access_list ADD COLUMN release_reason VARCHAR(255) NULL COMMENT '解除原因';
+
+
+-- ============================================================
+-- P6：门闸/停车场下发所需的车辆信息
+-- ============================================================
+
+ALTER TABLE vst_visitor_record ADD COLUMN plate_number VARCHAR(32) NULL COMMENT '车牌号';

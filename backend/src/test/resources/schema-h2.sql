@@ -211,6 +211,7 @@ CREATE TABLE vst_visitor_record (
   visitor_phone VARCHAR(20),
   id_card VARCHAR(32),
   visitor_type VARCHAR(32) NOT NULL DEFAULT 'NORMAL',
+  plate_number VARCHAR(32),
   target_type VARCHAR(32),
   target_id BIGINT,
   target_name VARCHAR(64),

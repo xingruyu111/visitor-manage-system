@@ -26,9 +26,11 @@ public class AccessCheckServiceImpl implements AccessCheckService {
     private static final int WHITE = 2;
 
     private final AccessListMapper mapper;
+    private final GateSyncService gateSyncService;
 
-    public AccessCheckServiceImpl(AccessListMapper mapper) {
+    public AccessCheckServiceImpl(AccessListMapper mapper, GateSyncService gateSyncService) {
         this.mapper = mapper;
+        this.gateSyncService = gateSyncService;
     }
 
     @Override

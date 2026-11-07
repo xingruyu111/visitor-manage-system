@@ -102,6 +102,7 @@ public class VisitorServiceImpl implements VisitorService {
         record.setVisitorName(user.getName() == null ? "访客" : user.getName());
         record.setVisitorPhone(user.getPhone());
         record.setIdCard(dto.getIdCard());
+        record.setPlateNumber(dto.getPlateNumber() == null ? null : dto.getPlateNumber().trim().toUpperCase());
         record.setVisitorType(visitorType);
         record.setTargetType(target.getPersonType() == null ? null : target.getPersonType().name());
         record.setTargetId(target.getId());

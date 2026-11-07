@@ -22,6 +22,9 @@ public class VisitorApplyDTO {
     private String visitPurpose;
     private String idCard;
 
+    /** 车牌号（机动车/电动自行车） */
+    private String plateNumber;
+
     /** 差异化表单数据 */
     private Map<String, String> extra;
 }

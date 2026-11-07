@@ -15,9 +15,11 @@ import java.util.UUID;
 public class VisitorPassIssuer {
 
     private final VisitorPassMapper passMapper;
+    private final GateSyncService gateSyncService;
 
-    public VisitorPassIssuer(VisitorPassMapper passMapper) {
+    public VisitorPassIssuer(VisitorPassMapper passMapper, GateSyncService gateSyncService) {
         this.passMapper = passMapper;
+        this.gateSyncService = gateSyncService;
     }
 
     public VisitorPass issue(VisitorRecord record) {
@@ -47,6 +49,7 @@ public class VisitorPassIssuer {
         pass.setCreatedAt(LocalDateTime.now());
         pass.setUpdatedAt(LocalDateTime.now());
         passMapper.insert(pass);
+        gateSyncService.push(record, pass);
         return pass;
     }
 
@@ -58,6 +61,7 @@ public class VisitorPassIssuer {
             pass.setStatus(3);
             pass.setUpdatedAt(LocalDateTime.now());
             passMapper.updateById(pass);
+            gateSyncService.revoke(pass.getPassNo());
         }
     }
 }

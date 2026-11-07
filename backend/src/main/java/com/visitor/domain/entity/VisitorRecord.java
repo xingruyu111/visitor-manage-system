@@ -20,6 +20,7 @@ public class VisitorRecord {
     private String idCard;
     /** NORMAL / ALUMNI / PARENT / CONSTRUCTION / COOPERATION */
     private String visitorType;
+    private String plateNumber;
     private String targetType;
     private Long targetId;
     private String targetName;
