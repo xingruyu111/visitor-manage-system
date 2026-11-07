@@ -15,6 +15,7 @@
 
       <van-cell-group inset title="校内人员" class="group">
         <van-cell title="审批人 · 我的待办" is-link to="/a/tasks" />
+        <van-cell title="部门经办人 · 批量预约" is-link to="/d/batch" />
         <van-cell title="门卫 · 扫码核验 / 车主查询" is-link to="/g/verify" />
       </van-cell-group>
 

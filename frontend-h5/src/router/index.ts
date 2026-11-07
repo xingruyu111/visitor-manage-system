@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { title: '访客预约' },
     },
     {
+      path: '/d/batch',
+      name: 'DeptBatch',
+      component: () => import('@/views/dept/BatchApplyView.vue'),
+      meta: { title: '部门批量预约' },
+    },
+    {
       path: '/a/tasks',
       name: 'ApproverTasks',
       component: () => import('@/views/approver/TasksView.vue'),
