@@ -26,6 +26,7 @@
 
     <van-dialog v-model:show="passVisible" title="通行凭证" confirm-button-text="关闭">
       <div class="pass" v-if="pass">
+        <canvas ref="canvasRef" class="qr"></canvas>
         <p class="token">{{ pass.qrToken }}</p>
         <p class="meta">有效期：{{ pass.validFrom }} ~ {{ pass.validTo }}</p>
         <p class="meta">通行次数：{{ pass.usedEntries }} / {{ pass.maxEntries }}</p>
@@ -35,8 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
+import QRCode from 'qrcode'
 import { http } from '@/api/request'
 
 interface RecordItem {
@@ -68,6 +70,7 @@ const records = ref<RecordItem[]>([])
 const loaded = ref(false)
 const pass = ref<Pass | null>(null)
 const passVisible = ref(false)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function load() {
   try {
@@ -84,6 +87,10 @@ async function showPass(item: RecordItem) {
   try {
     pass.value = await http.get<Pass>(`/web/visitor/records/${item.id}/pass`)
     passVisible.value = true
+    await nextTick()
+    if (canvasRef.value && pass.value) {
+      await QRCode.toCanvas(canvasRef.value, pass.value.qrToken, { width: 180, margin: 1 })
+    }
   } catch (e) {
     showToast(e instanceof Error ? e.message : '凭证尚未生成')
   }
@@ -100,6 +107,10 @@ onMounted(load)
 }
 .card {
   margin-top: 12px;
+}
+.qr {
+  display: block;
+  margin: 0 auto 12px;
 }
 .pass {
   padding: 16px;
