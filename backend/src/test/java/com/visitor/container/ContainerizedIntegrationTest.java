@@ -1,6 +1,7 @@
 package com.visitor.container;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.dockerjava.api.model.HostConfig;
 import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.domain.entity.Department;
@@ -55,13 +56,22 @@ class ContainerizedIntegrationTest {
             .withDatabaseName("visitor_test")
             .withUsername("visitor")
             .withPassword("visitor")
-            .withCommand("--innodb-buffer-pool-size=32M", "--performance-schema=OFF", "--max-connections=50");
+            .withCommand("--innodb-buffer-pool-size=16M", "--performance-schema=OFF",
+                    "--max-connections=20", "--skip-name-resolve")
+            .withCreateContainerCmdModifier(cmd -> {
+                HostConfig hostConfig = cmd.getHostConfig() == null ? new HostConfig() : cmd.getHostConfig();
+                cmd.withHostConfig(hostConfig.withMemory(384L * 1024 * 1024).withMemorySwap(384L * 1024 * 1024));
+            });
 
     @Container
     static final GenericContainer<?> REDIS =
             new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
                     .withExposedPorts(6379)
-                    .withCommand("redis-server", "--save", "", "--appendonly", "no");
+                    .withCommand("redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "32mb")
+                    .withCreateContainerCmdModifier(cmd -> {
+                        HostConfig hostConfig = cmd.getHostConfig() == null ? new HostConfig() : cmd.getHostConfig();
+                        cmd.withHostConfig(hostConfig.withMemory(96L * 1024 * 1024).withMemorySwap(96L * 1024 * 1024));
+                    });
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {

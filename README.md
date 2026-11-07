@@ -71,7 +71,7 @@ npm run dev                   # http://localhost:5173
 
 两个前端都通过 Vite 代理把 `/api` 转发到 `http://localhost:8080`，无需额外配置跨域。
 
-## 当前阶段（M2）
+## 当前阶段（M4）
 
 **M0 已完成**
 
@@ -92,7 +92,6 @@ npm run dev                   # http://localhost:5173
 - 鉴权：`AuthInterceptor` 校验令牌、黑名单、账号状态、角色归属与学校上下文；`/web/websuper/**` 仅 SUPER、`/web/admin/**` 仅 ADMIN/SUPER；支持 `X-Current-Role` 在当前用户角色内切换。
 - 登录限流：同一手机号连续失败 5 次锁定 10 分钟（Redis 计数，可通过 `LOGIN_MAX_ATTEMPTS` / `LOGIN_LOCK_MINUTES` 调整）。
 - 演示账号：`13800000000 / admin123`（超管）、`13800000001 / admin123`（校管，school_id=1）——上线前必须修改。
-- 测试：97 个用例（含 4 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
 **M3 已完成**
 
@@ -101,7 +100,6 @@ npm run dev                   # http://localhost:5173
 - 部门树、人员分页/新增/修改/停用、班级维护；停用人员同时回收其账号角色。
 - 数据中台同步：`protocol=MOCK` 可跑通机构/教职工/学生/校友同步，幂等 upsert，缺失人员自动停用并回收权限。
 - 数据范围：ADMIN 固定本校，SUPER 必须显式传 `schoolId`。
-- 测试：115 个用例（含 7 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
 **M4 已完成**
 
@@ -110,7 +108,7 @@ npm run dev                   # http://localhost:5173
 - 审批引擎：按「访客类型 + 被访人类型」匹配路由规则，未命中时回退 `VISIT_<类型>` / `VISIT_DEFAULT`。
 - 审批链：普通单级（被访人）、学生两级（学生 → 辅导员）、班主任节点（附属学校学生）；实例创建时对流程定义做快照，发布新版本不影响在途审批。
 - 操作：通过、驳回、批量通过、紧急审批（管理员越级）、取消；24 小时未处理由定时任务自动驳回。
-- 测试：125 个用例（含 7 个 Testcontainers 用例，需 Docker）。
+- 测试：138 个用例（含 7 个 Testcontainers 用例，真实 MySQL + Redis；2C2G 机器用受限参数可跑通）。
 
 **下一阶段**：M5 预约与凭证（访客记录接入审批引擎、通行凭证、批量预约）。
 

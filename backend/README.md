@@ -73,13 +73,21 @@ mvn clean package -DskipTests
 mvn -Dtest=ContainerizedIntegrationTest test
 ```
 
-> 资源要求：建议 Docker 主机 **≥ 4GB 内存**。MySQL 容器 + Spring 应用 + Maven 同时跑在 2GB 机器上会触发 swap 抖动。
+> 资源要求：容器已限制内存（MySQL 384MB / Redis 96MB），配合下面的参数可在 **2C2G** 机器上跑通。
+> 实测峰值约 1.5GB，未使用 swap。
 
-若 Docker 较新（如 29.x，要求 API 版本 ≥ 1.40），需显式指定 API 版本：
+2C2G 机器推荐命令（限制 Maven、测试 JVM 与容器内存，并关闭 Ryuk）：
 
 ```bash
-DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedIntegrationTest test
+MAVEN_OPTS="-Xmx192m -XX:MaxMetaspaceSize=96m" \
+TESTCONTAINERS_RYUK_DISABLED=true \
+DOCKER_API_VERSION=1.44 \
+mvn -B -Dapi.version=1.44 \
+    -DargLine="-Xmx384m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC" \
+    -Dtest=ContainerizedIntegrationTest test
 ```
+
+若 Docker 较新（如 29.x，要求 API 版本 ≥ 1.40），`DOCKER_API_VERSION` 与 `-Dapi.version` 必须保留。
 
 ## 接口
 
