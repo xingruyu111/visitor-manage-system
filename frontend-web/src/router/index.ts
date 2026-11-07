@@ -39,6 +39,12 @@ const router = createRouter({
           meta: { title: '人员管理' },
         },
         {
+          path: 'classes',
+          name: 'Classes',
+          component: () => import('@/views/org/ClassView.vue'),
+          meta: { title: '班级管理' },
+        },
+        {
           path: 'notify-config',
           name: 'NotifyConfig',
           component: () => import('@/views/config/NotifyConfigView.vue'),
