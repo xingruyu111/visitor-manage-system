@@ -1,7 +1,16 @@
 <template>
   <div class="layout">
     <el-card shadow="never" class="tree-card">
-      <template #header>组织架构</template>
+      <template #header>
+        <div class="tree-header">
+          <span>组织架构</span>
+          <div>
+            <el-button link type="primary" @click="openDeptCreate">新增</el-button>
+            <el-button link type="primary" :disabled="!currentDept" @click="openDeptEdit">编辑</el-button>
+            <el-button link type="danger" :disabled="!currentDept" @click="removeDept">删除</el-button>
+          </div>
+        </div>
+      </template>
       <el-tree
         :data="tree"
         :props="{ label: 'name', children: 'children' }"
@@ -84,6 +93,28 @@
         <el-button type="primary" @click="save">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="deptVisible" :title="deptForm.id ? '编辑部门' : '新增部门'" width="420px">
+      <el-form label-width="90px">
+        <el-form-item label="名称"><el-input v-model="deptForm.name" /></el-form-item>
+        <el-form-item label="上级部门">
+          <el-tree-select
+            v-model="deptForm.parentId"
+            :data="tree"
+            :props="{ label: 'name', children: 'children' }"
+            node-key="id"
+            check-strictly
+            clearable
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="排序"><el-input-number v-model="deptForm.sortOrder" :min="0" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="deptVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveDept">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -126,6 +157,9 @@ const personType = ref<number>()
 const deptId = ref<number>()
 const loading = ref(false)
 const visible = ref(false)
+const deptVisible = ref(false)
+const currentDept = ref<{ id: number; name: string; parentId?: number } | null>(null)
+const deptForm = reactive({ id: undefined as number | undefined, name: '', parentId: undefined as number | undefined, sortOrder: 0 })
 const form = reactive({
   id: undefined as number | undefined,
   name: '',
@@ -164,9 +198,56 @@ async function load(target = page.value) {
   }
 }
 
-function onDept(node: { id: number }) {
+function onDept(node: { id: number; name: string; parentId?: number }) {
+  currentDept.value = node
   deptId.value = node.id
   load(1)
+}
+
+function openDeptCreate() {
+  deptForm.id = undefined
+  deptForm.name = ''
+  deptForm.parentId = currentDept.value?.id
+  deptForm.sortOrder = 0
+  deptVisible.value = true
+}
+
+function openDeptEdit() {
+  if (!currentDept.value) return
+  deptForm.id = currentDept.value.id
+  deptForm.name = currentDept.value.name
+  deptForm.parentId = currentDept.value.parentId
+  deptForm.sortOrder = 0
+  deptVisible.value = true
+}
+
+async function saveDept() {
+  try {
+    const body = { name: deptForm.name, parentId: deptForm.parentId, sortOrder: deptForm.sortOrder }
+    if (deptForm.id) {
+      await http.put(`/web/admin/departments/${deptForm.id}`, body)
+    } else {
+      await http.post('/web/admin/departments', body)
+    }
+    ElMessage.success('已保存')
+    deptVisible.value = false
+    await loadTree()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  }
+}
+
+async function removeDept() {
+  if (!currentDept.value) return
+  try {
+    await ElMessageBox.confirm(`确定删除部门「${currentDept.value.name}」？`, '提示', { type: 'warning' })
+    await http.delete(`/web/admin/departments/${currentDept.value.id}`)
+    ElMessage.success('已删除')
+    currentDept.value = null
+    await loadTree()
+  } catch {
+    // 取消
+  }
 }
 
 function openCreate() {
@@ -235,6 +316,11 @@ onMounted(async () => {
 .layout {
   display: flex;
   gap: 16px;
+}
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .tree-card {
   width: 260px;
