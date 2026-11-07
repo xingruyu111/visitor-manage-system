@@ -11,6 +11,10 @@
           <el-icon><Tickets /></el-icon>
           <span>访客记录</span>
         </el-menu-item>
+        <el-menu-item index="/access-list">
+          <el-icon><Files /></el-icon>
+          <span>名单管理</span>
+        </el-menu-item>
         <el-menu-item index="/users">
           <el-icon><User /></el-icon>
           <span>账号管理</span>
@@ -45,7 +49,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

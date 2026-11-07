@@ -50,6 +50,12 @@ const router = createRouter({
           component: () => import('@/views/config/IntegrationConfigView.vue'),
           meta: { title: '接口配置' },
         },
+        {
+          path: 'access-list',
+          name: 'AccessList',
+          component: () => import('@/views/access/AccessListView.vue'),
+          meta: { title: '名单管理' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
