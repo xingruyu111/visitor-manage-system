@@ -101,7 +101,7 @@ npm run dev                   # http://localhost:5173
 - 部门树、人员分页/新增/修改/停用、班级维护；停用人员同时回收其账号角色。
 - 数据中台同步：`protocol=MOCK` 可跑通机构/教职工/学生/校友同步，幂等 upsert，缺失人员自动停用并回收权限。
 - 数据范围：ADMIN 固定本校，SUPER 必须显式传 `schoolId`。
-- 测试：105 个用例（含 4 个 Testcontainers 用例，需 Docker）。
+- 测试：115 个用例（含 7 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
 **下一阶段**：M4 审批引擎（多级路由、24h 超时驳回、流程可视化编排）。
 

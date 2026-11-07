@@ -66,17 +66,19 @@ mvn clean package -DskipTests
 
 ### 容器化测试（真实 MySQL + Redis）
 
-`ContainerizedAuthIntegrationTest` 用 Testcontainers 起 `mysql:8.0` 与 `redis:7-alpine`，
+`ContainerizedIntegrationTest` 用 Testcontainers 起 `mysql:8.0` 与 `redis:7-alpine`，覆盖 M2 鉴权与 M3 人员组织；
 在没有 Docker 的环境自动跳过；有 Docker 时随 `mvn test` 一起执行。
 
 ```bash
-mvn -Dtest=ContainerizedAuthIntegrationTest test
+mvn -Dtest=ContainerizedIntegrationTest test
 ```
+
+> 资源要求：建议 Docker 主机 **≥ 4GB 内存**。MySQL 容器 + Spring 应用 + Maven 同时跑在 2GB 机器上会触发 swap 抖动。
 
 若 Docker 较新（如 29.x，要求 API 版本 ≥ 1.40），需显式指定 API 版本：
 
 ```bash
-DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedAuthIntegrationTest test
+DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedIntegrationTest test
 ```
 
 ## 接口

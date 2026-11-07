@@ -1,0 +1,298 @@
+package com.visitor.container;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.visitor.common.enums.PersonTypeEnum;
+import com.visitor.common.enums.RoleEnum;
+import com.visitor.domain.entity.Department;
+import com.visitor.domain.entity.IntegrationConfig;
+import com.visitor.domain.entity.SchoolClass;
+import com.visitor.domain.entity.Staff;
+import com.visitor.domain.entity.User;
+import com.visitor.domain.entity.UserRole;
+import com.visitor.server.mapper.DepartmentMapper;
+import com.visitor.server.mapper.IntegrationConfigMapper;
+import com.visitor.server.mapper.SchoolClassMapper;
+import com.visitor.server.mapper.StaffMapper;
+import com.visitor.server.mapper.UserMapper;
+import com.visitor.server.mapper.UserRoleMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * 真实 MySQL + Redis 的容器化集成测试，覆盖 M2 鉴权与 M3 人员组织。
+ *
+ * <p>没有 Docker 的环境（如本机）自动跳过；CI 或装有 Docker 的服务器上会执行。</p>
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Testcontainers(disabledWithoutDocker = true)
+class ContainerizedIntegrationTest {
+
+    @Container
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"))
+            .withDatabaseName("visitor_test")
+            .withUsername("visitor")
+            .withPassword("visitor")
+            .withCommand("--innodb-buffer-pool-size=32M", "--performance-schema=OFF", "--max-connections=50");
+
+    @Container
+    static final GenericContainer<?> REDIS =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379)
+                    .withCommand("redis-server", "--save", "", "--appendonly", "no");
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
+        registry.add("spring.datasource.username", MYSQL::getUsername);
+        registry.add("spring.datasource.password", MYSQL::getPassword);
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        registry.add("spring.sql.init.mode", () -> "always");
+        registry.add("spring.sql.init.schema-locations", () -> "classpath:sql/schema-mysql.sql");
+    }
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private TestRestTemplate rest;
+
+    @Autowired
+    private IntegrationConfigMapper integrationConfigMapper;
+
+    @Autowired
+    private DepartmentMapper departmentMapper;
+
+    @Autowired
+    private StaffMapper staffMapper;
+
+    @Autowired
+    private SchoolClassMapper classMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void setUp() {
+        staffMapper.delete(null);
+        classMapper.delete(null);
+        departmentMapper.delete(null);
+        integrationConfigMapper.delete(null);
+        enableDataSyncMock();
+    }
+
+    // ---------------- M2 鉴权 ----------------
+
+    @Test
+    void loginWorksAgainstRealMysql() {
+        Map<String, Object> body = login("13800000000", "admin123");
+
+        assertThat(body.get("code")).isEqualTo(200);
+        assertThat(data(body).get("token")).asString().isNotBlank();
+    }
+
+    @Test
+    void logoutInvalidatesTokenAgainstRealRedis() {
+        String token = token(login("13800000000", "admin123"));
+
+        rest.exchange(url("/auth/logout"), HttpMethod.POST,
+                new HttpEntity<>(bearer(token)), String.class);
+        ResponseEntity<String> replay = rest.exchange(url("/auth/me"), HttpMethod.GET,
+                new HttpEntity<>(bearer(token)), String.class);
+
+        assertThat(replay.getStatusCode().value()).isEqualTo(401);
+    }
+
+    @Test
+    void fiveFailuresLockThePhoneAgainstRealRedis() {
+        for (int i = 0; i < 5; i++) {
+            assertThat(login("13900009999", "wrong").get("code")).isEqualTo(401);
+        }
+
+        Map<String, Object> sixth = login("13900009999", "wrong");
+
+        assertThat(sixth.get("code")).isEqualTo(429);
+        assertThat(sixth.get("message")).asString().contains("尝试过于频繁");
+    }
+
+    @Test
+    void lockIsPerPhoneAndDoesNotAffectOthers() {
+        for (int i = 0; i < 5; i++) {
+            login("13900008888", "wrong");
+        }
+
+        assertThat(login("13800000000", "admin123").get("code")).isEqualTo(200);
+    }
+
+    // ---------------- M3 人员与组织 ----------------
+
+    @Test
+    void orgCrudWorksAgainstRealMysql() {
+        String token = adminToken();
+
+        Map<String, Object> dept = data(post("/web/admin/departments", token, Map.of("name", "信息工程学院")));
+        Long deptId = ((Number) dept.get("id")).longValue();
+
+        Map<String, Object> staff = data(post("/web/admin/staff", token,
+                Map.of("name", "张老师", "phone", "13900002001", "personType", 1, "deptId", deptId)));
+
+        assertThat(staff.get("deptName")).isEqualTo("信息工程学院");
+        Map<String, Object> page = data(get("/web/admin/staff?page=1&size=10", token));
+        assertThat(((Number) page.get("total")).intValue()).isEqualTo(1);
+    }
+
+    @Test
+    void syncWorksAgainstRealMysql() {
+        String token = adminToken();
+
+        assertThat(((Number) data(post("/web/admin/org-sync/org", token, null)).get("created")).intValue())
+                .isEqualTo(2);
+        assertThat(((Number) data(post("/web/admin/org-sync/staff", token, null)).get("created")).intValue())
+                .isEqualTo(3);
+
+        Map<String, Object> second = data(post("/web/admin/org-sync/staff", token, null));
+        assertThat(((Number) second.get("created")).intValue()).isZero();
+        assertThat(((Number) second.get("updated")).intValue()).isEqualTo(3);
+        assertThat(staffMapper.selectCount(null)).isEqualTo(3L);
+    }
+
+    @Test
+    void syncDeactivatesMissingStaffAndRevokesRoleAgainstRealMysql() {
+        Long userId = createUserWithRole("13900002099", RoleEnum.TEACHER);
+
+        Staff legacy = new Staff();
+        legacy.setSchoolId(1L);
+        legacy.setName("离职老师");
+        legacy.setPhone("13900002099");
+        legacy.setPersonType(PersonTypeEnum.TEACHER);
+        legacy.setStatus(1);
+        legacy.setSyncSource("SYNC");
+        legacy.setExternalId("T999");
+        legacy.setCreatedAt(LocalDateTime.now());
+        legacy.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(legacy);
+
+        Map<String, Object> result = data(post("/web/admin/org-sync/staff", adminToken(), null));
+
+        assertThat(((Number) result.get("deactivated")).intValue()).isEqualTo(1);
+        assertThat(staffMapper.selectById(legacy.getId()).getStatus()).isZero();
+        assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isZero();
+    }
+
+    private Long createUserWithRole(String phone, RoleEnum role) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setName("测试用户");
+        user.setPassword(passwordEncoder.encode("pass1234"));
+        user.setStatus(1);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.insert(user);
+
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRole(role);
+        userRole.setSchoolId(1L);
+        userRole.setIsDefault(1);
+        userRole.setStatus(1);
+        userRole.setCreatedAt(LocalDateTime.now());
+        userRole.setUpdatedAt(LocalDateTime.now());
+        userRoleMapper.insert(userRole);
+        return user.getId();
+    }
+
+    private void enableDataSyncMock() {
+        IntegrationConfig config = new IntegrationConfig();
+        config.setIntegrationKey("DATA_SYNC");
+        config.setProtocol("MOCK");
+        config.setEnabled(1);
+        config.setStatus(1);
+        config.setTimeoutMs(3000);
+        config.setRetryTimes(0);
+        config.setCreatedAt(LocalDateTime.now());
+        config.setUpdatedAt(LocalDateTime.now());
+        integrationConfigMapper.insert(config);
+    }
+
+    private String adminToken() {
+        Map<String, Object> body = login("13800000001", "admin123");
+        return token(body);
+    }
+
+    private Map<String, Object> login(String phone, String password) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("phone", phone);
+        payload.put("password", password);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<Map> response = rest.exchange(url("/auth/login"), HttpMethod.POST,
+                new HttpEntity<>(payload, headers), Map.class);
+        return response.getBody();
+    }
+
+    private Map<String, Object> get(String path, String token) {
+        return exchange(path, HttpMethod.GET, null, token);
+    }
+
+    private Map<String, Object> post(String path, String token, Object payload) {
+        return exchange(path, HttpMethod.POST, payload, token);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> exchange(String path, HttpMethod method, Object payload, String token) {
+        HttpHeaders headers = bearer(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<Map> response = rest.exchange(url(path), method,
+                new HttpEntity<>(payload, headers), Map.class);
+        return response.getBody();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> data(Map<String, Object> body) {
+        return (Map<String, Object>) body.get("data");
+    }
+
+    private String token(Map<String, Object> body) {
+        return String.valueOf(data(body).get("token"));
+    }
+
+    private HttpHeaders bearer(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        return headers;
+    }
+
+    private String url(String path) {
+        return "http://localhost:" + port + "/api" + path;
+    }
+}
