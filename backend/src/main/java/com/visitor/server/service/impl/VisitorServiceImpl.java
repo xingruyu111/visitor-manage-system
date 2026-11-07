@@ -267,6 +267,17 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
+    public java.util.List<Staff> queryTargets(String keyword) {
+        return staffMapper.selectList(new LambdaQueryWrapper<Staff>()
+                .eq(Staff::getStatus, 1)
+                .and(keyword != null && !keyword.isBlank(), w -> w
+                        .like(Staff::getName, keyword)
+                        .or().like(Staff::getPhone, keyword))
+                .orderByAsc(Staff::getId)
+                .last("LIMIT 20"));
+    }
+
+    @Override
     public java.util.List<VisitorRecord> queryByPlate(String plate) {
         RoleEnum role = UserContext.getRole();
         if (role != RoleEnum.GUARD && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {

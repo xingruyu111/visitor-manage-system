@@ -3,6 +3,7 @@ package com.visitor.server.service;
 import com.visitor.common.core.PageResult;
 import com.visitor.domain.dto.VisitorApplyDTO;
 import com.visitor.domain.dto.VisitorBatchDTO;
+import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 
@@ -29,4 +30,6 @@ public interface VisitorService {
     int expireOverdue();
 
     java.util.List<VisitorRecord> queryByPlate(String plate);
+
+    java.util.List<Staff> queryTargets(String keyword);
 }

@@ -659,6 +659,13 @@ class VisitorModuleIntegrationTest {
 
         assertThat(notificationMapper.selectCount(null)).isZero();
     }
+    @Test
+    void visitorCanSearchTargets() {
+        List<?> targets = (List<?>) exchange("/web/visitor/targets?keyword=张",
+                HttpMethod.GET, null, visitorToken).get("data");
+
+        assertThat(targets).hasSize(1);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

@@ -5,6 +5,24 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/v/home' },
     {
+      path: '/login',
+      name: 'Login',
+      component: () => import('@/views/login/LoginView.vue'),
+      meta: { title: '登录' },
+    },
+    {
+      path: '/v/apply',
+      name: 'VisitorApply',
+      component: () => import('@/views/visitor/ApplyView.vue'),
+      meta: { title: '访客预约' },
+    },
+    {
+      path: '/v/records',
+      name: 'VisitorRecords',
+      component: () => import('@/views/visitor/RecordsView.vue'),
+      meta: { title: '我的预约' },
+    },
+    {
       path: '/v/home',
       name: 'VisitorHome',
       component: () => import('@/views/visitor/HomeView.vue'),

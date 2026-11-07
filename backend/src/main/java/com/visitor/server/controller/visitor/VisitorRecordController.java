@@ -37,6 +37,13 @@ public class VisitorRecordController {
         return Result.success(visitorService.apply(UserContext.getUserId(), dto));
     }
 
+    @Operation(summary = "可预约的被访人")
+    @GetMapping("/targets")
+    public Result<java.util.List<com.visitor.domain.entity.Staff>> targets(
+            @RequestParam(required = false) String keyword) {
+        return Result.success(visitorService.queryTargets(keyword));
+    }
+
     @Operation(summary = "我的预约记录")
     @GetMapping
     public Result<PageResult<VisitorRecord>> myRecords(@RequestParam(defaultValue = "1") int page,
