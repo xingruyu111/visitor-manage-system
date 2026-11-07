@@ -11,6 +11,7 @@
           <el-input v-model="keyword" placeholder="姓名/手机号/被访人" clearable style="width: 220px" @keyup.enter="load(1)" />
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
+        <el-button @click="openBatch">批量直录</el-button>
       </el-form>
 
       <el-table v-loading="loading" :data="rows" border>
@@ -42,6 +43,15 @@
         @current-change="load"
       />
     </el-card>
+
+    <el-dialog v-model="batchVisible" title="批量直录（无需审批，直接发证）" width="560px">
+      <p class="hint">每行一条：姓名,手机号,开始时间,结束时间,事由（时间格式 yyyy-MM-dd HH:mm:ss）</p>
+      <el-input v-model="batchText" type="textarea" :rows="8" placeholder="张三,13900000001,2026-11-10 09:00:00,2026-11-10 11:00:00,业务洽谈" />
+      <template #footer>
+        <el-button @click="batchVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitBatch">提交</el-button>
+      </template>
+    </el-dialog>
 
     <el-drawer v-model="drawer" title="访客详情" size="420px">
       <el-descriptions v-if="current" :column="1" border>
@@ -90,6 +100,9 @@ const status = ref<number | undefined>()
 const keyword = ref('')
 const loading = ref(false)
 const drawer = ref(false)
+const batchVisible = ref(false)
+const batchText = ref('')
+const submitting = ref(false)
 const current = ref<VisitorRecord>()
 
 async function load(targetPage = page.value) {
@@ -108,6 +121,37 @@ async function load(targetPage = page.value) {
   }
 }
 
+function openBatch() {
+  batchText.value = ''
+  batchVisible.value = true
+}
+
+async function submitBatch() {
+  const items = batchText.value
+    .split('\\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, phone, expectedTime, leaveTime, purpose] = line.split(',').map((part) => part.trim())
+      return { name, phone, expectedTime, leaveTime, visitPurpose: purpose }
+    })
+  if (items.length === 0) {
+    ElMessage.warning('请至少填写一行')
+    return
+  }
+  submitting.value = true
+  try {
+    const result = await http.post<{ created: number }>('/web/admin/visitor-records/batch', { items })
+    ElMessage.success(`已直录 ${result.created} 人`)
+    batchVisible.value = false
+    await load(1)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '提交失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
 function openDetail(row: VisitorRecord) {
   current.value = row
   drawer.value = true
@@ -117,6 +161,10 @@ onMounted(() => load(1))
 </script>
 
 <style scoped>
+.hint {
+  color: #909399;
+  font-size: 12px;
+}
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
