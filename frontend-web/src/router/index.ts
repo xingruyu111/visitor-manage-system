@@ -33,6 +33,12 @@ const router = createRouter({
           meta: { title: '账号管理' },
         },
         {
+          path: 'staff',
+          name: 'Staff',
+          component: () => import('@/views/org/StaffView.vue'),
+          meta: { title: '人员管理' },
+        },
+        {
           path: 'notify-config',
           name: 'NotifyConfig',
           component: () => import('@/views/config/NotifyConfigView.vue'),

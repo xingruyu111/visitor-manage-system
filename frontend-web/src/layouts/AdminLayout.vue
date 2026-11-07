@@ -23,6 +23,10 @@
           <el-icon><User /></el-icon>
           <span>账号管理</span>
         </el-menu-item>
+        <el-menu-item index="/staff">
+          <el-icon><UserFilled /></el-icon>
+          <span>人员管理</span>
+        </el-menu-item>
         <el-menu-item index="/approval-flows">
           <el-icon><Share /></el-icon>
           <span>审批流程</span>
@@ -53,7 +57,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
