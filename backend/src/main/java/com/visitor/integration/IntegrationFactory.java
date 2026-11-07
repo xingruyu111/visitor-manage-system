@@ -76,7 +76,7 @@ public class IntegrationFactory {
     }
 
     public TodoMessageClient todoMessage() {
-        return pick(IntegrationKey.TODO_MSG, todoMessageClients, client -> "REST", NoopTodoMessageClient.INSTANCE);
+        return pick(IntegrationKey.TODO_MSG, todoMessageClients, TodoMessageClient::protocol, NoopTodoMessageClient.INSTANCE);
     }
 
     private <T> T pick(IntegrationKey key, List<T> implementations,

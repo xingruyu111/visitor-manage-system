@@ -7,6 +7,11 @@ import java.util.List;
  */
 public interface TodoMessageClient {
 
+    /** 实现协议：REST/MOCK，与集成配置的 protocol 对应。 */
+    default String protocol() {
+        return "REST";
+    }
+
     boolean isConfigured();
 
     void pushTodo(TodoItem item);
