@@ -25,6 +25,7 @@ import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.NotificationMapper;
+import com.visitor.server.mapper.ParentSlotMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AccessCheckService;
@@ -97,6 +98,9 @@ class VisitorModuleIntegrationTest {
     private FormFieldMapper formFieldMapper;
 
     @Autowired
+    private ParentSlotMapper parentSlotMapper;
+
+    @Autowired
     private VisitorPassIssuer passIssuer;
 
     @Autowired
@@ -132,7 +136,9 @@ class VisitorModuleIntegrationTest {
         accessListMapper.delete(null);
         notificationMapper.delete(null);
         formFieldMapper.delete(null);
+        parentSlotMapper.delete(null);
         formFieldMapper.delete(null);
+        parentSlotMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -558,6 +564,33 @@ class VisitorModuleIntegrationTest {
         flow.setCreatedAt(LocalDateTime.now());
         flow.setUpdatedAt(LocalDateTime.now());
         flowMapper.insert(flow);
+    }
+    @Test
+    void parentMustApplyWithinConfiguredSlot() {
+        java.time.LocalDate monday = java.time.LocalDate.now()
+                .with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
+        com.visitor.domain.entity.ParentSlot slot = new com.visitor.domain.entity.ParentSlot();
+        slot.setVisitorPhone("13800003001");
+        slot.setWeekday(1);
+        slot.setStartTime(java.time.LocalTime.of(8, 0));
+        slot.setEndTime(java.time.LocalTime.of(18, 0));
+        slot.setEffectiveFrom(monday.minusDays(7));
+        slot.setEffectiveTo(monday.plusDays(7));
+        slot.setStatus(1);
+        parentSlotMapper.insert(slot);
+
+        String okBody = """
+                {"targetId":%d,"visitorType":"PARENT","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, monday.atTime(9, 0).format(FORMAT), monday.atTime(10, 0).format(FORMAT));
+        assertThat(exchange("/web/visitor/records", HttpMethod.POST, okBody, visitorToken).get("code")).isEqualTo(200);
+
+        java.time.LocalDateTime tuesday = monday.plusDays(1).atTime(9, 0);
+        String badBody = """
+                {"targetId":%d,"visitorType":"PARENT","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, tuesday.format(FORMAT), tuesday.plusHours(1).format(FORMAT));
+        Map<String, Object> bad = exchange("/web/visitor/records", HttpMethod.POST, badBody, visitorToken);
+        assertThat(bad.get("code")).isEqualTo(400);
+        assertThat(bad.get("message")).asString().contains("家长固定时段");
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

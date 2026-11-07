@@ -19,6 +19,7 @@ import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.VisitorService;
 import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.FormFieldService;
+import com.visitor.server.service.ParentSlotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.RoleEnum;
@@ -46,12 +47,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final AccessCheckService accessCheckService;
     private final NotificationService notificationService;
     private final FormFieldService formFieldService;
+    private final ParentSlotService parentSlotService;
     private final ObjectMapper objectMapper;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -62,6 +64,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.accessCheckService = accessCheckService;
         this.notificationService = notificationService;
         this.formFieldService = formFieldService;
+        this.parentSlotService = parentSlotService;
         this.objectMapper = objectMapper;
     }
 
@@ -88,6 +91,10 @@ public class VisitorServiceImpl implements VisitorService {
 
         String visitorType = dto.getVisitorType() == null || dto.getVisitorType().isBlank()
                 ? "NORMAL" : dto.getVisitorType().trim().toUpperCase();
+
+        if ("PARENT".equals(visitorType)) {
+            parentSlotService.validate(user.getPhone(), dto.getExpectedTime(), dto.getLeaveTime());
+        }
 
         VisitorRecord record = new VisitorRecord();
         record.setSchoolId(target.getSchoolId());

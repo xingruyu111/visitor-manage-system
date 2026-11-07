@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-010）
+-- 容器测试用 MySQL 结构（001-012）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -434,3 +434,32 @@ CREATE TABLE IF NOT EXISTS vst_form_field (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='差异化表单字段';
 
 ALTER TABLE vst_visitor_record ADD COLUMN extra_json TEXT NULL COMMENT '差异化表单数据';
+
+
+-- ============================================================
+-- P4：部门发起批量预约（保卫处审批）流程种子
+-- ============================================================
+
+INSERT IGNORE INTO vst_approval_flow (flow_code, name, version, status, definition_json, created_at, updated_at) VALUES
+('VISIT_DEPT_BATCH', '部门批量预约审批', 1, 1,
+ '{"code":"VISIT_DEPT_BATCH","name":"部门批量预约审批","timeoutHours":24,"nodes":[{"seq":1,"name":"保卫处审批","assignee":"SECURITY"}]}', NOW(), NOW());
+
+
+-- ============================================================
+-- P4：学生家长固定时段预约
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vst_parent_slot (
+  id             BIGINT      NOT NULL AUTO_INCREMENT,
+  visitor_phone  VARCHAR(20) NOT NULL,
+  weekday        TINYINT     NULL COMMENT '1-7，空表示每天',
+  start_time     TIME        NOT NULL,
+  end_time       TIME        NOT NULL,
+  effective_from DATE        NULL,
+  effective_to   DATE        NULL,
+  status         TINYINT     NOT NULL DEFAULT 1,
+  created_at     DATETIME    NULL,
+  updated_at     DATETIME    NULL,
+  PRIMARY KEY (id),
+  KEY idx_parent_slot_phone (visitor_phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家长固定时段';

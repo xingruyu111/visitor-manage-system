@@ -317,3 +317,17 @@ CREATE TABLE vst_form_field (
   PRIMARY KEY (id),
   CONSTRAINT uk_form_field UNIQUE (visitor_type, field_key)
 );
+DROP TABLE IF EXISTS vst_parent_slot;
+CREATE TABLE vst_parent_slot (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  visitor_phone VARCHAR(20) NOT NULL,
+  weekday TINYINT,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  effective_from DATE,
+  effective_to DATE,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id)
+);
