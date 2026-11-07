@@ -119,7 +119,7 @@ public class VisitorServiceImpl implements VisitorService {
                 new LambdaQueryWrapper<User>().eq(User::getPhone, target.getPhone()));
         if (targetUser != null) {
             notificationService.notifyUser(targetUser.getId(), "新的访客申请",
-                    record.getVisitorName() + " 申请入校，请及时审批", "APPROVAL",
+                    record.getVisitorName() + " 申请入校，请及时审批", "APPROVAL_RESULT",
                     "VISITOR_RECORD", record.getId());
         }
 

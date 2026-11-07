@@ -8,6 +8,7 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.Notification;
 import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.service.NotificationService;
+import com.visitor.server.service.NotifyConfigService;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.todo.TodoMessageClient;
 import org.springframework.stereotype.Service;
@@ -21,16 +22,21 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper mapper;
     private final IntegrationFactory integrationFactory;
     private final WxMpNotifier wxMpNotifier;
+    private final NotifyConfigService notifyConfigService;
 
-    public NotificationServiceImpl(NotificationMapper mapper, IntegrationFactory integrationFactory, WxMpNotifier wxMpNotifier) {
+    public NotificationServiceImpl(NotificationMapper mapper, IntegrationFactory integrationFactory, WxMpNotifier wxMpNotifier, NotifyConfigService notifyConfigService) {
         this.mapper = mapper;
         this.integrationFactory = integrationFactory;
         this.wxMpNotifier = wxMpNotifier;
+        this.notifyConfigService = notifyConfigService;
     }
 
     @Override
     public void notifyUser(Long userId, String title, String content, String type, String bizType, Long bizId) {
         if (userId == null) {
+            return;
+        }
+        if (type != null && !notifyConfigService.isEnabled(type)) {
             return;
         }
         Notification notification = new Notification();
@@ -49,7 +55,7 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception ignored) {
             // 未配置统一待办时静默降级
         }
-        if ("APPROVAL".equals(notification.getType())) {
+        if ("APPROVAL_RESULT".equals(notification.getType())) {
             wxMpNotifier.sendAuditResult(userId, title, content);
         }
     }

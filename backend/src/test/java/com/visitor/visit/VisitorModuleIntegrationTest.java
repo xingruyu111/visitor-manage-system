@@ -25,6 +25,7 @@ import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.NotificationMapper;
+import com.visitor.server.mapper.NotifyConfigMapper;
 import com.visitor.server.mapper.ParentSlotMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
@@ -101,6 +102,9 @@ class VisitorModuleIntegrationTest {
     private ParentSlotMapper parentSlotMapper;
 
     @Autowired
+    private NotifyConfigMapper notifyConfigMapper;
+
+    @Autowired
     private VisitorPassIssuer passIssuer;
 
     @Autowired
@@ -138,8 +142,10 @@ class VisitorModuleIntegrationTest {
         notificationMapper.delete(null);
         formFieldMapper.delete(null);
         parentSlotMapper.delete(null);
+        notifyConfigMapper.delete(null);
         formFieldMapper.delete(null);
         parentSlotMapper.delete(null);
+        notifyConfigMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -636,6 +642,22 @@ class VisitorModuleIntegrationTest {
 
         assertThat(recordMapper.selectById(record.getId()).getStatus()).isEqualTo(6);
         assertThat(passMapper.selectById(pass.getId()).getStatus()).isEqualTo(2);
+    }
+    @Test
+    void disabledNotifyTypeSuppressesNotifications() {
+        com.visitor.domain.entity.NotifyConfig config = new com.visitor.domain.entity.NotifyConfig();
+        config.setNotifyType("APPROVAL_RESULT");
+        config.setEnabled(0);
+        config.setChannels("SITE");
+        notifyConfigMapper.insert(config);
+
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+
+        assertThat(notificationMapper.selectCount(null)).isZero();
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

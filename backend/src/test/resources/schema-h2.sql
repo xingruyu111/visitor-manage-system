@@ -334,3 +334,13 @@ CREATE TABLE vst_parent_slot (
   updated_at DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_notify_config;
+CREATE TABLE vst_notify_config (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  notify_type VARCHAR(32) NOT NULL,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  channels VARCHAR(64) NOT NULL DEFAULT 'SITE',
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_notify_type UNIQUE (notify_type)
+);

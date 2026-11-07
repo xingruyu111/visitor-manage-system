@@ -47,14 +47,14 @@ public class VisitorApprovalListener {
             recordMapper.updateById(record);
             passIssuer.issue(record);
             notificationService.notifyUser(record.getVisitorUserId(), "预约已通过",
-                    "您的访客预约已通过，请在「我的预约」中查看通行码", "APPROVAL", "VISITOR_RECORD", record.getId());
+                    "您的访客预约已通过，请在「我的预约」中查看通行码", "APPROVAL_RESULT", "VISITOR_RECORD", record.getId());
             log.info("访客预约通过并签发凭证: recordId={}", record.getId());
         } else if (ApprovalStatuses.REJECTED.equals(event.status())) {
             record.setStatus(2);
             record.setUpdatedAt(LocalDateTime.now());
             recordMapper.updateById(record);
             notificationService.notifyUser(record.getVisitorUserId(), "预约被驳回",
-                    "您的访客预约未通过，请查看详情或联系被访人", "APPROVAL", "VISITOR_RECORD", record.getId());
+                    "您的访客预约未通过，请查看详情或联系被访人", "APPROVAL_RESULT", "VISITOR_RECORD", record.getId());
             log.info("访客预约被驳回: recordId={}", record.getId());
         }
     }
