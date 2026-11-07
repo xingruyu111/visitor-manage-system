@@ -198,6 +198,29 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void disabledAfterLoginIsRejected() {
+        String token = token(login("13700000010", PASSWORD));
+        User user = userMapper.selectById(superUserId);
+        user.setStatus(0);
+        userMapper.updateById(user);
+
+        ResponseEntity<String> response = get("/auth/me", token);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+    }
+
+    @Test
+    void revokedRoleAfterLoginIsRejected() {
+        String token = token(login("13700000010", PASSWORD));
+        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, superUserId));
+
+        ResponseEntity<String> response = get("/auth/me", token);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("未分配角色");
+    }
+
+    @Test
     void ssoCallbackFailsWhenNotConfigured() {
         ResponseEntity<String> response = rest.getForEntity(
                 url("/auth/sso/callback?code=abc&redirectUri=http://localhost/callback"), String.class);
