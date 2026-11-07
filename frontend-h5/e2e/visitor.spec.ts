@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeAll(async ({ request }) => {
+  const admin = await request.post('/api/auth/login', { data: { phone: '13800000000', password: 'admin123' } })
+  const token = (await admin.json()).data.token
+  await request.post('/api/web/websuper/users', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { phone: '13911110001', name: 'E2E老师', role: 5 },
+  })
+})
+
 test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.goto('/login')
 
@@ -11,9 +20,9 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.getByText('预约申请').click()
   await expect(page).toHaveURL(/\/v\/apply/)
 
-  await page.getByPlaceholder('输入姓名或手机号搜索').fill('张老师')
+  await page.getByPlaceholder('输入姓名或手机号搜索').fill('E2E')
   await page.getByRole('button', { name: '搜索' }).click()
-  await expect(page.getByText('张老师').first()).toBeVisible()
+  await expect(page.getByText('E2E老师').first()).toBeVisible()
   await page.locator('.van-radio').first().click()
 
   await page.getByRole('button', { name: '提交申请' }).click()

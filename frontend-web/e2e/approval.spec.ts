@@ -1,6 +1,23 @@
 import { expect, test } from '@playwright/test'
 
 const TEACHER = { phone: '13911110001', password: '123456' }
+const ADMIN = { phone: '13800000000', password: 'admin123' }
+let TARGET_ID = 0
+
+test.beforeAll(async ({ request }) => {
+  const adminLogin = await request.post('/api/auth/login', { data: ADMIN })
+  const adminToken = (await adminLogin.json()).data.token
+  const adminAuth = { Authorization: `Bearer ${adminToken}` }
+  await request.post('/api/web/websuper/users', {
+    headers: adminAuth,
+    data: { phone: TEACHER.phone, name: 'E2E老师', role: 5 },
+  })
+  const staff = await request.post('/api/web/admin/staff', {
+    headers: adminAuth,
+    data: { name: 'E2E老师', phone: TEACHER.phone, personType: 1 },
+  })
+  TARGET_ID = (await staff.json()).data.id
+})
 
 async function apiLogin(request: import('@playwright/test').APIRequestContext) {
   const response = await request.post('/api/auth/login', { data: TEACHER })
@@ -28,7 +45,7 @@ test('审批人通过申请后记录变为已通过', async ({ page, request }) 
   const applied = await request.post('/api/web/visitor/records', {
     headers: auth,
     data: {
-      targetId: 1,
+      targetId: TARGET_ID,
       visitorType: 'NORMAL',
       visitPurpose: 'E2E审批',
       expectedTime: format(start),
