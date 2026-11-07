@@ -64,6 +64,21 @@ mvn test                     # 单测 + 集成测试（H2，不依赖外部服�
 mvn clean package -DskipTests
 ```
 
+### 容器化测试（真实 MySQL + Redis）
+
+`ContainerizedAuthIntegrationTest` 用 Testcontainers 起 `mysql:8.0` 与 `redis:7-alpine`，
+在没有 Docker 的环境自动跳过；有 Docker 时随 `mvn test` 一起执行。
+
+```bash
+mvn -Dtest=ContainerizedAuthIntegrationTest test
+```
+
+若 Docker 较新（如 29.x，要求 API 版本 ≥ 1.40），需显式指定 API 版本：
+
+```bash
+DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedAuthIntegrationTest test
+```
+
 ## 接口
 
 | 方法 | 路径 | 说明 |

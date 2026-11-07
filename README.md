@@ -92,7 +92,7 @@ npm run dev                   # http://localhost:5173
 - 鉴权：`AuthInterceptor` 校验令牌、黑名单、账号状态、角色归属与学校上下文；`/web/websuper/**` 仅 SUPER、`/web/admin/**` 仅 ADMIN/SUPER；支持 `X-Current-Role` 在当前用户角色内切换。
 - 登录限流：同一手机号连续失败 5 次锁定 10 分钟（Redis 计数，可通过 `LOGIN_MAX_ATTEMPTS` / `LOGIN_LOCK_MINUTES` 调整）。
 - 演示账号：`13800000000 / admin123`（超管）、`13800000001 / admin123`（校管，school_id=1）——上线前必须修改。
-- 测试：61 个用例，行覆盖 90%。
+- 测试：97 个用例（含 4 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
 **下一阶段**：M3 人员与组织（人员类型、班级、辅导员/班主任、数据中台同步）。
 
