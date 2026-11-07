@@ -275,6 +275,45 @@ class VisitorModuleIntegrationTest {
         assertThat(recordMapper.selectById(record.getId()).getStatus()).isEqualTo(6);
     }
 
+    @Test
+    void applyRejectsInvalidTargetAndTime() {
+        Map<String, Object> missing = exchange("/web/visitor/records", HttpMethod.POST,
+                "{\"targetId\":999999,\"expectedTime\":\"2099-01-01 10:00:00\",\"leaveTime\":\"2099-01-01 12:00:00\"}",
+                visitorToken);
+        assertThat(missing.get("code")).isEqualTo(400);
+
+        Map<String, Object> inverted = exchange("/web/visitor/records", HttpMethod.POST,
+                "{\"targetId\":" + teacherStaffId + ",\"expectedTime\":\"2099-01-01 12:00:00\",\"leaveTime\":\"2099-01-01 10:00:00\"}",
+                visitorToken);
+        assertThat(inverted.get("code")).isEqualTo(400);
+        assertThat(inverted.get("message")).asString().contains("离校时间");
+    }
+
+    @Test
+    void passIsNotAvailableBeforeApproval() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Long recordId = number(data(applied).get("recordId"));
+
+        Map<String, Object> pass = exchange("/web/visitor/records/" + recordId + "/pass",
+                HttpMethod.GET, null, visitorToken);
+
+        assertThat(pass.get("code")).isEqualTo(404);
+    }
+
+    @Test
+    void cancelAfterRejectIsRejected() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 1);
+        Long recordId = number(data(applied).get("recordId"));
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/reject", HttpMethod.POST, null, teacherToken);
+
+        Map<String, Object> cancel = exchange("/web/visitor/records/" + recordId + "/cancel",
+                HttpMethod.POST, null, visitorToken);
+
+        assertThat(cancel.get("code")).isEqualTo(400);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

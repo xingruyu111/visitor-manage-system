@@ -214,6 +214,28 @@ class ApprovalEngineTest {
                 .isInstanceOf(BizException.class);
     }
 
+    @Test
+    void flowDetailAndValidationEdgeCases() {
+        assertThat(flowService.detail("VISIT_DEFAULT", 1)).isNotNull();
+        assertThatThrownBy(() -> flowService.detail("VISIT_DEFAULT", 99)).hasMessageContaining("流程版本不存在");
+        assertThat(flowService.validate("UNKNOWN")).containsExactly("流程不存在");
+        assertThatThrownBy(() -> flowService.preview("UNKNOWN", teacherStaffId))
+                .isInstanceOf(BizException.class);
+        assertThatThrownBy(() -> flowService.saveDraft("VISIT_DEFAULT",
+                new FlowDefinition("OTHER", "x", 24, List.of()), 1L))
+                .hasMessageContaining("流程编码与路径不一致");
+    }
+
+    @Test
+    void draftUpdateKeepsSameVersion() {
+        FlowDefinition definition = new FlowDefinition("VISIT_DEFAULT", "v2", 24, List.of(
+                new FlowDefinition.Node(1, "被访人审批", "TARGET", null)));
+        ApprovalFlow first = flowService.saveDraft("VISIT_DEFAULT", definition, 1L);
+        ApprovalFlow second = flowService.saveDraft("VISIT_DEFAULT", definition, 1L);
+
+        assertThat(second.getId()).isEqualTo(first.getId());
+        assertThat(second.getVersion()).isEqualTo(first.getVersion());
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return engine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));
