@@ -1,0 +1,227 @@
+package com.visitor.server.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.visitor.common.core.PageResult;
+import com.visitor.common.exception.BizException;
+import com.visitor.domain.dto.VisitorApplyDTO;
+import com.visitor.domain.dto.VisitorBatchDTO;
+import com.visitor.domain.entity.ApprovalInstance;
+import com.visitor.domain.entity.Staff;
+import com.visitor.domain.entity.User;
+import com.visitor.domain.entity.VisitorPass;
+import com.visitor.domain.entity.VisitorRecord;
+import com.visitor.server.mapper.ApprovalInstanceMapper;
+import com.visitor.server.mapper.StaffMapper;
+import com.visitor.server.mapper.UserMapper;
+import com.visitor.server.mapper.VisitorPassMapper;
+import com.visitor.server.mapper.VisitorRecordMapper;
+import com.visitor.server.service.VisitorService;
+import com.visitor.workflow.ApprovalEngine;
+import com.visitor.workflow.ApprovalStatuses;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+@Service
+public class VisitorServiceImpl implements VisitorService {
+
+    private final UserMapper userMapper;
+    private final StaffMapper staffMapper;
+    private final VisitorRecordMapper recordMapper;
+    private final VisitorPassMapper passMapper;
+    private final VisitorPassIssuer passIssuer;
+    private final ApprovalEngine approvalEngine;
+    private final ApprovalInstanceMapper instanceMapper;
+
+    public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
+                              VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
+                              VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
+                              ApprovalInstanceMapper instanceMapper) {
+        this.userMapper = userMapper;
+        this.staffMapper = staffMapper;
+        this.recordMapper = recordMapper;
+        this.passMapper = passMapper;
+        this.passIssuer = passIssuer;
+        this.approvalEngine = approvalEngine;
+        this.instanceMapper = instanceMapper;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> apply(Long userId, VisitorApplyDTO dto) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(401, "用户不存在");
+        }
+        Staff target = staffMapper.selectById(dto.getTargetId());
+        if (target == null || !Integer.valueOf(1).equals(target.getStatus())) {
+            throw new BizException(400, "被访人不存在或已停用");
+        }
+        validateTime(dto.getExpectedTime(), dto.getLeaveTime());
+        assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
+
+        String visitorType = dto.getVisitorType() == null || dto.getVisitorType().isBlank()
+                ? "NORMAL" : dto.getVisitorType().trim().toUpperCase();
+
+        VisitorRecord record = new VisitorRecord();
+        record.setSchoolId(target.getSchoolId());
+        record.setVisitorUserId(userId);
+        record.setVisitorName(user.getName() == null ? "访客" : user.getName());
+        record.setVisitorPhone(user.getPhone());
+        record.setIdCard(dto.getIdCard());
+        record.setVisitorType(visitorType);
+        record.setTargetType(target.getPersonType() == null ? null : target.getPersonType().name());
+        record.setTargetId(target.getId());
+        record.setTargetName(target.getName());
+        record.setVisitPurpose(dto.getVisitPurpose());
+        record.setExpectedTime(dto.getExpectedTime());
+        record.setLeaveTime(dto.getLeaveTime());
+        record.setStatus(0);
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        recordMapper.insert(record);
+
+        ApprovalInstance instance = approvalEngine.start(new ApprovalEngine.StartCommand(
+                "VISITOR_RECORD", record.getId(), record.getSchoolId(), userId,
+                visitorType, record.getTargetType(), record.getTargetId()));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("recordId", record.getId());
+        result.put("approvalInstanceId", instance.getId());
+        result.put("status", record.getStatus());
+        return result;
+    }
+
+    @Override
+    public PageResult<VisitorRecord> myRecords(Long userId, int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Page<VisitorRecord> result = recordMapper.selectPage(new Page<>(safePage, safeSize),
+                new LambdaQueryWrapper<VisitorRecord>()
+                        .eq(VisitorRecord::getVisitorUserId, userId)
+                        .orderByDesc(VisitorRecord::getId));
+        return PageResult.of(result.getTotal(), safePage, safeSize, result.getRecords());
+    }
+
+    @Override
+    public VisitorRecord detail(Long userId, Long id) {
+        VisitorRecord record = recordMapper.selectById(id);
+        if (record == null || !Objects.equals(record.getVisitorUserId(), userId)) {
+            throw new BizException(404, "记录不存在");
+        }
+        return record;
+    }
+
+    @Override
+    public VisitorPass pass(Long userId, Long recordId) {
+        detail(userId, recordId);
+        VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        if (pass == null) {
+            throw new BizException(404, "凭证尚未生成");
+        }
+        return pass;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancel(Long userId, Long id) {
+        VisitorRecord record = detail(userId, id);
+        if (record.getStatus() != 0 && record.getStatus() != 1) {
+            throw new BizException(400, "当前状态不可取消");
+        }
+        record.setStatus(5);
+        record.setUpdatedAt(LocalDateTime.now());
+        recordMapper.updateById(record);
+        passIssuer.revoke(record.getId());
+
+        ApprovalInstance instance = instanceMapper.selectOne(new LambdaQueryWrapper<ApprovalInstance>()
+                .eq(ApprovalInstance::getBizType, "VISITOR_RECORD")
+                .eq(ApprovalInstance::getBizId, record.getId()));
+        if (instance != null && ApprovalStatuses.RUNNING.equals(instance.getStatus())) {
+            approvalEngine.cancel(instance.getId(), "访客取消");
+        }
+    }
+
+    @Override
+    public PageResult<VisitorRecord> adminPage(Long schoolId, Integer status, String keyword,
+                                               int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Page<VisitorRecord> result = recordMapper.selectPage(new Page<>(safePage, safeSize),
+                new LambdaQueryWrapper<VisitorRecord>()
+                        .eq(VisitorRecord::getSchoolId, schoolId)
+                        .eq(status != null, VisitorRecord::getStatus, status)
+                        .and(keyword != null && !keyword.isBlank(), w -> w
+                                .like(VisitorRecord::getVisitorName, keyword)
+                                .or().like(VisitorRecord::getVisitorPhone, keyword)
+                                .or().like(VisitorRecord::getTargetName, keyword))
+                        .orderByDesc(VisitorRecord::getId));
+        return PageResult.of(result.getTotal(), safePage, safeSize, result.getRecords());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchCreate(Long schoolId, VisitorBatchDTO dto, Long operatorId) {
+        int created = 0;
+        for (VisitorBatchDTO.Item item : dto.getItems()) {
+            validateTime(item.getExpectedTime(), item.getLeaveTime());
+            VisitorRecord record = new VisitorRecord();
+            record.setSchoolId(schoolId);
+            record.setVisitorUserId(operatorId);
+            record.setVisitorName(item.getName().trim());
+            record.setVisitorPhone(item.getPhone());
+            record.setIdCard(item.getIdCard());
+            record.setVisitorType("NORMAL");
+            record.setVisitPurpose(item.getVisitPurpose());
+            record.setExpectedTime(item.getExpectedTime());
+            record.setLeaveTime(item.getLeaveTime());
+            record.setStatus(1);
+            record.setCreatedAt(LocalDateTime.now());
+            record.setUpdatedAt(LocalDateTime.now());
+            recordMapper.insert(record);
+            passIssuer.issue(record);
+            created++;
+        }
+        return created;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int expireOverdue() {
+        VisitorRecord update = new VisitorRecord();
+        update.setStatus(6);
+        update.setUpdatedAt(LocalDateTime.now());
+        return recordMapper.update(update, new LambdaQueryWrapper<VisitorRecord>()
+                .in(VisitorRecord::getStatus, 0, 1, 2)
+                .lt(VisitorRecord::getLeaveTime, LocalDateTime.now()));
+    }
+
+    private void validateTime(LocalDateTime expected, LocalDateTime leave) {
+        if (expected == null || leave == null) {
+            throw new BizException(400, "到访时间不能为空");
+        }
+        if (!leave.isAfter(expected)) {
+            throw new BizException(400, "离校时间必须晚于到访时间");
+        }
+        if (leave.isBefore(LocalDateTime.now())) {
+            throw new BizException(400, "离校时间已过");
+        }
+    }
+
+    private void assertNoOverlap(Long userId, LocalDateTime expected, LocalDateTime leave) {
+        Long overlap = recordMapper.selectCount(new LambdaQueryWrapper<VisitorRecord>()
+                .eq(VisitorRecord::getVisitorUserId, userId)
+                .in(VisitorRecord::getStatus, 0, 1)
+                .lt(VisitorRecord::getExpectedTime, leave)
+                .gt(VisitorRecord::getLeaveTime, expected));
+        if (overlap != null && overlap > 0) {
+            throw new BizException(400, "同一时段已有预约，请勿重复提交");
+        }
+    }
+}

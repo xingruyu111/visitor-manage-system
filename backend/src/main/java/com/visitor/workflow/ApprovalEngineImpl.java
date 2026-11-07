@@ -15,6 +15,7 @@ import com.visitor.server.mapper.ApprovalFlowMapper;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
 import com.visitor.server.mapper.ApprovalTaskMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,16 +36,18 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     private final ApprovalTaskMapper taskMapper;
     private final AssigneeResolver assigneeResolver;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ApprovalEngineImpl(ApprovalFlowMapper flowMapper, ApprovalRuleMapper ruleMapper,
                               ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper,
-                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper) {
+                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher) {
         this.flowMapper = flowMapper;
         this.ruleMapper = ruleMapper;
         this.instanceMapper = instanceMapper;
         this.taskMapper = taskMapper;
         this.assigneeResolver = assigneeResolver;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -162,7 +165,9 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         if (instance == null) {
             throw new BizException(404, "审批实例不存在");
         }
-        checkSchoolScope(instance.getSchoolId());
+        if (!Objects.equals(instance.getApplicantId(), UserContext.getUserId())) {
+            checkSchoolScope(instance.getSchoolId());
+        }
         if (!ApprovalStatuses.RUNNING.equals(instance.getStatus())) {
             throw new BizException(400, "审批已结束，无法取消");
         }
@@ -285,6 +290,8 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         instance.setEndedAt(LocalDateTime.now());
         instance.setUpdatedAt(LocalDateTime.now());
         instanceMapper.updateById(instance);
+        eventPublisher.publishEvent(new ApprovalCompletedEvent(instance.getId(), instance.getBizType(),
+                instance.getBizId(), instance.getSchoolId(), status));
     }
 
     private void skipPending(Long instanceId) {

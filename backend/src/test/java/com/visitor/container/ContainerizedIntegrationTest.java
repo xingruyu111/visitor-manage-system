@@ -1,6 +1,18 @@
 package com.visitor.container;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.visitor.domain.entity.ApprovalFlow;
+import com.visitor.domain.entity.ApprovalRule;
+import com.visitor.domain.entity.ApprovalTask;
+import com.visitor.domain.entity.VisitorPass;
+import com.visitor.domain.entity.VisitorRecord;
+import com.visitor.server.mapper.ApprovalFlowMapper;
+import com.visitor.server.mapper.ApprovalRuleMapper;
+import com.visitor.server.mapper.ApprovalTaskMapper;
+import com.visitor.server.mapper.VisitorPassMapper;
+import com.visitor.server.mapper.VisitorRecordMapper;
+import com.visitor.security.JwtUtil;
+import java.time.format.DateTimeFormatter;
 import com.github.dockerjava.api.model.HostConfig;
 import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
@@ -38,6 +50,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,6 +121,23 @@ class ContainerizedIntegrationTest {
     @Autowired
     private UserRoleMapper userRoleMapper;
 
+    @Autowired
+    private ApprovalFlowMapper approvalFlowMapper;
+
+    @Autowired
+    private ApprovalRuleMapper approvalRuleMapper;
+
+    @Autowired
+    private ApprovalTaskMapper approvalTaskMapper;
+
+    @Autowired
+    private VisitorRecordMapper visitorRecordMapper;
+
+    @Autowired
+    private VisitorPassMapper visitorPassMapper;
+
+    @Autowired
+    private JwtUtil jwtUtil;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -219,6 +249,93 @@ class ContainerizedIntegrationTest {
                 .eq(UserRole::getUserId, userId)).get(0).getStatus()).isZero();
     }
 
+    @Test
+    void visitorFlowFromApplyToPassWorksAgainstRealMysql() {
+        Long teacherUserId = createUserWithRole("13900005001", RoleEnum.TEACHER);
+        Staff teacher = new Staff();
+        teacher.setSchoolId(1L);
+        teacher.setName("张老师");
+        teacher.setPhone("13900005001");
+        teacher.setPersonType(PersonTypeEnum.TEACHER);
+        teacher.setStatus(1);
+        teacher.setSyncSource("LOCAL");
+        teacher.setCreatedAt(LocalDateTime.now());
+        teacher.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(teacher);
+        insertApprovalFlowAndRule();
+
+        Long visitorUserId = createUserWithRole("13900005002", RoleEnum.VISITOR);
+        String visitorToken = jwtUtil.generate(visitorUserId, "访客", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null);
+        String teacherToken = jwtUtil.generate(teacherUserId, "张老师", List.of(RoleEnum.TEACHER), RoleEnum.TEACHER, 1L);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        Map<String, Object> applied = data(post("/web/visitor/records", visitorToken, Map.of(
+                "targetId", teacher.getId(),
+                "visitorType", "NORMAL",
+                "visitPurpose", "业务洽谈",
+                "expectedTime", formatter.format(LocalDateTime.now().plusDays(1)),
+                "leaveTime", formatter.format(LocalDateTime.now().plusDays(1).plusHours(2)))));
+
+        Long recordId = ((Number) applied.get("recordId")).longValue();
+        Long instanceId = ((Number) applied.get("approvalInstanceId")).longValue();
+        ApprovalTask task = approvalTaskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        assertThat(task.getAssigneeId()).isEqualTo(teacherUserId);
+
+        exchange("/web/approval/tasks/" + task.getId() + "/approve?comment=ok",
+                HttpMethod.POST, null, teacherToken);
+
+        assertThat(visitorRecordMapper.selectById(recordId).getStatus()).isEqualTo(1);
+        VisitorPass pass = visitorPassMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        assertThat(pass).isNotNull();
+        assertThat(pass.getQrToken()).isNotBlank();
+    }
+
+    @Test
+    void batchCreateIssuesPassesAgainstRealMysql() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String body = """
+                {"items":[
+                  {"name":"访客A","phone":"13900006001","expectedTime":"%s","leaveTime":"%s"},
+                  {"name":"访客B","phone":"13900006002","expectedTime":"%s","leaveTime":"%s"}
+                ]}
+                """.formatted(formatter.format(LocalDateTime.now().plusDays(1)),
+                formatter.format(LocalDateTime.now().plusDays(1).plusHours(2)),
+                formatter.format(LocalDateTime.now().plusDays(2)),
+                formatter.format(LocalDateTime.now().plusDays(2).plusHours(2)));
+
+        Map<String, Object> result = exchange("/web/admin/visitor-records/batch",
+                HttpMethod.POST, body, adminToken());
+
+        assertThat(((Number) data(result).get("created")).intValue()).isEqualTo(2);
+        assertThat(visitorRecordMapper.selectCount(null)).isEqualTo(2L);
+        assertThat(visitorPassMapper.selectCount(null)).isEqualTo(2L);
+    }
+
+    private void insertApprovalFlowAndRule() {
+        approvalFlowMapper.delete(null);
+        approvalRuleMapper.delete(null);
+        ApprovalFlow flow = new ApprovalFlow();
+        flow.setFlowCode("VISIT_DEFAULT");
+        flow.setName("默认访客流程");
+        flow.setVersion(1);
+        flow.setStatus(1);
+        flow.setDefinitionJson("{\"code\":\"VISIT_DEFAULT\",\"name\":\"默认访客流程\",\"timeoutHours\":24,"
+                + "\"nodes\":[{\"seq\":1,\"name\":\"被访人审批\",\"assignee\":\"TARGET\"}]}");
+        flow.setCreatedAt(LocalDateTime.now());
+        flow.setUpdatedAt(LocalDateTime.now());
+        approvalFlowMapper.insert(flow);
+
+        ApprovalRule rule = new ApprovalRule();
+        rule.setTargetType("TEACHER");
+        rule.setFlowCode("VISIT_DEFAULT");
+        rule.setPriority(10);
+        rule.setStatus(1);
+        rule.setCreatedAt(LocalDateTime.now());
+        rule.setUpdatedAt(LocalDateTime.now());
+        approvalRuleMapper.insert(rule);
+    }
     private Long createUserWithRole(String phone, RoleEnum role) {
         User user = new User();
         user.setPhone(phone);

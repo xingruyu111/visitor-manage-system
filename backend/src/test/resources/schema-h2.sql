@@ -202,3 +202,44 @@ CREATE TABLE vst_approval_task (
   updated_at DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_visitor_record;
+CREATE TABLE vst_visitor_record (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  visitor_user_id BIGINT NOT NULL,
+  visitor_name VARCHAR(64) NOT NULL,
+  visitor_phone VARCHAR(20),
+  id_card VARCHAR(32),
+  visitor_type VARCHAR(32) NOT NULL DEFAULT 'NORMAL',
+  target_type VARCHAR(32),
+  target_id BIGINT,
+  target_name VARCHAR(64),
+  visit_purpose VARCHAR(255),
+  expected_time DATETIME NOT NULL,
+  leave_time DATETIME NOT NULL,
+  status TINYINT NOT NULL DEFAULT 0,
+  reject_reason VARCHAR(255),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id)
+);
+
+DROP TABLE IF EXISTS vst_visitor_pass;
+CREATE TABLE vst_visitor_pass (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  record_id BIGINT NOT NULL,
+  pass_no VARCHAR(64) NOT NULL,
+  qr_token VARCHAR(64) NOT NULL,
+  valid_from DATETIME NOT NULL,
+  valid_to DATETIME NOT NULL,
+  max_entries INT NOT NULL DEFAULT 1,
+  used_entries INT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 0,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_pass_record UNIQUE (record_id),
+  CONSTRAINT uk_pass_no UNIQUE (pass_no),
+  CONSTRAINT uk_pass_qr UNIQUE (qr_token)
+);
