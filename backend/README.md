@@ -95,7 +95,17 @@ DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedAuthIntegrati
 | POST | `/api/web/websuper/integration-configs/{key}/test` | 连通性测试 |
 | GET | `/api/web/websuper/integration-logs` | 调用日志分页 |
 | GET | `/api/web/admin/ping` | 学校管理员上下文（ADMIN/SUPER） |
+| GET/POST | `/api/web/admin/departments` | 部门树 / 新增部门 |
+| PUT/DELETE | `/api/web/admin/departments/{id}` | 修改 / 删除部门 |
+| GET | `/api/web/admin/staff` | 人员分页（keyword/personType/deptId） |
+| GET/POST | `/api/web/admin/staff/{id}` | 详情 / 新增 |
+| PUT/DELETE | `/api/web/admin/staff/{id}` | 修改 / 停用（回收账号角色） |
+| GET/POST | `/api/web/admin/classes` | 班级列表 / 新增 |
+| PUT | `/api/web/admin/classes/{id}` | 修改班级 |
+| POST | `/api/web/admin/org-sync/{type}` | 数据中台同步：org/staff/student/alumni |
 | GET | `/api/swagger-ui.html` | 接口文档 |
+
+> `/web/admin/**` 需要 ADMIN 或 SUPER；ADMIN 的学校取登录上下文，SUPER 需通过 `schoolId` 参数指定。
 
 鉴权头：
 

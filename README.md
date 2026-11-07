@@ -94,7 +94,16 @@ npm run dev                   # http://localhost:5173
 - 演示账号：`13800000000 / admin123`（超管）、`13800000001 / admin123`（校管，school_id=1）——上线前必须修改。
 - 测试：97 个用例（含 4 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
-**下一阶段**：M3 人员与组织（人员类型、班级、辅导员/班主任、数据中台同步）。
+**M3 已完成**
+
+- 表：`vst_department`、`vst_class`、`vst_staff`（DDL 见 `docs/sql/003-org.sql`）。
+- 人员类型 7 类（教职工/学生/商户/食堂/附属学校教职工/附属学校学生/校友），与角色映射。
+- 部门树、人员分页/新增/修改/停用、班级维护；停用人员同时回收其账号角色。
+- 数据中台同步：`protocol=MOCK` 可跑通机构/教职工/学生/校友同步，幂等 upsert，缺失人员自动停用并回收权限。
+- 数据范围：ADMIN 固定本校，SUPER 必须显式传 `schoolId`。
+- 测试：105 个用例（含 4 个 Testcontainers 用例，需 Docker）。
+
+**下一阶段**：M4 审批引擎（多级路由、24h 超时驳回、流程可视化编排）。
 
 ## 约定
 

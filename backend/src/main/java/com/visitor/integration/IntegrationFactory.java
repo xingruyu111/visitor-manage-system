@@ -60,7 +60,7 @@ public class IntegrationFactory {
     }
 
     public DataSyncProvider dataSync() {
-        return pick(IntegrationKey.DATA_SYNC, dataSyncProviders, provider -> "REST", NoopDataSyncProvider.INSTANCE);
+        return pick(IntegrationKey.DATA_SYNC, dataSyncProviders, DataSyncProvider::protocol, NoopDataSyncProvider.INSTANCE);
     }
 
     public GateClient gate() {

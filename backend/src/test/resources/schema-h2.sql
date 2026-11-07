@@ -73,3 +73,57 @@ CREATE TABLE vst_user_role (
   PRIMARY KEY (id),
   CONSTRAINT uk_user_role UNIQUE (user_id, role, school_id)
 );
+DROP TABLE IF EXISTS vst_department;
+CREATE TABLE vst_department (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  parent_id BIGINT,
+  name VARCHAR(128) NOT NULL,
+  level INT NOT NULL DEFAULT 1,
+  ancestors VARCHAR(512),
+  sort_order INT NOT NULL DEFAULT 0,
+  external_id VARCHAR(64),
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_dept_external UNIQUE (school_id, external_id)
+);
+
+DROP TABLE IF EXISTS vst_class;
+CREATE TABLE vst_class (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  grade VARCHAR(32),
+  head_teacher_id BIGINT,
+  counselor_id BIGINT,
+  external_id VARCHAR(64),
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_class_external UNIQUE (school_id, external_id)
+);
+
+DROP TABLE IF EXISTS vst_staff;
+CREATE TABLE vst_staff (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  dept_id BIGINT,
+  class_id BIGINT,
+  name VARCHAR(64) NOT NULL,
+  phone VARCHAR(20),
+  person_type TINYINT NOT NULL DEFAULT 1,
+  job_no VARCHAR(64),
+  student_no VARCHAR(64),
+  position VARCHAR(64),
+  counselor_id BIGINT,
+  status TINYINT NOT NULL DEFAULT 1,
+  sync_source VARCHAR(32) NOT NULL DEFAULT 'LOCAL',
+  external_id VARCHAR(64),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_staff_external UNIQUE (school_id, external_id)
+);

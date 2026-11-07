@@ -2,6 +2,8 @@ package com.visitor.integration.sync;
 
 import com.visitor.integration.core.IntegrationNotConfiguredException;
 
+import java.util.List;
+
 /**
  * 未配置数据中台时的兜底实现：业务侧回落 Excel 导入与手工维护。
  */
@@ -14,27 +16,32 @@ public final class NoopDataSyncProvider implements DataSyncProvider {
     }
 
     @Override
+    public String protocol() {
+        return "NONE";
+    }
+
+    @Override
     public boolean isConfigured() {
         return false;
     }
 
     @Override
-    public SyncResult syncOrg() {
+    public List<OrgUnit> fetchOrg() {
         throw new IntegrationNotConfiguredException(KEY);
     }
 
     @Override
-    public SyncResult syncStaff() {
+    public List<PersonRecord> fetchStaff() {
         throw new IntegrationNotConfiguredException(KEY);
     }
 
     @Override
-    public SyncResult syncStudent() {
+    public List<PersonRecord> fetchStudent() {
         throw new IntegrationNotConfiguredException(KEY);
     }
 
     @Override
-    public SyncResult syncAlumni() {
+    public List<PersonRecord> fetchAlumni() {
         throw new IntegrationNotConfiguredException(KEY);
     }
 }

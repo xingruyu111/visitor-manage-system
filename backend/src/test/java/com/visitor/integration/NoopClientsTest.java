@@ -38,13 +38,13 @@ class NoopClientsTest {
 
     @Test
     void dataSyncThrowsWhenUsed() {
-        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.syncOrg())
+        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.fetchOrg())
                 .isInstanceOf(IntegrationNotConfiguredException.class);
-        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.syncStaff())
+        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.fetchStaff())
                 .isInstanceOf(IntegrationNotConfiguredException.class);
-        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.syncStudent())
+        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.fetchStudent())
                 .isInstanceOf(IntegrationNotConfiguredException.class);
-        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.syncAlumni())
+        assertThatThrownBy(() -> NoopDataSyncProvider.INSTANCE.fetchAlumni())
                 .isInstanceOf(IntegrationNotConfiguredException.class);
     }
 
