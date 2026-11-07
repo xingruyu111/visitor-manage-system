@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-018）
+-- 容器测试用 MySQL 结构（001-019）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -534,3 +534,13 @@ CREATE TABLE IF NOT EXISTS vst_alarm_record (
 
 ALTER TABLE vst_visit_log ADD COLUMN external_id VARCHAR(64) NULL COMMENT '门闸记录ID';
 CREATE UNIQUE INDEX uk_visit_log_external ON vst_visit_log (external_id);
+
+
+-- ============================================================
+-- 名单双向同步配置
+-- ============================================================
+
+INSERT IGNORE INTO vst_integration_config
+  (integration_key, protocol, enabled, status, timeout_ms, retry_times, created_at, updated_at)
+VALUES
+  ('ACCESS_SYNC', 'MOCK', 1, 1, 5000, 2, NOW(), NOW());

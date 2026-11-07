@@ -10,7 +10,8 @@ public enum IntegrationKey {
     GATE("门闸/停车场"),
     FACE("人脸平台"),
     PORTAL("融合门户/i阳光"),
-    TODO_MSG("统一待办/消息");
+    TODO_MSG("统一待办/消息"),
+    ACCESS_SYNC("名单双向同步");
 
     private final String description;
 
