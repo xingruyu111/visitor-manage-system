@@ -103,7 +103,16 @@ npm run dev                   # http://localhost:5173
 - 数据范围：ADMIN 固定本校，SUPER 必须显式传 `schoolId`。
 - 测试：115 个用例（含 7 个 Testcontainers 用例，真实 MySQL + Redis，需要 Docker；无 Docker 时自动跳过）。
 
-**下一阶段**：M4 审批引擎（多级路由、24h 超时驳回、流程可视化编排）。
+**M4 已完成**
+
+- 表：`vst_approval_flow`、`vst_approval_rule`、`vst_approval_instance`、`vst_approval_task`（DDL 见 `docs/sql/004-approval.sql`）。
+- 流程设计器接口：保存草稿、校验、发布、停用、版本历史、预览（按被访人解析预计审批人）。
+- 审批引擎：按「访客类型 + 被访人类型」匹配路由规则，未命中时回退 `VISIT_<类型>` / `VISIT_DEFAULT`。
+- 审批链：普通单级（被访人）、学生两级（学生 → 辅导员）、班主任节点（附属学校学生）；实例创建时对流程定义做快照，发布新版本不影响在途审批。
+- 操作：通过、驳回、批量通过、紧急审批（管理员越级）、取消；24 小时未处理由定时任务自动驳回。
+- 测试：125 个用例（含 7 个 Testcontainers 用例，需 Docker）。
+
+**下一阶段**：M5 预约与凭证（访客记录接入审批引擎、通行凭证、批量预约）。
 
 ## 约定
 

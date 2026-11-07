@@ -127,3 +127,78 @@ CREATE TABLE vst_staff (
   PRIMARY KEY (id),
   CONSTRAINT uk_staff_external UNIQUE (school_id, external_id)
 );
+DROP TABLE IF EXISTS vst_approval_flow;
+CREATE TABLE vst_approval_flow (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  flow_code VARCHAR(64) NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  version INT NOT NULL DEFAULT 1,
+  status TINYINT NOT NULL DEFAULT 0,
+  definition_json TEXT NOT NULL,
+  created_by BIGINT,
+  published_at DATETIME,
+  published_by BIGINT,
+  remark VARCHAR(255),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_flow_code_version UNIQUE (flow_code, version)
+);
+
+DROP TABLE IF EXISTS vst_approval_rule;
+CREATE TABLE vst_approval_rule (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT,
+  visitor_type VARCHAR(32),
+  target_type VARCHAR(32),
+  flow_code VARCHAR(64) NOT NULL,
+  priority INT NOT NULL DEFAULT 100,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id)
+);
+
+DROP TABLE IF EXISTS vst_approval_instance;
+CREATE TABLE vst_approval_instance (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  biz_type VARCHAR(32) NOT NULL DEFAULT 'VISITOR_RECORD',
+  biz_id BIGINT NOT NULL,
+  school_id BIGINT NOT NULL,
+  flow_code VARCHAR(64) NOT NULL,
+  flow_version INT NOT NULL,
+  definition_json TEXT NOT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'RUNNING',
+  current_seq INT,
+  applicant_id BIGINT,
+  visitor_type VARCHAR(32),
+  target_type VARCHAR(32),
+  target_id BIGINT,
+  started_at DATETIME,
+  ended_at DATETIME,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_instance_biz UNIQUE (biz_type, biz_id)
+);
+
+DROP TABLE IF EXISTS vst_approval_task;
+CREATE TABLE vst_approval_task (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  instance_id BIGINT NOT NULL,
+  seq INT NOT NULL,
+  node_code VARCHAR(64) NOT NULL,
+  node_name VARCHAR(128),
+  assignee_type VARCHAR(32) NOT NULL,
+  assignee_id BIGINT,
+  status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+  decision VARCHAR(16),
+  comment VARCHAR(512),
+  emergency TINYINT NOT NULL DEFAULT 0,
+  due_at DATETIME,
+  acted_at DATETIME,
+  acted_by BIGINT,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id)
+);

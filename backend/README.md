@@ -105,6 +105,20 @@ DOCKER_API_VERSION=1.44 mvn -Dapi.version=1.44 -Dtest=ContainerizedIntegrationTe
 | GET/POST | `/api/web/admin/classes` | 班级列表 / 新增 |
 | PUT | `/api/web/admin/classes/{id}` | 修改班级 |
 | POST | `/api/web/admin/org-sync/{type}` | 数据中台同步：org/staff/student/alumni |
+| GET | `/api/web/websuper/approval-flows` | 审批流程列表（设计器，仅 SUPER） |
+| GET | `/api/web/websuper/approval-flows/{code}` | 流程详情（可指定 version） |
+| PUT | `/api/web/websuper/approval-flows/{code}/draft` | 保存草稿 |
+| POST | `/api/web/websuper/approval-flows/{code}/validate` | 校验 |
+| POST | `/api/web/websuper/approval-flows/{code}/publish` | 发布 |
+| POST | `/api/web/websuper/approval-flows/{code}/offline` | 停用 |
+| GET | `/api/web/websuper/approval-flows/{code}/versions` | 版本历史 |
+| POST | `/api/web/websuper/approval-flows/{code}/preview` | 预览节点与预计审批人 |
+| GET | `/api/web/approval/tasks` | 我的待审批任务 |
+| POST | `/api/web/approval/tasks/{id}/approve` | 通过（`emergency=true` 为紧急审批） |
+| POST | `/api/web/approval/tasks/{id}/reject` | 驳回 |
+| POST | `/api/web/approval/tasks/batch-approve` | 批量通过 |
+| GET | `/api/web/approval/instances` | 审批实例分页 |
+| POST | `/api/web/approval/instances/{id}/cancel` | 取消审批 |
 | GET | `/api/swagger-ui.html` | 接口文档 |
 
 > `/web/admin/**` 需要 ADMIN 或 SUPER；ADMIN 的学校取登录上下文，SUPER 需通过 `schoolId` 参数指定。
