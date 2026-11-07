@@ -147,6 +147,8 @@ class ContainerizedIntegrationTest {
         classMapper.delete(null);
         departmentMapper.delete(null);
         integrationConfigMapper.delete(null);
+        visitorPassMapper.delete(null);
+        visitorRecordMapper.delete(null);
         enableDataSyncMock();
     }
 
