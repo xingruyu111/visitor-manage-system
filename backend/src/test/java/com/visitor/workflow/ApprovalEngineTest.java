@@ -236,6 +236,31 @@ class ApprovalEngineTest {
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getVersion()).isEqualTo(first.getVersion());
     }
+    @Test
+    void securityReviewNodeIsHandledBySecurityAdmin() {
+        insertFlow("VISIT_REVIEW", "{\"code\":\"VISIT_REVIEW\",\"name\":\"复核流程\",\"timeoutHours\":24,"
+                + "\"nodes\":[{\"seq\":1,\"name\":\"被访人审批\",\"assignee\":\"TARGET\"},"
+                + "{\"seq\":2,\"name\":\"保卫复核\",\"assignee\":\"SECURITY\"}]}");
+
+        ApprovalInstance instance = engine.start(new ApprovalEngine.StartCommand(
+                "VISITOR_RECORD", 99L, 1L, studentUserId, "NORMAL", "REVIEW", teacherStaffId));
+        ApprovalTask first = firstTask(instance.getId());
+        as(teacherUserId, RoleEnum.TEACHER, 1L);
+        engine.approve(first.getId(), "同意", false);
+
+        ApprovalTask review = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instance.getId())
+                .eq(ApprovalTask::getSeq, 2));
+        assertThat(review.getAssigneeId()).isNull();
+        assertThat(review.getStatus()).isEqualTo(ApprovalStatuses.PENDING);
+
+        Long securityUserId = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, "13800002004")).getId();
+        as(securityUserId, RoleEnum.SECURITY_ADMIN, 1L);
+        engine.approve(review.getId(), "复核通过", false);
+
+        assertThat(instanceMapper.selectById(instance.getId()).getStatus()).isEqualTo(ApprovalStatuses.APPROVED);
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return engine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));

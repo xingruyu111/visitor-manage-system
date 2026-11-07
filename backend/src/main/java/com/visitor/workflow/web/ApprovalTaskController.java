@@ -59,6 +59,12 @@ public class ApprovalTaskController {
         return Result.success(approvalEngine.batchApprove(request.taskIds(), request.comment()));
     }
 
+    @Operation(summary = "批量驳回")
+    @PostMapping("/batch-reject")
+    public Result<List<ApprovalTask>> batchReject(@RequestBody BatchApproveRequest request) {
+        return Result.success(approvalEngine.batchReject(request.taskIds(), request.comment()));
+    }
+
     public record BatchApproveRequest(List<Long> taskIds, String comment) {
     }
 }

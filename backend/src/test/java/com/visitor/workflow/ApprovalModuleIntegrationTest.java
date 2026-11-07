@@ -311,6 +311,20 @@ class ApprovalModuleIntegrationTest {
                 HttpMethod.POST, null, superToken);
         assertThat(offline.get("code")).isEqualTo(200);
     }
+    @Test
+    void batchRejectEndsInstances() {
+        ApprovalInstance first = start(11L, "TEACHER", teacherStaffId);
+        ApprovalInstance second = start(12L, "TEACHER", teacherStaffId);
+        List<Long> ids = List.of(firstTask(first.getId()).getId(), firstTask(second.getId()).getId());
+
+        Map<String, Object> body = Map.of("taskIds", ids, "comment", "批量驳回");
+        Map<String, Object> result = exchange("/web/approval/tasks/batch-reject",
+                HttpMethod.POST, body, teacherToken);
+
+        assertThat((List<?>) result.get("data")).hasSize(2);
+        assertThat(instanceMapper.selectById(first.getId()).getStatus()).isEqualTo(ApprovalStatuses.REJECTED);
+        assertThat(instanceMapper.selectById(second.getId()).getStatus()).isEqualTo(ApprovalStatuses.REJECTED);
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return approvalEngine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));

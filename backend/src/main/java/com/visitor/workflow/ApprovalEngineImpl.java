@@ -159,6 +159,22 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     }
 
     @Override
+    public List<ApprovalTask> batchReject(List<Long> taskIds, String comment) {
+        List<ApprovalTask> rejected = new ArrayList<>();
+        if (taskIds == null) {
+            return rejected;
+        }
+        for (Long taskId : taskIds) {
+            try {
+                rejected.add(reject(taskId, comment, false));
+            } catch (BizException ignored) {
+                // 单条失败不影响其它任务
+            }
+        }
+        return rejected;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancel(Long instanceId, String reason) {
         ApprovalInstance instance = instanceMapper.selectById(instanceId);

@@ -16,6 +16,8 @@ public interface ApprovalEngine {
 
     List<ApprovalTask> batchApprove(List<Long> taskIds, String comment);
 
+    List<ApprovalTask> batchReject(List<Long> taskIds, String comment);
+
     void cancel(Long instanceId, String reason);
 
     int expireOverdueTasks();
