@@ -38,6 +38,12 @@ const router = createRouter({
           component: () => import('@/views/config/NotifyConfigView.vue'),
           meta: { title: '通知配置' },
         },
+        {
+          path: 'approval-flows',
+          name: 'ApprovalFlows',
+          component: () => import('@/views/flow/FlowDesignerView.vue'),
+          meta: { title: '审批流程' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },

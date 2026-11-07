@@ -1,0 +1,279 @@
+<template>
+  <div>
+    <el-card shadow="never">
+      <template #header>
+        <div class="header">
+          <span>审批流程</span>
+          <el-button type="primary" @click="openCreate">新建流程</el-button>
+        </div>
+      </template>
+
+      <el-table v-loading="loading" :data="rows" border>
+        <el-table-column prop="flowCode" label="流程编码" width="200" />
+        <el-table-column prop="name" label="名称" min-width="160" />
+        <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="STATUS_TAG[row.status] ?? 'info'">{{ STATUS[row.status] ?? row.status }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="updatedAt" label="更新时间" width="180" />
+        <el-table-column label="操作" width="320" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button link type="primary" :disabled="row.status === 1" @click="publish(row)">发布</el-button>
+            <el-button link type="primary" :disabled="row.status !== 1" @click="offline(row)">停用</el-button>
+            <el-button link type="primary" @click="openVersions(row)">版本</el-button>
+            <el-button link type="primary" @click="openPreview(row)">预览</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <el-dialog v-model="editVisible" :title="creating ? '新建流程' : `编辑：${form.code}`" width="760px">
+      <el-form label-width="90px">
+        <el-form-item label="流程编码">
+          <el-input v-model="form.code" :disabled="!creating" placeholder="如 VISIT_DEFAULT" />
+        </el-form-item>
+        <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="超时(小时)"><el-input-number v-model="form.timeoutHours" :min="1" :max="240" /></el-form-item>
+        <el-form-item label="审批节点">
+          <el-table :data="form.nodes" border size="small" style="width: 100%">
+            <el-table-column label="序号" width="80">
+              <template #default="{ row }"><el-input-number v-model="row.seq" :min="1" size="small" /></template>
+            </el-table-column>
+            <el-table-column label="节点名称">
+              <template #default="{ row }"><el-input v-model="row.name" size="small" /></template>
+            </el-table-column>
+            <el-table-column label="审批人" width="180">
+              <template #default="{ row }">
+                <el-select v-model="row.assignee" size="small">
+                  <el-option v-for="item in ASSIGNEES" :key="item" :label="item" :value="item" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="80">
+              <template #default="{ $index }">
+                <el-button link type="danger" :disabled="form.nodes.length === 1" @click="removeNode($index)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button class="add-node" size="small" @click="addNode">添加节点</el-button>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button @click="saveDraft">保存草稿</el-button>
+        <el-button type="primary" @click="saveAndPublish">保存并发布</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="versionsVisible" title="版本历史" width="520px">
+      <el-table :data="versions" border size="small">
+        <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column prop="name" label="名称" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">{{ STATUS[row.status] }}</template>
+        </el-table-column>
+        <el-table-column prop="publishedAt" label="发布时间" width="180" />
+      </el-table>
+    </el-dialog>
+
+    <el-dialog v-model="previewVisible" title="预览预计审批人" width="520px">
+      <el-table :data="preview" border size="small">
+        <el-table-column prop="seq" label="序号" width="70" />
+        <el-table-column prop="name" label="节点" />
+        <el-table-column prop="assigneeType" label="类型" width="120" />
+        <el-table-column label="预计审批人" width="140">
+          <template #default="{ row }">{{ row.assigneeName || '管理员处理' }}</template>
+        </el-table-column>
+      </el-table>
+      <p class="hint">预览需要被访人 ID（staffId），可在人员列表获取。</p>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { http } from '@/api/request'
+
+interface Flow {
+  id: number
+  flowCode: string
+  name: string
+  version: number
+  status: number
+  definitionJson: string
+  updatedAt?: string
+  publishedAt?: string
+}
+
+interface Node {
+  seq: number
+  name: string
+  assignee: string
+  optional?: boolean
+}
+
+const STATUS: Record<number, string> = { 0: '草稿', 1: '已发布', 2: '已停用' }
+const STATUS_TAG: Record<number, 'success' | 'info' | 'warning'> = { 0: 'warning', 1: 'success', 2: 'info' }
+const ASSIGNEES = ['TARGET', 'COUNSELOR', 'HEAD_TEACHER', 'SECURITY']
+
+const rows = ref<Flow[]>([])
+const loading = ref(false)
+const editVisible = ref(false)
+const creating = ref(false)
+const versionsVisible = ref(false)
+const previewVisible = ref(false)
+const versions = ref<Flow[]>([])
+const preview = ref<Array<{ seq: number; name: string; assigneeType: string; assigneeName?: string }>>([])
+const form = reactive({ code: '', name: '', timeoutHours: 24, nodes: [] as Node[] })
+
+async function load() {
+  loading.value = true
+  try {
+    rows.value = await http.get<Flow[]>('/web/websuper/approval-flows')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function openCreate() {
+  creating.value = true
+  form.code = ''
+  form.name = ''
+  form.timeoutHours = 24
+  form.nodes = [{ seq: 1, name: '被访人审批', assignee: 'TARGET' }]
+  editVisible.value = true
+}
+
+function openEdit(row: Flow) {
+  creating.value = false
+  form.code = row.flowCode
+  form.name = row.name
+  let definition: { timeoutHours?: number; nodes?: Node[] } = {}
+  try {
+    definition = JSON.parse(row.definitionJson)
+  } catch {
+    definition = {}
+  }
+  form.timeoutHours = definition.timeoutHours ?? 24
+  form.nodes = (definition.nodes ?? []).map((node) => ({ ...node }))
+  editVisible.value = true
+}
+
+function addNode() {
+  const next = form.nodes.length === 0 ? 1 : Math.max(...form.nodes.map((n) => n.seq)) + 1
+  form.nodes.push({ seq: next, name: '审批节点', assignee: 'TARGET' })
+}
+
+function removeNode(index: number) {
+  form.nodes.splice(index, 1)
+}
+
+function definition() {
+  return {
+    code: form.code,
+    name: form.name,
+    timeoutHours: form.timeoutHours,
+    nodes: form.nodes.map((node) => ({
+      seq: node.seq,
+      name: node.name,
+      assignee: node.assignee,
+      optional: false,
+    })),
+  }
+}
+
+async function saveDraft() {
+  if (!form.code) {
+    ElMessage.warning('请填写流程编码')
+    return
+  }
+  await http.put(`/web/websuper/approval-flows/${form.code}/draft`, definition())
+  ElMessage.success('草稿已保存')
+  editVisible.value = false
+  await load()
+}
+
+async function publishFlow(code: string) {
+  const errors = await http.post<string[]>(`/web/websuper/approval-flows/${code}/validate`)
+  if (errors.length > 0) {
+    await ElMessageBox.alert(errors.join('\n'), '校验未通过', { type: 'warning' })
+    return false
+  }
+  await http.post(`/web/websuper/approval-flows/${code}/publish`)
+  ElMessage.success('已发布')
+  return true
+}
+
+async function saveAndPublish() {
+  try {
+    await saveDraft()
+    await publishFlow(form.code)
+    await load()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '发布失败')
+  }
+}
+
+async function publish(row: Flow) {
+  try {
+    if (await publishFlow(row.flowCode)) {
+      await load()
+    }
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '发布失败')
+  }
+}
+
+async function offline(row: Flow) {
+  try {
+    await http.post(`/web/websuper/approval-flows/${row.flowCode}/offline`)
+    ElMessage.success('已停用')
+    await load()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '停用失败')
+  }
+}
+
+async function openVersions(row: Flow) {
+  versions.value = await http.get<Flow[]>(`/web/websuper/approval-flows/${row.flowCode}/versions`)
+  versionsVisible.value = true
+}
+
+async function openPreview(row: Flow) {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入被访人 staffId（用于解析审批人）', '预览', {
+      inputPattern: /^\d+$/,
+      inputErrorMessage: '请输入数字 ID',
+    })
+    preview.value = await http.post(
+      `/web/websuper/approval-flows/${row.flowCode}/preview?targetId=${value}`,
+    )
+    previewVisible.value = true
+  } catch {
+    // 取消
+  }
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.add-node {
+  margin-top: 8px;
+}
+.hint {
+  color: #909399;
+  font-size: 12px;
+}
+</style>
