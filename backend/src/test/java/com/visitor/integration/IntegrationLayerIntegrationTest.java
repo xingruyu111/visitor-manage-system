@@ -1,12 +1,18 @@
 package com.visitor.integration;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.util.SecretCipher;
 import com.visitor.domain.entity.IntegrationConfig;
 import com.visitor.domain.entity.IntegrationLog;
+import com.visitor.domain.entity.User;
+import com.visitor.domain.entity.UserRole;
 import com.visitor.integration.core.IntegrationLogService;
 import com.visitor.integration.core.IntegrationNotConfiguredException;
+import com.visitor.security.JwtUtil;
 import com.visitor.server.mapper.IntegrationConfigMapper;
+import com.visitor.server.mapper.UserMapper;
+import com.visitor.server.mapper.UserRoleMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +20,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,11 +56,26 @@ class IntegrationLayerIntegrationTest {
     @Autowired
     private IntegrationLogService logService;
 
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private String token;
+
     @BeforeEach
     void setUp() {
         configMapper.delete(null);
         insert("SSO", 0, secretCipher.encrypt("sso-secret"));
         insert("GATE", 0, null);
+        token = superAdminToken();
     }
 
     @Test
@@ -140,16 +165,52 @@ class IntegrationLayerIntegrationTest {
     }
 
     private String get(String path) {
-        return rest.getForObject(baseUrl() + path, String.class);
+        return rest.exchange(baseUrl() + path, HttpMethod.GET, new HttpEntity<>(bearer()), String.class).getBody();
     }
 
     private String put(String path, Map<String, ?> payload) {
         Map<String, Object> body = new HashMap<>(payload);
-        return rest.exchange(baseUrl() + path, HttpMethod.PUT, new HttpEntity<>(body), String.class).getBody();
+        HttpHeaders headers = bearer();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return rest.exchange(baseUrl() + path, HttpMethod.PUT,
+                new HttpEntity<>(body, headers), String.class).getBody();
     }
 
     private String post(String path) {
-        return rest.postForObject(baseUrl() + path, null, String.class);
+        return rest.exchange(baseUrl() + path, HttpMethod.POST,
+                new HttpEntity<>(bearer()), String.class).getBody();
+    }
+
+    private HttpHeaders bearer() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        return headers;
+    }
+
+    private String superAdminToken() {
+        userRoleMapper.delete(null);
+        userMapper.delete(null);
+
+        User user = new User();
+        user.setPhone("13700000001");
+        user.setName("集成测试管理员");
+        user.setPassword(passwordEncoder.encode("pass1234"));
+        user.setStatus(1);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.insert(user);
+
+        UserRole role = new UserRole();
+        role.setUserId(user.getId());
+        role.setRole(RoleEnum.SUPER);
+        role.setIsDefault(1);
+        role.setStatus(1);
+        role.setCreatedAt(LocalDateTime.now());
+        role.setUpdatedAt(LocalDateTime.now());
+        userRoleMapper.insert(role);
+
+        return jwtUtil.generate(user.getId(), user.getName(),
+                List.of(RoleEnum.SUPER), RoleEnum.SUPER, null);
     }
 
     private String baseUrl() {

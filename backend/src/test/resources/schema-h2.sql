@@ -41,3 +41,35 @@ CREATE TABLE vst_integration_log (
   created_at      DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_user;
+CREATE TABLE vst_user (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  phone VARCHAR(20) NOT NULL,
+  name VARCHAR(64),
+  password VARCHAR(100),
+  id_card VARCHAR(32),
+  avatar_url VARCHAR(512),
+  mp_openid VARCHAR(64),
+  union_id VARCHAR(64),
+  status TINYINT NOT NULL DEFAULT 1,
+  last_login_time DATETIME,
+  last_login_ip VARCHAR(64),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_user_phone UNIQUE (phone)
+);
+
+DROP TABLE IF EXISTS vst_user_role;
+CREATE TABLE vst_user_role (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  role TINYINT NOT NULL,
+  school_id BIGINT,
+  is_default TINYINT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_user_role UNIQUE (user_id, role, school_id)
+);

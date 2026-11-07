@@ -22,10 +22,16 @@ src/main/java/com/visitor/
 │   ├── core/            IntegrationClient、日志服务、异常
 │   ├── sso|sync|gate|face|portal|todo/   六类 Port + Noop
 │   └── web/             配置与日志接口
+├── security/
+│   ├── JwtUtil.java     签发与解析
+│   ├── AuthInterceptor.java
+│   ├── TokenBlacklist.java
+│   └── UserContext.java
 └── server/
-    ├── config/          Jackson、MyBatis-Plus
-    ├── controller/      HealthController
-    └── mapper/          IntegrationConfigMapper、IntegrationLogMapper
+    ├── config/          Jackson、MyBatis-Plus、Security、WebMvc
+    ├── controller/      Health、Auth、admin/
+    ├── service/         AuthService
+    └── mapper/          User、UserRole、IntegrationConfig、IntegrationLog
 ```
 
 ## 配置
@@ -39,6 +45,8 @@ src/main/java/com/visitor/
 | `REDIS_HOST` / `REDIS_PORT` | Redis 地址端口 | `localhost` / `6379` |
 | `REDIS_USERNAME` / `REDIS_PASSWORD` | Redis ACL 账号 | `default` / 空 |
 | `INTEGRATION_MASTER_KEY` | 集成配置密钥的加密主密钥 | 开发默认值（仅本地） |
+| `JWT_SECRET` | JWT 签名密钥（至少 32 字符） | 开发默认值（仅本地） |
+| `JWT_EXPIRATION` | 令牌有效期（毫秒） | `86400000` |
 
 本地开发：复制 `.env.example` 为 `backend/.env.local` 填写，然后：
 
@@ -58,13 +66,30 @@ mvn clean package -DskipTests
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
+| POST | `/api/auth/login` | 账号密码登录，返回 JWT |
+| POST | `/api/auth/logout` | 退出登录（令牌加入黑名单） |
+| GET | `/api/auth/me` | 当前登录用户与角色 |
+| GET | `/api/auth/sso/authorize` | 获取统一认证跳转地址 |
+| GET | `/api/auth/sso/callback` | 统一认证回调换取本地令牌 |
 | GET | `/api/health` | 健康检查（MySQL + Redis） |
-| GET | `/api/web/websuper/integration-configs` | 集成配置列表（密钥脱敏） |
+| GET | `/api/web/websuper/integration-configs` | 集成配置列表（仅 SUPER） |
 | GET | `/api/web/websuper/integration-configs/{key}` | 配置详情 |
 | PUT | `/api/web/websuper/integration-configs/{key}` | 保存配置（密钥留空=不修改） |
 | POST | `/api/web/websuper/integration-configs/{key}/test` | 连通性测试 |
 | GET | `/api/web/websuper/integration-logs` | 调用日志分页 |
+| GET | `/api/web/admin/ping` | 学校管理员上下文（ADMIN/SUPER） |
 | GET | `/api/swagger-ui.html` | 接口文档 |
+
+鉴权头：
+
+```
+Authorization: Bearer <jwt>
+X-Current-Role: 2          # 可选，在用户已有角色间切换
+```
+
+角色编码：1 SUPER、2 ADMIN、3 GUARD、4 VISITOR、5 TEACHER、6 STUDENT、7 MERCHANT、8 CANTEEN、9 ALUMNI。
+
+演示账号（`docs/sql/002-auth.sql`）：`13800000000 / admin123`（SUPER）、`13800000001 / admin123`（ADMIN，school_id=1），上线前必须修改。
 
 `{key}` 取值：`SSO`、`DATA_SYNC`、`GATE`、`FACE`、`PORTAL`、`TODO_MSG`。
 
