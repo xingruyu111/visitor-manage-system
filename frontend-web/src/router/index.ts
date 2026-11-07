@@ -63,6 +63,12 @@ const router = createRouter({
           meta: { title: '接口配置' },
         },
         {
+          path: 'migration',
+          name: 'Migration',
+          component: () => import('@/views/migration/MigrationView.vue'),
+          meta: { title: '数据迁移' },
+        },
+        {
           path: 'form-fields',
           name: 'FormFields',
           component: () => import('@/views/config/FormFieldView.vue'),
