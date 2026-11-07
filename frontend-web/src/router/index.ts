@@ -44,6 +44,12 @@ const router = createRouter({
           component: () => import('@/views/flow/FlowDesignerView.vue'),
           meta: { title: '审批流程' },
         },
+        {
+          path: 'integration-config',
+          name: 'IntegrationConfig',
+          component: () => import('@/views/config/IntegrationConfigView.vue'),
+          meta: { title: '接口配置' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },

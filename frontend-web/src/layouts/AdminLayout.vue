@@ -23,6 +23,10 @@
           <el-icon><Bell /></el-icon>
           <span>通知配置</span>
         </el-menu-item>
+        <el-menu-item index="/integration-config">
+          <el-icon><Connection /></el-icon>
+          <span>接口配置</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -41,7 +45,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
