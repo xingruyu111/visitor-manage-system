@@ -57,6 +57,12 @@ const router = createRouter({
           meta: { title: '接口配置' },
         },
         {
+          path: 'form-fields',
+          name: 'FormFields',
+          component: () => import('@/views/config/FormFieldView.vue'),
+          meta: { title: '表单字段' },
+        },
+        {
           path: 'access-list',
           name: 'AccessList',
           component: () => import('@/views/access/AccessListView.vue'),
