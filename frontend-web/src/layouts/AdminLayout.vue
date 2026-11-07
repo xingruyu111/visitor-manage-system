@@ -11,6 +11,14 @@
           <el-icon><Tickets /></el-icon>
           <span>访客记录</span>
         </el-menu-item>
+        <el-menu-item index="/users">
+          <el-icon><User /></el-icon>
+          <span>账号管理</span>
+        </el-menu-item>
+        <el-menu-item index="/notify-config">
+          <el-icon><Bell /></el-icon>
+          <span>通知配置</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -29,7 +37,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

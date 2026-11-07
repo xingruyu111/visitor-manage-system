@@ -26,6 +26,18 @@ const router = createRouter({
           component: () => import('@/views/visitor/VisitorRecordsView.vue'),
           meta: { title: '访客记录' },
         },
+        {
+          path: 'users',
+          name: 'Users',
+          component: () => import('@/views/user/AccountsView.vue'),
+          meta: { title: '账号管理' },
+        },
+        {
+          path: 'notify-config',
+          name: 'NotifyConfig',
+          component: () => import('@/views/config/NotifyConfigView.vue'),
+          meta: { title: '通知配置' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
