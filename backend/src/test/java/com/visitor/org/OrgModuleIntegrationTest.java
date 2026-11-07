@@ -202,6 +202,95 @@ class OrgModuleIntegrationTest {
         assertThat(body.get("message")).asString().contains("数据中台未配置");
     }
 
+    @Test
+    void departmentTreeReturnsNestedStructure() {
+        Map<String, Object> root = data(post("/departments", adminToken, Map.of("name", "信息工程学院")));
+        Long rootId = ((Number) root.get("id")).longValue();
+        post("/departments", adminToken, Map.of("name", "计算机系", "parentId", rootId));
+
+        List<?> roots = listData(get("/departments", adminToken));
+        assertThat(roots).hasSize(1);
+        Map<?, ?> rootNode = (Map<?, ?>) roots.get(0);
+        assertThat(rootNode.get("level")).isEqualTo(1);
+        List<?> children = (List<?>) rootNode.get("children");
+        assertThat(children).hasSize(1);
+        assertThat(((Map<?, ?>) children.get(0)).get("level")).isEqualTo(2);
+    }
+
+    @Test
+    void cannotDeleteDepartmentWithChildren() {
+        Map<String, Object> root = data(post("/departments", adminToken, Map.of("name", "信息工程学院")));
+        Long rootId = ((Number) root.get("id")).longValue();
+        post("/departments", adminToken, Map.of("name", "计算机系", "parentId", rootId));
+
+        Map<String, Object> body = delete("/departments/" + rootId, adminToken);
+
+        assertThat(body.get("code")).isEqualTo(400);
+        assertThat(body.get("message")).asString().contains("下级部门");
+    }
+
+    @Test
+    void cannotDeleteDepartmentWithStaff() {
+        Map<String, Object> dept = data(post("/departments", adminToken, Map.of("name", "后勤处")));
+        Long deptId = ((Number) dept.get("id")).longValue();
+        post("/staff", adminToken, Map.of("name", "后勤老师", "personType", 1, "deptId", deptId));
+
+        Map<String, Object> body = delete("/departments/" + deptId, adminToken);
+
+        assertThat(body.get("code")).isEqualTo(400);
+        assertThat(body.get("message")).asString().contains("还有人员");
+    }
+
+    @Test
+    void updateDepartmentName() {
+        Map<String, Object> dept = data(post("/departments", adminToken, Map.of("name", "旧名称")));
+        Long deptId = ((Number) dept.get("id")).longValue();
+
+        Map<String, Object> updated = data(put("/departments/" + deptId, adminToken,
+                Map.of("name", "新名称", "sortOrder", 5)));
+
+        assertThat(updated.get("name")).isEqualTo("新名称");
+        assertThat(updated.get("sortOrder")).isEqualTo(5);
+    }
+
+    @Test
+    void classCrudAndDuplicateNameRejected() {
+        Map<String, Object> created = data(post("/classes", adminToken,
+                Map.of("name", "计算机2201", "grade", "2022")));
+        Long classId = ((Number) created.get("id")).longValue();
+
+        assertThat(listData(get("/classes", adminToken))).hasSize(1);
+
+        Map<String, Object> updated = data(put("/classes/" + classId, adminToken,
+                Map.of("name", "计算机2201", "grade", "2023")));
+        assertThat(updated.get("grade")).isEqualTo("2023");
+
+        Map<String, Object> duplicate = post("/classes", adminToken,
+                Map.of("name", "计算机2201", "grade", "2023"));
+        assertThat(duplicate.get("code")).isEqualTo(400);
+    }
+
+    @Test
+    void staffPhoneMustBeUniqueWithinSchool() {
+        post("/staff", adminToken, Map.of("name", "张老师", "phone", "13911110003", "personType", 1));
+
+        Map<String, Object> duplicate = post("/staff", adminToken,
+                Map.of("name", "李老师", "phone", "13911110003", "personType", 1));
+
+        assertThat(duplicate.get("code")).isEqualTo(400);
+        assertThat(duplicate.get("message")).asString().contains("手机号已存在");
+    }
+
+    @Test
+    void staffCanBeFilteredByPersonType() {
+        post("/staff", adminToken, Map.of("name", "张老师", "phone", "13911110004", "personType", 1));
+        post("/staff", adminToken, Map.of("name", "学生甲", "phone", "13911110005", "personType", 2));
+
+        Map<String, Object> page = data(get("/staff?page=1&size=10&personType=2", adminToken));
+
+        assertThat(((Number) page.get("total")).intValue()).isEqualTo(1);
+    }
+
     private Long createUserWithRole(String phone, RoleEnum role) {
         User user = new User();
         user.setPhone(phone);
@@ -258,6 +347,15 @@ class OrgModuleIntegrationTest {
 
     private Map<String, Object> delete(String path, String token) {
         return exchange(path, HttpMethod.DELETE, null, token);
+    }
+
+    private Map<String, Object> put(String path, String token, Object payload) {
+        return exchange(path, HttpMethod.PUT, payload, token);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<?> listData(Map<String, Object> body) {
+        return (List<?>) body.get("data");
     }
 
     @SuppressWarnings("unchecked")
