@@ -3,6 +3,8 @@ package com.visitor.integration;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.util.SecretCipher;
 import com.visitor.domain.entity.IntegrationConfig;
+import com.visitor.domain.entity.IntegrationLog;
+import com.visitor.integration.core.IntegrationLogService;
 import com.visitor.integration.core.IntegrationNotConfiguredException;
 import com.visitor.server.mapper.IntegrationConfigMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,9 @@ class IntegrationLayerIntegrationTest {
 
     @Autowired
     private IntegrationFactory integrationFactory;
+
+    @Autowired
+    private IntegrationLogService logService;
 
     @BeforeEach
     void setUp() {
@@ -89,6 +94,43 @@ class IntegrationLayerIntegrationTest {
         String body = post("/integration-configs/SSO/test");
         assertThat(body).contains("\"configured\":false");
         assertThat(body).contains("未启用");
+    }
+
+    @Test
+    void saveRejectsInvalidJson() {
+        String body = put("/integration-configs/SSO", Map.of("endpoints", "not-json"));
+
+        assertThat(body).contains("\"code\":400");
+        assertThat(body).contains("不是合法 JSON");
+    }
+
+    @Test
+    void saveRejectsOutOfRangeTimeout() {
+        String body = put("/integration-configs/SSO", Map.of("timeoutMs", 50));
+
+        assertThat(body).contains("\"code\":400");
+    }
+
+    @Test
+    void maskedSecretDoesNotOverwriteStoredSecret() {
+        put("/integration-configs/SSO", Map.of("appSecret", "******"));
+
+        IntegrationConfig saved = findByKey("SSO");
+        assertThat(secretCipher.decrypt(saved.getAppSecret())).isEqualTo("sso-secret");
+    }
+
+    @Test
+    void logsEndpointReturnsPagedResult() {
+        IntegrationLog entry = new IntegrationLog();
+        entry.setIntegrationKey("SSO");
+        entry.setAction("GET /oauth2/userinfo");
+        entry.setSuccess(1);
+        logService.record(entry);
+
+        String body = get("/integration-logs?integrationKey=SSO&page=1&size=10");
+
+        assertThat(body).contains("\"total\":1");
+        assertThat(body).contains("GET /oauth2/userinfo");
     }
 
     @Test
