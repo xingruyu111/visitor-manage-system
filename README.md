@@ -71,12 +71,21 @@ npm run dev                   # http://localhost:5173
 
 两个前端都通过 Vite 代理把 `/api` 转发到 `http://localhost:8080`，无需额外配置跨域。
 
-## 当前阶段（M0）
+## 当前阶段（M1）
 
-- 已完成：三端工程骨架；后端接入 MySQL 8.0 与 Redis 7，`/api/health` 同时探测两者；配置全部走环境变量；`mvn test` 基线通过；CI 工作流已就绪。
-- 已建库：`visitor_manage`（utf8mb4 / utf8mb4_unicode_ci）。
-- 下一阶段：M1 集成适配层（`vst_integration_config` + 6 个 Port + Noop + 配置页），并引入 MyBatis-Plus。
-- 方案文档：`F:\smart-campus\docs\实施方案-模块设计与实现顺序.md`（v1.1）。
+**M0 已完成**
+
+- 三端工程骨架；MySQL 8.0 与 Redis 7 接入，`/api/health` 同时探测两者；配置全部走环境变量；`mvn test` 基线；CI 工作流。
+
+**M1 已完成**
+
+- 表：`vst_integration_config`、`vst_integration_log`（DDL 见 `docs/sql/001-integration.sql`，已应用到开发库）。
+- 六类学校接口抽象：SSO、数据中台、门闸/停车场、人脸、门户、统一待办，均为 `Port + Noop + 工厂`，未配置时自动降级。
+- 配置服务：读取、保存（密钥 AES-GCM 加密、接口只回显 `******`）、连通性测试。
+- 调用治理：`IntegrationClient` 统一超时、重试、耗时统计，并写入调用日志。
+- 测试：11 个用例（含真实 HTTP 的集成测试）全部通过。
+
+**下一阶段**：M2 身份与权限（SSO 接入、角色扩展、H5 登录）。
 
 ## 约定
 

@@ -45,6 +45,17 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
 
+integration:
+  # 集成配置密钥的加密主密钥；生产环境必须通过环境变量注入
+  master-key: ${INTEGRATION_MASTER_KEY:}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
 logging:
   level:
     root: INFO
