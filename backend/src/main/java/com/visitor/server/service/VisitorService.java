@@ -32,4 +32,6 @@ public interface VisitorService {
     java.util.List<VisitorRecord> queryByPlate(String plate);
 
     java.util.List<Staff> queryTargets(String keyword);
+
+    java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> exportRows(Integer status, String keyword);
 }

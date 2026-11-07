@@ -682,6 +682,22 @@ class VisitorModuleIntegrationTest {
 
         assertThat(fields).hasSize(1);
     }
+    @Test
+    void exportReturnsExcelFile() {
+        apply(visitorToken, "13800003001", 0);
+
+        org.springframework.http.ResponseEntity<byte[]> response = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/visitor-records/export",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getContentType().toString()).contains("spreadsheetml");
+        assertThat(response.getBody()).hasSizeGreaterThan(100);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

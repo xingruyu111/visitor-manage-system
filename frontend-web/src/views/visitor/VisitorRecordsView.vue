@@ -12,6 +12,7 @@
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
         <el-button @click="openBatch">批量直录</el-button>
+        <el-button :loading="exporting" @click="exportExcel">导出</el-button>
       </el-form>
 
       <el-table v-loading="loading" :data="rows" border>
@@ -103,6 +104,7 @@ const drawer = ref(false)
 const batchVisible = ref(false)
 const batchText = ref('')
 const submitting = ref(false)
+const exporting = ref(false)
 const current = ref<VisitorRecord>()
 
 async function load(targetPage = page.value) {
@@ -118,6 +120,30 @@ async function load(targetPage = page.value) {
     ElMessage.error(e instanceof Error ? e.message : '加载失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function exportExcel() {
+  exporting.value = true
+  try {
+    const params = new URLSearchParams()
+    if (status.value !== undefined && status.value !== null) params.set('status', String(status.value))
+    if (keyword.value) params.set('keyword', keyword.value)
+    const response = await fetch(`/api/web/admin/visitor-records/export?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` },
+    })
+    if (!response.ok) throw new Error('导出失败')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '访客记录.xlsx'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 

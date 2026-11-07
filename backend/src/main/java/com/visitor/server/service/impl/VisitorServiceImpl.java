@@ -271,6 +271,37 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
+    public java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> exportRows(Integer status, String keyword) {
+        java.util.List<VisitorRecord> records = recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
+                .eq(status != null, VisitorRecord::getStatus, status)
+                .and(keyword != null && !keyword.isBlank(), w -> w
+                        .like(VisitorRecord::getVisitorName, keyword)
+                        .or().like(VisitorRecord::getVisitorPhone, keyword)
+                        .or().like(VisitorRecord::getTargetName, keyword))
+                .orderByDesc(VisitorRecord::getId)
+                .last("LIMIT 5000"));
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> rows = new java.util.ArrayList<>();
+        for (VisitorRecord record : records) {
+            com.visitor.domain.vo.VisitorRecordExportRow row = new com.visitor.domain.vo.VisitorRecordExportRow();
+            row.setVisitorName(record.getVisitorName());
+            row.setVisitorPhone(record.getVisitorPhone());
+            row.setIdCard(record.getIdCard());
+            row.setTargetName(record.getTargetName());
+            row.setVisitPurpose(record.getVisitPurpose());
+            row.setPlateNumber(record.getPlateNumber());
+            row.setExpectedTime(record.getExpectedTime() == null ? null : record.getExpectedTime().format(formatter));
+            row.setLeaveTime(record.getLeaveTime() == null ? null : record.getLeaveTime().format(formatter));
+            row.setStatusText(STATUS_TEXT.getOrDefault(record.getStatus(), String.valueOf(record.getStatus())));
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private static final java.util.Map<Integer, String> STATUS_TEXT = java.util.Map.of(
+            0, "待审批", 1, "已通过", 2, "已拒绝", 3, "已入校", 4, "已离校", 5, "已取消", 6, "已过期");
+
+    @Override
     public java.util.List<Staff> queryTargets(String keyword) {
         return staffMapper.selectList(new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getStatus, 1)
