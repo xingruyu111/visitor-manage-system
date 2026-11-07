@@ -22,6 +22,7 @@ import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitLogMapper;
+import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AccessCheckService;
@@ -85,6 +86,9 @@ class VisitorModuleIntegrationTest {
 
     @Autowired
     private VisitLogMapper visitLogMapper;
+
+    @Autowired
+    private NotificationMapper notificationMapper;
 
     @Autowired
     private ApprovalTaskMapper taskMapper;
@@ -435,6 +439,30 @@ class VisitorModuleIntegrationTest {
         list.setUpdatedAt(LocalDateTime.now());
         accessListMapper.insert(list);
         return list;
+    }
+    @Test
+    void approvalResultCreatesNotification() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+
+        assertThat(notificationMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.Notification>()
+                .eq(com.visitor.domain.entity.Notification::getUserId, visitorUserId))).isEqualTo(1L);
+
+        Map<String, Object> list = data(exchange("/web/notifications?page=1&size=10",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(number(list.get("total"))).isEqualTo(1);
+
+        Map<String, Object> unread = data(exchange("/web/notifications/unread-count",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(number(unread.get("count"))).isEqualTo(1);
+
+        exchange("/web/notifications/read-all", HttpMethod.POST, null, visitorToken);
+        Map<String, Object> after = data(exchange("/web/notifications/unread-count",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(number(after.get("count"))).isZero();
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

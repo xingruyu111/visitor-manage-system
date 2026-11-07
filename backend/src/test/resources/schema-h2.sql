@@ -276,3 +276,16 @@ CREATE TABLE vst_visit_log (
   created_at DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_notification;
+CREATE TABLE vst_notification (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  title VARCHAR(128) NOT NULL,
+  content VARCHAR(512),
+  type VARCHAR(16) NOT NULL DEFAULT 'SYSTEM',
+  biz_type VARCHAR(32),
+  biz_id BIGINT,
+  is_read TINYINT NOT NULL DEFAULT 0,
+  created_at DATETIME,
+  PRIMARY KEY (id)
+);

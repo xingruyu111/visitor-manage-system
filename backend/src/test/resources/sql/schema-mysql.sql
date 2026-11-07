@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-007）
+-- 容器测试用 MySQL 结构（001-008）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -354,3 +354,22 @@ CREATE TABLE IF NOT EXISTS vst_visit_log (
   KEY idx_visit_log_school (school_id, event_time),
   KEY idx_visit_log_record (record_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通行流水';
+
+
+-- ============================================================
+-- M8 通知：站内通知
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vst_notification (
+  id         BIGINT       NOT NULL AUTO_INCREMENT,
+  user_id    BIGINT       NOT NULL,
+  title      VARCHAR(128) NOT NULL,
+  content    VARCHAR(512) NULL,
+  type       VARCHAR(16)  NOT NULL DEFAULT 'SYSTEM' COMMENT 'SYSTEM/APPROVAL/NOTICE',
+  biz_type   VARCHAR(32)  NULL,
+  biz_id     BIGINT       NULL,
+  is_read    TINYINT      NOT NULL DEFAULT 0,
+  created_at DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_notification_user (user_id, is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知';
