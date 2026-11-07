@@ -266,7 +266,7 @@ class VisitorModuleIntegrationTest {
     }
 
     @Test
-    void adminOnlySeesOwnSchoolRecords() {
+    void singleSchoolShowsSameRecordsForAllAdmins() {
         apply(visitorToken, "13800003001", 0);
 
         Map<String, Object> own = data(exchange("/web/admin/visitor-records?page=1&size=10",
@@ -275,7 +275,7 @@ class VisitorModuleIntegrationTest {
                 HttpMethod.GET, null, otherAdminToken));
 
         assertThat(number(own.get("total"))).isEqualTo(1);
-        assertThat(number(other.get("total"))).isZero();
+        assertThat(number(other.get("total"))).isEqualTo(1);
     }
 
     @Test

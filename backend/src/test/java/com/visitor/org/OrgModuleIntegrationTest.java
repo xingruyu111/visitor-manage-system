@@ -173,20 +173,19 @@ class OrgModuleIntegrationTest {
     }
 
     @Test
-    void adminOnlySeesOwnSchool() {
+    void singleSchoolMeansAllAdminsSeeSameData() {
         post("/staff", adminToken, Map.of("name", "本校老师", "phone", "13911110002", "personType", 1));
 
         Map<String, Object> otherPage = data(get("/staff?page=1&size=10", otherAdminToken));
 
-        assertThat(((Number) otherPage.get("total")).intValue()).isZero();
+        assertThat(((Number) otherPage.get("total")).intValue()).isEqualTo(1);
     }
 
     @Test
-    void superAdminMustSpecifySchool() {
+    void systemAdminQueriesWithoutSchoolId() {
         Map<String, Object> body = get("/departments", superToken);
 
-        assertThat(body.get("code")).isEqualTo(400);
-        assertThat(body.get("message")).asString().contains("schoolId");
+        assertThat(body.get("code")).isEqualTo(200);
     }
 
     @Test
