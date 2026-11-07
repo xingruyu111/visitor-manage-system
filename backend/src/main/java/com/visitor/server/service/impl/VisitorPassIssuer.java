@@ -33,7 +33,14 @@ public class VisitorPassIssuer {
         pass.setPassNo("P" + record.getId() + "-" + System.currentTimeMillis());
         pass.setQrToken(UUID.randomUUID().toString());
         pass.setValidFrom(record.getExpectedTime());
-        pass.setValidTo(record.getLeaveTime());
+        LocalDateTime validTo = record.getLeaveTime();
+        if ("ALUMNI".equals(record.getVisitorType())) {
+            LocalDateTime monthEnd = record.getExpectedTime().plusDays(30);
+            if (monthEnd.isAfter(validTo)) {
+                validTo = monthEnd;
+            }
+        }
+        pass.setValidTo(validTo);
         pass.setMaxEntries("ALUMNI".equals(record.getVisitorType()) ? 30 : 1);
         pass.setUsedEntries(0);
         pass.setStatus(0);

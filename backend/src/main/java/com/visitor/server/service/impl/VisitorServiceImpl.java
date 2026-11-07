@@ -21,6 +21,8 @@ import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.FormFieldService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
+import com.visitor.common.enums.RoleEnum;
+import com.visitor.security.UserContext;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
 import org.springframework.stereotype.Service;
@@ -219,6 +221,38 @@ public class VisitorServiceImpl implements VisitorService {
             record.setUpdatedAt(LocalDateTime.now());
             recordMapper.insert(record);
             passIssuer.issue(record);
+            created++;
+        }
+        return created;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deptBatch(Long schoolId, VisitorBatchDTO dto, Long operatorId) {
+        RoleEnum role = UserContext.getRole();
+        if (role != RoleEnum.DEPT_OPERATOR && role != RoleEnum.SYSTEM_ADMIN) {
+            throw new BizException(403, "仅部门经办人可发起批量预约");
+        }
+        int created = 0;
+        for (VisitorBatchDTO.Item item : dto.getItems()) {
+            validateTime(item.getExpectedTime(), item.getLeaveTime());
+            VisitorRecord record = new VisitorRecord();
+            record.setSchoolId(schoolId);
+            record.setVisitorUserId(operatorId);
+            record.setVisitorName(item.getName().trim());
+            record.setVisitorPhone(item.getPhone());
+            record.setIdCard(item.getIdCard());
+            record.setVisitorType("NORMAL");
+            record.setVisitPurpose(item.getVisitPurpose());
+            record.setExpectedTime(item.getExpectedTime());
+            record.setLeaveTime(item.getLeaveTime());
+            record.setStatus(0);
+            record.setCreatedAt(LocalDateTime.now());
+            record.setUpdatedAt(LocalDateTime.now());
+            recordMapper.insert(record);
+            approvalEngine.start(new ApprovalEngine.StartCommand(
+                    "VISITOR_RECORD", record.getId(), schoolId, operatorId,
+                    "NORMAL", null, null, "VISIT_DEPT_BATCH"));
             created++;
         }
         return created;

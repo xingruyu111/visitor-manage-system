@@ -24,5 +24,7 @@ public interface VisitorService {
 
     int batchCreate(Long schoolId, VisitorBatchDTO dto, Long operatorId);
 
+    int deptBatch(Long schoolId, VisitorBatchDTO dto, Long operatorId);
+
     int expireOverdue();
 }

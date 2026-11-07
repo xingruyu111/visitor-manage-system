@@ -29,6 +29,7 @@ import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.server.service.VisitorService;
+import com.visitor.server.service.impl.VisitorPassIssuer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +97,9 @@ class VisitorModuleIntegrationTest {
     private FormFieldMapper formFieldMapper;
 
     @Autowired
+    private VisitorPassIssuer passIssuer;
+
+    @Autowired
     private ApprovalTaskMapper taskMapper;
 
     @Autowired
@@ -120,6 +124,7 @@ class VisitorModuleIntegrationTest {
     private String otherVisitorToken;
     private String teacherToken;
     private String adminToken;
+    private String deptToken;
     private String otherAdminToken;
 
     @BeforeEach
@@ -150,9 +155,12 @@ class VisitorModuleIntegrationTest {
         otherVisitorToken = token(otherVisitorId, "13800003002", RoleEnum.VISITOR, null);
         teacherToken = token(teacherUserId, "13800003003", RoleEnum.TEACHER, 1L);
         adminToken = token(adminId, "13800003004", RoleEnum.SECURITY_ADMIN, 1L);
+        Long deptId = createUser("13800003006", RoleEnum.DEPT_OPERATOR, 1L);
+        deptToken = token(deptId, "13800003006", RoleEnum.DEPT_OPERATOR, 1L);
         otherAdminToken = token(otherAdminId, "13800003005", RoleEnum.SECURITY_ADMIN, 2L);
 
         insertFlow();
+        insertDeptFlow();
         insertRule();
     }
 
@@ -495,6 +503,61 @@ class VisitorModuleIntegrationTest {
         assertThat(result.get("code")).isEqualTo(400);
         assertThat(result.get("message")).asString().contains("工作单位");
         assertThat(recordMapper.selectCount(null)).isZero();
+    }
+    @Test
+    void deptBatchCreatesPendingRecordsAndSecurityApproves() {
+        String body = """
+                {"items":[{"name":"部门访客","phone":"13900008888","expectedTime":"%s","leaveTime":"%s"}]}
+                """.formatted(FORMAT.format(LocalDateTime.now()), FORMAT.format(LocalDateTime.now().plusHours(2)));
+
+        Map<String, Object> result = exchange("/web/dept/visitor-records/batch",
+                HttpMethod.POST, body, deptToken);
+        assertThat(result.get("code")).isEqualTo(200);
+        assertThat(number(data(result).get("created"))).isEqualTo(1);
+
+        VisitorRecord record = recordMapper.selectOne(null);
+        assertThat(record.getStatus()).isZero();
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, taskMapper.selectList(null).get(0).getInstanceId()));
+        assertThat(task.getAssigneeId()).isNull();
+
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, adminToken);
+
+        assertThat(recordMapper.selectById(record.getId()).getStatus()).isEqualTo(1);
+        assertThat(passMapper.selectCount(null)).isEqualTo(1L);
+    }
+
+    @Test
+    void alumniPassIsMonthly() {
+        VisitorRecord record = new VisitorRecord();
+        record.setSchoolId(1L);
+        record.setVisitorUserId(visitorUserId);
+        record.setVisitorName("校友");
+        record.setVisitorType("ALUMNI");
+        record.setExpectedTime(LocalDateTime.now());
+        record.setLeaveTime(LocalDateTime.now().plusHours(2));
+        record.setStatus(1);
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        recordMapper.insert(record);
+
+        VisitorPass pass = passIssuer.issue(record);
+
+        assertThat(pass.getMaxEntries()).isEqualTo(30);
+        assertThat(pass.getValidTo()).isAfter(record.getExpectedTime().plusDays(29));
+    }
+
+    private void insertDeptFlow() {
+        ApprovalFlow flow = new ApprovalFlow();
+        flow.setFlowCode("VISIT_DEPT_BATCH");
+        flow.setName("部门批量预约审批");
+        flow.setVersion(1);
+        flow.setStatus(1);
+        flow.setDefinitionJson("{\"code\":\"VISIT_DEPT_BATCH\",\"name\":\"部门批量预约审批\",\"timeoutHours\":24,"
+                + "\"nodes\":[{\"seq\":1,\"name\":\"保卫处审批\",\"assignee\":\"SECURITY\"}]}");
+        flow.setCreatedAt(LocalDateTime.now());
+        flow.setUpdatedAt(LocalDateTime.now());
+        flowMapper.insert(flow);
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

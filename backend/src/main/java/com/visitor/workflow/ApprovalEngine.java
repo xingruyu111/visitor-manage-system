@@ -27,6 +27,11 @@ public interface ApprovalEngine {
     PageResult<ApprovalInstance> instances(Long schoolId, String status, int page, int size);
 
     record StartCommand(String bizType, Long bizId, Long schoolId, Long applicantId,
-                        String visitorType, String targetType, Long targetId) {
+                        String visitorType, String targetType, Long targetId, String flowCode) {
+
+        public StartCommand(String bizType, Long bizId, Long schoolId, Long applicantId,
+                            String visitorType, String targetType, Long targetId) {
+            this(bizType, bizId, schoolId, applicantId, visitorType, targetType, targetId, null);
+        }
     }
 }

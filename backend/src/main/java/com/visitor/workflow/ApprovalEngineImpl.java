@@ -61,7 +61,8 @@ public class ApprovalEngineImpl implements ApprovalEngine {
             return existing.get(0);
         }
 
-        String flowCode = resolveFlowCode(command);
+        String flowCode = command.flowCode() == null || command.flowCode().isBlank()
+                ? resolveFlowCode(command) : command.flowCode();
         ApprovalFlow flow = publishedFlow(flowCode);
         if (flow == null) {
             throw new BizException(400, "审批流程未发布: " + flowCode);
