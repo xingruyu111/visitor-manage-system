@@ -289,3 +289,14 @@ CREATE TABLE vst_notification (
   created_at DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_mp_config;
+CREATE TABLE vst_mp_config (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  app_id VARCHAR(64) NOT NULL,
+  secret VARCHAR(128) NOT NULL,
+  audit_template_id VARCHAR(64),
+  audit_result_template_id VARCHAR(64),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id)
+);

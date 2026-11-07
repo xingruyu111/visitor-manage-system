@@ -17,6 +17,7 @@ import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.VisitorService;
+import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
@@ -39,11 +40,12 @@ public class VisitorServiceImpl implements VisitorService {
     private final ApprovalEngine approvalEngine;
     private final ApprovalInstanceMapper instanceMapper;
     private final AccessCheckService accessCheckService;
+    private final NotificationService notificationService;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -52,6 +54,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.approvalEngine = approvalEngine;
         this.instanceMapper = instanceMapper;
         this.accessCheckService = accessCheckService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -92,6 +95,13 @@ public class VisitorServiceImpl implements VisitorService {
         record.setCreatedAt(LocalDateTime.now());
         record.setUpdatedAt(LocalDateTime.now());
         recordMapper.insert(record);
+        User targetUser = target.getPhone() == null ? null : userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getPhone, target.getPhone()));
+        if (targetUser != null) {
+            notificationService.notifyUser(targetUser.getId(), "新的访客申请",
+                    record.getVisitorName() + " 申请入校，请及时审批", "APPROVAL",
+                    "VISITOR_RECORD", record.getId());
+        }
 
         ApprovalInstance instance;
         if ("WHITELIST".equals(access)) {

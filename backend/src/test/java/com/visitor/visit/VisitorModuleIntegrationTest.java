@@ -120,6 +120,7 @@ class VisitorModuleIntegrationTest {
     @BeforeEach
     void setUp() {
         accessListMapper.delete(null);
+        notificationMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -463,6 +464,13 @@ class VisitorModuleIntegrationTest {
         Map<String, Object> after = data(exchange("/web/notifications/unread-count",
                 HttpMethod.GET, null, visitorToken));
         assertThat(number(after.get("count"))).isZero();
+    }
+    @Test
+    void applyNotifiesVisitedPerson() {
+        apply(visitorToken, "13800003001", 0);
+
+        assertThat(notificationMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.Notification>()
+                .eq(com.visitor.domain.entity.Notification::getUserId, teacherUserId))).isEqualTo(1L);
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

@@ -8,6 +8,8 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.Notification;
 import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.service.NotificationService;
+import com.visitor.integration.IntegrationFactory;
+import com.visitor.integration.todo.TodoMessageClient;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,9 +19,13 @@ import java.util.Objects;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper mapper;
+    private final IntegrationFactory integrationFactory;
+    private final WxMpNotifier wxMpNotifier;
 
-    public NotificationServiceImpl(NotificationMapper mapper) {
+    public NotificationServiceImpl(NotificationMapper mapper, IntegrationFactory integrationFactory, WxMpNotifier wxMpNotifier) {
         this.mapper = mapper;
+        this.integrationFactory = integrationFactory;
+        this.wxMpNotifier = wxMpNotifier;
     }
 
     @Override
@@ -37,6 +43,15 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setIsRead(0);
         notification.setCreatedAt(LocalDateTime.now());
         mapper.insert(notification);
+        try {
+            integrationFactory.todoMessage().pushTodo(new TodoMessageClient.TodoItem(
+                    String.valueOf(notification.getId()), title, content, null, String.valueOf(userId)));
+        } catch (Exception ignored) {
+            // 未配置统一待办时静默降级
+        }
+        if ("APPROVAL".equals(notification.getType())) {
+            wxMpNotifier.sendAuditResult(userId, title, content);
+        }
     }
 
     @Override
