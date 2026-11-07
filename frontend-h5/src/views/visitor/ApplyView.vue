@@ -17,11 +17,30 @@
       </van-radio-group>
     </van-cell-group>
 
+    <van-cell-group inset title="访客类型">
+      <van-radio-group v-model="visitorType" direction="horizontal" @change="loadFields">
+        <van-radio name="NORMAL">普通</van-radio>
+        <van-radio name="ALUMNI">校友</van-radio>
+        <van-radio name="PARENT">家长</van-radio>
+        <van-radio name="CONSTRUCTION">施工合作</van-radio>
+      </van-radio-group>
+    </van-cell-group>
+
     <van-cell-group inset title="到访信息">
       <van-field v-model="expectedTime" label="到访时间" placeholder="yyyy-MM-dd HH:mm:ss" />
       <van-field v-model="leaveTime" label="离校时间" placeholder="yyyy-MM-dd HH:mm:ss" />
       <van-field v-model="purpose" label="事由" placeholder="请输入来访事由" />
       <van-field v-model="plate" label="车牌号" placeholder="选填" />
+    </van-cell-group>
+
+    <van-cell-group v-if="fields.length" inset title="补充信息">
+      <van-field
+        v-for="field in fields"
+        :key="field.fieldKey"
+        v-model="extra[field.fieldKey]"
+        :label="field.label"
+        :placeholder="field.required === 1 ? '必填' : '选填'"
+      />
     </van-cell-group>
 
     <div class="actions">
@@ -31,10 +50,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
+
+interface FormField {
+  fieldKey: string
+  label: string
+  required?: number
+}
 
 interface Staff {
   id: number
@@ -50,6 +75,9 @@ const expectedTime = ref('')
 const leaveTime = ref('')
 const purpose = ref('')
 const plate = ref('')
+const visitorType = ref('NORMAL')
+const fields = ref<FormField[]>([])
+const extra = reactive<Record<string, string>>({})
 const submitting = ref(false)
 
 function defaultTime(offsetHours: number) {
@@ -69,6 +97,14 @@ async function search() {
   }
 }
 
+async function loadFields() {
+  try {
+    fields.value = await http.get<FormField[]>('/web/visitor/form-fields', { visitorType: visitorType.value })
+  } catch {
+    fields.value = []
+  }
+}
+
 async function submit() {
   if (!targetId.value) {
     showToast('请选择被访人')
@@ -82,6 +118,10 @@ async function submit() {
       leaveTime: leaveTime.value,
       visitPurpose: purpose.value,
       plateNumber: plate.value || undefined,
+      visitorType: visitorType.value,
+      extra: Object.fromEntries(
+        Object.entries(extra).filter(([, value]) => value !== undefined && value !== ''),
+      ),
     })
     showToast('提交成功，等待审批')
     router.replace('/v/records')
@@ -96,6 +136,7 @@ onMounted(() => {
   expectedTime.value = defaultTime(1)
   leaveTime.value = defaultTime(3)
   search()
+  loadFields()
 })
 </script>
 

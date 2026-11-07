@@ -666,6 +666,22 @@ class VisitorModuleIntegrationTest {
 
         assertThat(targets).hasSize(1);
     }
+    @Test
+    void visitorReadsActiveFormFields() {
+        com.visitor.domain.entity.FormField field = new com.visitor.domain.entity.FormField();
+        field.setVisitorType("ALUMNI");
+        field.setFieldKey("company");
+        field.setLabel("工作单位");
+        field.setFieldType("TEXT");
+        field.setRequired(1);
+        field.setStatus(1);
+        formFieldMapper.insert(field);
+
+        List<?> fields = (List<?>) exchange("/web/visitor/form-fields?visitorType=ALUMNI",
+                HttpMethod.GET, null, visitorToken).get("data");
+
+        assertThat(fields).hasSize(1);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",
