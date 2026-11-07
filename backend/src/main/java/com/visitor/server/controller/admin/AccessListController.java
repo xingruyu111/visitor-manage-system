@@ -1,8 +1,10 @@
 package com.visitor.server.controller.admin;
 
+import com.alibaba.excel.EasyExcel;
 import com.visitor.common.core.PageResult;
 import com.visitor.common.core.Result;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.dto.AccessListImportRow;
 import com.visitor.security.SchoolScopes;
 import com.visitor.server.service.AccessCheckService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +18,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 @Tag(name = "黑白名单")
 @RestController
@@ -53,6 +59,23 @@ public class AccessListController {
                                      @PathVariable Long id,
                                      @RequestBody AccessList body) {
         return Result.success(accessCheckService.update(SchoolScopes.resolve(schoolId), id, body));
+    }
+
+    @Operation(summary = "人工提前解除")
+    @PostMapping("/{id}/release")
+    public Result<AccessList> release(@RequestParam(required = false) Long schoolId,
+                                      @PathVariable Long id,
+                                      @RequestParam(required = false) String reason) {
+        return Result.success(accessCheckService.release(SchoolScopes.resolve(schoolId), id, reason));
+    }
+
+    @Operation(summary = "Excel 导入名单")
+    @PostMapping("/import")
+    public Result<java.util.Map<String, Object>> importExcel(@RequestParam("file") MultipartFile file)
+            throws IOException {
+        List<AccessListImportRow> rows = EasyExcel.read(file.getInputStream())
+                .head(AccessListImportRow.class).sheet().doReadSync();
+        return Result.success(accessCheckService.importRows(SchoolScopes.resolve(null), rows));
     }
 
     @Operation(summary = "删除名单")

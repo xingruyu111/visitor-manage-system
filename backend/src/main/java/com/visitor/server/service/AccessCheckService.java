@@ -2,6 +2,9 @@ package com.visitor.server.service;
 
 import com.visitor.common.core.PageResult;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.dto.AccessListImportRow;
+import java.util.List;
+import java.util.Map;
 
 public interface AccessCheckService {
 
@@ -16,6 +19,10 @@ public interface AccessCheckService {
     AccessList update(Long schoolId, Long id, AccessList body);
 
     void delete(Long schoolId, Long id);
+
+    AccessList release(Long schoolId, Long id, String reason);
+
+    Map<String, Object> importRows(Long schoolId, List<AccessListImportRow> rows);
 
     int expireOverdue();
 }

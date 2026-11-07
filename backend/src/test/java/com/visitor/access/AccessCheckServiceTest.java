@@ -2,6 +2,7 @@ package com.visitor.access;
 
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.dto.AccessListImportRow;
 import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.service.AccessCheckService;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -134,4 +136,47 @@ class AccessCheckServiceTest {
         assertThat(service.page(1L, 1, null, null, 1, 10).total()).isZero();
         assertThat(service.page(2L, null, null, null, 1, 10).total()).isZero();
     }
+    @Test
+    void releaseDisablesEntryEarly() {
+        AccessList black = new AccessList();
+        black.setListType(1);
+        black.setTargetType("PERSON");
+        black.setTargetValue("13800009996");
+        AccessList created = service.create(1L, black);
+
+        AccessList released = service.release(1L, created.getId(), "家长申诉");
+
+        assertThat(released.getStatus()).isZero();
+        assertThat(released.getReleasedAt()).isNotNull();
+        assertThat(released.getReleaseReason()).isEqualTo("家长申诉");
+        assertThat(service.check(1L, "13800009996", null, null)).isEqualTo("NONE");
+    }
+
+    @Test
+    void importRowsReportsSuccessAndFailures() {
+        AccessListImportRow okPerson = row("张三", "13800009997", null, "黑名单", null);
+        AccessListImportRow okPlate = row("李四", null, "粤B88888", "白名单", "2099-12-31");
+        AccessListImportRow duplicate = row("张三", "13800009997", null, "黑名单", null);
+        AccessListImportRow noTarget = row("王五", null, null, "黑名单", null);
+        AccessListImportRow badDate = row("赵六", "13800009998", null, "黑名单", "2099/12/31");
+
+        Map<String, Object> result = service.importRows(1L,
+                java.util.List.of(okPerson, okPlate, duplicate, noTarget, badDate));
+
+        assertThat(result.get("success")).isEqualTo(2);
+        assertThat(result.get("failed")).isEqualTo(3);
+        assertThat((java.util.List<?>) result.get("errors")).hasSize(3);
+        assertThat(mapper.selectCount(null)).isEqualTo(2L);
+    }
+
+    private AccessListImportRow row(String name, String phone, String plate, String type, String effectiveTo) {
+        AccessListImportRow row = new AccessListImportRow();
+        row.setPersonName(name);
+        row.setPhone(phone);
+        row.setPlateNumber(plate);
+        row.setListType(type);
+        row.setEffectiveTo(effectiveTo);
+        return row;
+    }
+
 }

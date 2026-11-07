@@ -258,6 +258,8 @@ CREATE TABLE vst_access_list (
   reason VARCHAR(255),
   source VARCHAR(16) NOT NULL DEFAULT 'MANUAL',
   status TINYINT NOT NULL DEFAULT 1,
+  released_at DATETIME,
+  release_reason VARCHAR(255),
   created_at DATETIME,
   updated_at DATETIME,
   PRIMARY KEY (id),

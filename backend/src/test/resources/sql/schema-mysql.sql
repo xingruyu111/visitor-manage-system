@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-012）
+-- 容器测试用 MySQL 结构（001-013）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -463,3 +463,11 @@ CREATE TABLE IF NOT EXISTS vst_parent_slot (
   PRIMARY KEY (id),
   KEY idx_parent_slot_phone (visitor_phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家长固定时段';
+
+
+-- ============================================================
+-- P5：名单人工提前解除
+-- ============================================================
+
+ALTER TABLE vst_access_list ADD COLUMN released_at DATETIME NULL COMMENT '解除时间';
+ALTER TABLE vst_access_list ADD COLUMN release_reason VARCHAR(255) NULL COMMENT '解除原因';

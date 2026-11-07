@@ -26,6 +26,8 @@ public class AccessList {
     private String reason;
     private String source;
     private Integer status;
+    private LocalDateTime releasedAt;
+    private String releaseReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

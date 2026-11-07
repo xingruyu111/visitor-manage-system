@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.visitor.common.core.PageResult;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.dto.AccessListImportRow;
 import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.service.AccessCheckService;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Map;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AccessCheckServiceImpl implements AccessCheckService {
@@ -123,6 +127,72 @@ public class AccessCheckServiceImpl implements AccessCheckService {
     public void delete(Long schoolId, Long id) {
         require(schoolId, id);
         mapper.deleteById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AccessList release(Long schoolId, Long id, String reason) {
+        AccessList entity = require(schoolId, id);
+        entity.setStatus(0);
+        entity.setReleasedAt(LocalDateTime.now());
+        entity.setReleaseReason(reason);
+        entity.setUpdatedAt(LocalDateTime.now());
+        mapper.updateById(entity);
+        return entity;
+    }
+
+    @Override
+    public Map<String, Object> importRows(Long schoolId, List<AccessListImportRow> rows) {
+        int success = 0;
+        List<Map<String, Object>> errors = new ArrayList<>();
+        if (rows == null) {
+            return Map.of("success", 0, "failed", 0, "errors", errors);
+        }
+        for (int i = 0; i < rows.size(); i++) {
+            AccessListImportRow row = rows.get(i);
+            try {
+                AccessList body = toEntity(row);
+                create(schoolId, body);
+                success++;
+            } catch (Exception e) {
+                errors.add(Map.of("row", i + 2, "reason", e.getMessage() == null ? "导入失败" : e.getMessage()));
+            }
+        }
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("success", success);
+        result.put("failed", errors.size());
+        result.put("errors", errors);
+        return result;
+    }
+
+    private AccessList toEntity(AccessListImportRow row) {
+        boolean hasPlate = row.getPlateNumber() != null && !row.getPlateNumber().isBlank();
+        boolean hasPhone = row.getPhone() != null && !row.getPhone().isBlank();
+        if (!hasPlate && !hasPhone) {
+            throw new BizException(400, "手机号与车牌号至少填一个");
+        }
+        AccessList body = new AccessList();
+        body.setListType(row.getListType() != null && row.getListType().contains("白") ? WHITE : BLACK);
+        body.setTargetType(hasPlate ? "PLATE_MOTOR" : "PERSON");
+        body.setTargetValue(hasPlate ? row.getPlateNumber() : row.getPhone());
+        body.setPersonName(row.getPersonName());
+        body.setPlateNumber(row.getPlateNumber());
+        body.setReason(row.getReason());
+        if (row.getEffectiveTo() != null && !row.getEffectiveTo().isBlank()) {
+            body.setEffectiveTo(parseTime(row.getEffectiveTo().trim()));
+        }
+        return body;
+    }
+
+    private LocalDateTime parseTime(String value) {
+        try {
+            if (value.length() == 10) {
+                return java.time.LocalDate.parse(value).atTime(23, 59, 59);
+            }
+            return LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (Exception e) {
+            throw new BizException(400, "失效时间格式应为 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss");
+        }
     }
 
     @Override
