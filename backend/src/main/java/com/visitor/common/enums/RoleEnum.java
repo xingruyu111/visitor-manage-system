@@ -8,15 +8,16 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum RoleEnum {
 
-    SUPER(1, "超级管理员"),
-    ADMIN(2, "学校管理员"),
+    SYSTEM_ADMIN(1, "系统管理员"),
+    SECURITY_ADMIN(2, "保卫处管理员"),
     GUARD(3, "门卫"),
     VISITOR(4, "访客"),
     TEACHER(5, "教职工"),
     STUDENT(6, "学生"),
     MERCHANT(7, "校内商户"),
     CANTEEN(8, "食堂人员"),
-    ALUMNI(9, "校友");
+    ALUMNI(9, "校友"),
+    DEPT_OPERATOR(11, "二级学院/机关部处经办人");
 
     @EnumValue
     private final int code;
@@ -59,8 +60,8 @@ public enum RoleEnum {
         }
     }
 
-    /** 是否需要绑定学校（超级管理员与访客除外）。 */
+    /** 是否需要绑定学校（系统管理员与访客除外）。 */
     public boolean requiresSchool() {
-        return this != SUPER && this != VISITOR && this != ALUMNI;
+        return this != SYSTEM_ADMIN && this != VISITOR && this != ALUMNI;
     }
 }

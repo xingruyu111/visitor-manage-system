@@ -13,7 +13,7 @@ public final class SchoolScopes {
 
     public static Long resolve(Long requestedSchoolId) {
         RoleEnum role = UserContext.getRole();
-        if (role == RoleEnum.SUPER) {
+        if (role == RoleEnum.SYSTEM_ADMIN) {
             if (requestedSchoolId == null) {
                 throw new BizException(400, "超级管理员需指定 schoolId");
             }

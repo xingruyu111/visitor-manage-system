@@ -64,10 +64,10 @@ class AuthControllerIntegrationTest {
         userMapper.delete(null);
         integrationConfigMapper.delete(null);
 
-        superUserId = createUser("13700000010", "超级管理员", 1, RoleEnum.SUPER, null);
-        adminUserId = createUser("13700000011", "学校管理员", 1, RoleEnum.ADMIN, 1L);
-        noSchoolAdminId = createUser("13700000012", "无校管理员", 1, RoleEnum.ADMIN, null);
-        multiRoleUserId = createUser("13700000013", "多角色", 1, RoleEnum.SUPER, null);
+        superUserId = createUser("13700000010", "超级管理员", 1, RoleEnum.SYSTEM_ADMIN, null);
+        adminUserId = createUser("13700000011", "学校管理员", 1, RoleEnum.SECURITY_ADMIN, 1L);
+        noSchoolAdminId = createUser("13700000012", "无校管理员", 1, RoleEnum.SECURITY_ADMIN, null);
+        multiRoleUserId = createUser("13700000013", "多角色", 1, RoleEnum.SYSTEM_ADMIN, null);
         addRole(multiRoleUserId, RoleEnum.VISITOR, null, 0);
     }
 
@@ -161,7 +161,7 @@ class AuthControllerIntegrationTest {
         String token = token(login("13700000010", PASSWORD));
 
         HttpHeaders headers = bearer(token);
-        headers.set("X-Current-Role", String.valueOf(RoleEnum.ADMIN.getCode()));
+        headers.set("X-Current-Role", String.valueOf(RoleEnum.SECURITY_ADMIN.getCode()));
         ResponseEntity<String> response = rest.exchange(url("/web/websuper/integration-configs"),
                 HttpMethod.GET, new HttpEntity<>(headers), String.class);
 

@@ -88,7 +88,7 @@ class ApprovalEngineTest {
         teacherUserId = createUser("13800002001", RoleEnum.TEACHER, 1L);
         studentUserId = createUser("13800002002", RoleEnum.STUDENT, 1L);
         counselorUserId = createUser("13800002003", RoleEnum.TEACHER, 1L);
-        createUser("13800002004", RoleEnum.ADMIN, 1L);
+        createUser("13800002004", RoleEnum.SECURITY_ADMIN, 1L);
 
         teacherStaffId = createStaff("张老师", "13800002001", PersonTypeEnum.TEACHER, null, null);
         Long counselorStaffId = createStaff("辅导员", "13800002003", PersonTypeEnum.TEACHER, null, null);
@@ -253,7 +253,7 @@ class ApprovalEngineTest {
 
     private void asAdmin(Long schoolId) {
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, "13800002004"));
-        as(user.getId(), RoleEnum.ADMIN, schoolId);
+        as(user.getId(), RoleEnum.SECURITY_ADMIN, schoolId);
     }
 
     private Long createUser(String phone, RoleEnum role, Long schoolId) {

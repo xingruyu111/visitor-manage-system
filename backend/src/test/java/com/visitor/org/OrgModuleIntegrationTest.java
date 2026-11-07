@@ -83,9 +83,9 @@ class OrgModuleIntegrationTest {
         userRoleMapper.delete(null);
         userMapper.delete(null);
 
-        adminToken = tokenFor("13600000001", RoleEnum.ADMIN, 1L);
-        otherAdminToken = tokenFor("13600000002", RoleEnum.ADMIN, 2L);
-        superToken = tokenFor("13600000003", RoleEnum.SUPER, null);
+        adminToken = tokenFor("13600000001", RoleEnum.SECURITY_ADMIN, 1L);
+        otherAdminToken = tokenFor("13600000002", RoleEnum.SECURITY_ADMIN, 2L);
+        superToken = tokenFor("13600000003", RoleEnum.SYSTEM_ADMIN, null);
 
         IntegrationConfig config = new IntegrationConfig();
         config.setIntegrationKey("DATA_SYNC");

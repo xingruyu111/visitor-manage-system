@@ -109,9 +109,9 @@ class ApprovalModuleIntegrationTest {
         teacherUserId = createUser("13800001001", RoleEnum.TEACHER, 1L);
         studentUserId = createUser("13800001002", RoleEnum.STUDENT, 1L);
         counselorUserId = createUser("13800001003", RoleEnum.TEACHER, 1L);
-        Long adminUserId = createUser("13800001004", RoleEnum.ADMIN, 1L);
-        Long otherAdminUserId = createUser("13800001005", RoleEnum.ADMIN, 2L);
-        Long superUserId = createUser("13800001006", RoleEnum.SUPER, null);
+        Long adminUserId = createUser("13800001004", RoleEnum.SECURITY_ADMIN, 1L);
+        Long otherAdminUserId = createUser("13800001005", RoleEnum.SECURITY_ADMIN, 2L);
+        Long superUserId = createUser("13800001006", RoleEnum.SYSTEM_ADMIN, null);
 
         teacherStaffId = createStaff("张老师", "13800001001", PersonTypeEnum.TEACHER, null, null);
         counselorUserId = counselorUserId;
@@ -122,9 +122,9 @@ class ApprovalModuleIntegrationTest {
         teacherToken = token(teacherUserId, RoleEnum.TEACHER, 1L);
         studentToken = token(studentUserId, RoleEnum.STUDENT, 1L);
         counselorToken = token(counselorUserId, RoleEnum.TEACHER, 1L);
-        adminToken = token(adminUserId, RoleEnum.ADMIN, 1L);
-        otherSchoolAdminToken = token(otherAdminUserId, RoleEnum.ADMIN, 2L);
-        superToken = token(superUserId, RoleEnum.SUPER, null);
+        adminToken = token(adminUserId, RoleEnum.SECURITY_ADMIN, 1L);
+        otherSchoolAdminToken = token(otherAdminUserId, RoleEnum.SECURITY_ADMIN, 2L);
+        superToken = token(superUserId, RoleEnum.SYSTEM_ADMIN, null);
 
         insertFlow("VISIT_DEFAULT", "默认访客流程",
                 "{\"code\":\"VISIT_DEFAULT\",\"name\":\"默认访客流程\",\"timeoutHours\":24,"

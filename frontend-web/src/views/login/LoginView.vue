@@ -14,7 +14,7 @@
         <el-button type="primary" class="submit" :loading="loading" @click="handleLogin">登录</el-button>
       </el-form>
 
-      <p class="tip">演示账号：13800000000 / admin123（超级管理员）</p>
+      <p class="tip">演示账号：13800000000 / admin123（系统管理员）</p>
     </el-card>
   </div>
 </template>

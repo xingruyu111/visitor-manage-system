@@ -332,7 +332,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         Long me = UserContext.getUserId();
 
         if (emergency) {
-            if (role != RoleEnum.ADMIN && role != RoleEnum.SUPER) {
+            if (role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
                 throw new BizException(403, "仅管理员可紧急审批");
             }
             checkSchoolScope(instance.getSchoolId());
@@ -344,7 +344,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
             }
             return;
         }
-        if (role != RoleEnum.ADMIN && role != RoleEnum.SUPER) {
+        if (role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
             throw new BizException(403, "该节点由管理员处理");
         }
         checkSchoolScope(instance.getSchoolId());
@@ -352,7 +352,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
 
     private void checkSchoolScope(Long schoolId) {
         RoleEnum role = UserContext.getRole();
-        if (role == RoleEnum.SUPER) {
+        if (role == RoleEnum.SYSTEM_ADMIN) {
             return;
         }
         if (!Objects.equals(UserContext.getSchoolId(), schoolId)) {

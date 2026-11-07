@@ -78,7 +78,7 @@ class AuthInterceptorTest {
 
     @Test
     void blacklistedTokenIsRejected() throws Exception {
-        String token = tokenFor(1L, RoleEnum.SUPER);
+        String token = tokenFor(1L, RoleEnum.SYSTEM_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(blacklist.contains(anyString())).thenReturn(true);
 
@@ -88,7 +88,7 @@ class AuthInterceptorTest {
 
     @Test
     void disabledUserIsRejected() throws Exception {
-        String token = tokenFor(1L, RoleEnum.SUPER);
+        String token = tokenFor(1L, RoleEnum.SYSTEM_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(userMapper.selectById(1L)).thenReturn(user(1L, 0));
 
@@ -98,7 +98,7 @@ class AuthInterceptorTest {
 
     @Test
     void userWithoutRolesIsRejected() throws Exception {
-        String token = tokenFor(1L, RoleEnum.SUPER);
+        String token = tokenFor(1L, RoleEnum.SYSTEM_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(userMapper.selectById(1L)).thenReturn(user(1L, 1));
         when(userRoleMapper.selectList(any())).thenReturn(List.of());
@@ -109,11 +109,11 @@ class AuthInterceptorTest {
 
     @Test
     void roleNotOwnedIsRejected() throws Exception {
-        String token = tokenFor(1L, RoleEnum.SUPER);
+        String token = tokenFor(1L, RoleEnum.SYSTEM_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(userMapper.selectById(1L)).thenReturn(user(1L, 1));
-        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(1L, RoleEnum.SUPER, null)));
-        when(request.getHeader("X-Current-Role")).thenReturn(String.valueOf(RoleEnum.ADMIN.getCode()));
+        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(1L, RoleEnum.SYSTEM_ADMIN, null)));
+        when(request.getHeader("X-Current-Role")).thenReturn(String.valueOf(RoleEnum.SECURITY_ADMIN.getCode()));
 
         assertThat(interceptor.preHandle(request, response, handler)).isFalse();
         assertThat(body.toString()).contains("当前角色无权限");
@@ -121,11 +121,11 @@ class AuthInterceptorTest {
 
     @Test
     void adminWithoutSchoolIsRejected() throws Exception {
-        String token = tokenFor(2L, RoleEnum.ADMIN);
+        String token = tokenFor(2L, RoleEnum.SECURITY_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(request.getRequestURI()).thenReturn("/api/web/admin/ping");
         when(userMapper.selectById(2L)).thenReturn(user(2L, 1));
-        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(2L, RoleEnum.ADMIN, null)));
+        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(2L, RoleEnum.SECURITY_ADMIN, null)));
 
         assertThat(interceptor.preHandle(request, response, handler)).isFalse();
         assertThat(body.toString()).contains("缺少学校上下文");
@@ -133,10 +133,10 @@ class AuthInterceptorTest {
 
     @Test
     void adminCannotAccessWebsuperPath() throws Exception {
-        String token = tokenFor(2L, RoleEnum.ADMIN);
+        String token = tokenFor(2L, RoleEnum.SECURITY_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(userMapper.selectById(2L)).thenReturn(user(2L, 1));
-        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(2L, RoleEnum.ADMIN, 10L)));
+        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(2L, RoleEnum.SECURITY_ADMIN, 10L)));
 
         assertThat(interceptor.preHandle(request, response, handler)).isFalse();
         assertThat(body.toString()).contains("无权限访问该资源");
@@ -144,14 +144,14 @@ class AuthInterceptorTest {
 
     @Test
     void superAdminPassesAndContextIsSet() throws Exception {
-        String token = tokenFor(1L, RoleEnum.SUPER);
+        String token = tokenFor(1L, RoleEnum.SYSTEM_ADMIN);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(userMapper.selectById(1L)).thenReturn(user(1L, 1));
-        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(1L, RoleEnum.SUPER, null)));
+        when(userRoleMapper.selectList(any())).thenReturn(List.of(roleRow(1L, RoleEnum.SYSTEM_ADMIN, null)));
 
         assertThat(interceptor.preHandle(request, response, handler)).isTrue();
         assertThat(UserContext.getUserId()).isEqualTo(1L);
-        assertThat(UserContext.getRole()).isEqualTo(RoleEnum.SUPER);
+        assertThat(UserContext.getRole()).isEqualTo(RoleEnum.SYSTEM_ADMIN);
 
         interceptor.afterCompletion(request, response, handler, null);
         assertThat(UserContext.getUserId()).isNull();

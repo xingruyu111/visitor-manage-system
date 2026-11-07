@@ -19,14 +19,14 @@ class JwtUtilTest {
 
     @Test
     void generateAndParseCarriesClaims() {
-        String token = jwtUtil.generate(7L, "张三", List.of(RoleEnum.SUPER, RoleEnum.VISITOR),
-                RoleEnum.SUPER, 9L);
+        String token = jwtUtil.generate(7L, "张三", List.of(RoleEnum.SYSTEM_ADMIN, RoleEnum.VISITOR),
+                RoleEnum.SYSTEM_ADMIN, 9L);
 
         Claims claims = jwtUtil.parse(token);
 
         assertThat(claims.getSubject()).isEqualTo("7");
         assertThat(claims.get("name")).isEqualTo("张三");
-        assertThat(claims.get("role", Integer.class)).isEqualTo(RoleEnum.SUPER.getCode());
+        assertThat(claims.get("role", Integer.class)).isEqualTo(RoleEnum.SYSTEM_ADMIN.getCode());
         assertThat(claims.get("roles")).isEqualTo("1,4");
         assertThat(((Number) claims.get("schoolId")).longValue()).isEqualTo(9L);
         assertThat(claims.getId()).isNotBlank();

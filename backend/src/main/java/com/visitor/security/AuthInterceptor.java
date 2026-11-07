@@ -89,11 +89,11 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (path.startsWith("/web/websuper/") && active.getRole() != RoleEnum.SUPER) {
+        if (path.startsWith("/web/websuper/") && active.getRole() != RoleEnum.SYSTEM_ADMIN) {
             return reject(response, 403, "无权限访问该资源");
         }
-        if (path.startsWith("/web/admin/") && active.getRole() != RoleEnum.ADMIN
-                && active.getRole() != RoleEnum.SUPER) {
+        if (path.startsWith("/web/admin/") && active.getRole() != RoleEnum.SECURITY_ADMIN
+                && active.getRole() != RoleEnum.SYSTEM_ADMIN) {
             return reject(response, 403, "无权限访问该资源");
         }
 

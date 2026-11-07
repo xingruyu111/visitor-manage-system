@@ -134,16 +134,16 @@ class VisitorModuleIntegrationTest {
         visitorUserId = createUser("13800003001", RoleEnum.VISITOR, 1L);
         Long otherVisitorId = createUser("13800003002", RoleEnum.VISITOR, 1L);
         teacherUserId = createUser("13800003003", RoleEnum.TEACHER, 1L);
-        Long adminId = createUser("13800003004", RoleEnum.ADMIN, 1L);
-        Long otherAdminId = createUser("13800003005", RoleEnum.ADMIN, 2L);
+        Long adminId = createUser("13800003004", RoleEnum.SECURITY_ADMIN, 1L);
+        Long otherAdminId = createUser("13800003005", RoleEnum.SECURITY_ADMIN, 2L);
 
         teacherStaffId = createStaff("张老师", "13800003003", PersonTypeEnum.TEACHER);
 
         visitorToken = token(visitorUserId, "13800003001", RoleEnum.VISITOR, null);
         otherVisitorToken = token(otherVisitorId, "13800003002", RoleEnum.VISITOR, null);
         teacherToken = token(teacherUserId, "13800003003", RoleEnum.TEACHER, 1L);
-        adminToken = token(adminId, "13800003004", RoleEnum.ADMIN, 1L);
-        otherAdminToken = token(otherAdminId, "13800003005", RoleEnum.ADMIN, 2L);
+        adminToken = token(adminId, "13800003004", RoleEnum.SECURITY_ADMIN, 1L);
+        otherAdminToken = token(otherAdminId, "13800003005", RoleEnum.SECURITY_ADMIN, 2L);
 
         insertFlow();
         insertRule();

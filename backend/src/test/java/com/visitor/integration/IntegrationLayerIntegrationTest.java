@@ -202,7 +202,7 @@ class IntegrationLayerIntegrationTest {
 
         UserRole role = new UserRole();
         role.setUserId(user.getId());
-        role.setRole(RoleEnum.SUPER);
+        role.setRole(RoleEnum.SYSTEM_ADMIN);
         role.setIsDefault(1);
         role.setStatus(1);
         role.setCreatedAt(LocalDateTime.now());
@@ -210,7 +210,7 @@ class IntegrationLayerIntegrationTest {
         userRoleMapper.insert(role);
 
         return jwtUtil.generate(user.getId(), user.getName(),
-                List.of(RoleEnum.SUPER), RoleEnum.SUPER, null);
+                List.of(RoleEnum.SYSTEM_ADMIN), RoleEnum.SYSTEM_ADMIN, null);
     }
 
     private String baseUrl() {
