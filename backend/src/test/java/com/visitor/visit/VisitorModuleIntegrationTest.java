@@ -3,6 +3,7 @@ package com.visitor.visit;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
+import com.visitor.domain.entity.AccessList;
 import com.visitor.domain.entity.ApprovalFlow;
 import com.visitor.domain.entity.ApprovalRule;
 import com.visitor.domain.entity.ApprovalTask;
@@ -12,6 +13,7 @@ import com.visitor.domain.entity.UserRole;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.security.JwtUtil;
+import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.mapper.ApprovalFlowMapper;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
@@ -21,6 +23,7 @@ import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
+import com.visitor.server.service.AccessCheckService;
 import com.visitor.server.service.VisitorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +60,12 @@ class VisitorModuleIntegrationTest {
 
     @Autowired
     private VisitorService visitorService;
+
+    @Autowired
+    private AccessCheckService accessCheckService;
+
+    @Autowired
+    private AccessListMapper accessListMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -102,6 +111,7 @@ class VisitorModuleIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        accessListMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -313,6 +323,54 @@ class VisitorModuleIntegrationTest {
                 HttpMethod.POST, null, visitorToken);
 
         assertThat(cancel.get("code")).isEqualTo(400);
+    }
+    @Test
+    void blacklistedVisitorIsBlocked() {
+        insertList(1, "13800003001", null);
+
+        Map<String, Object> result = apply(visitorToken, "13800003001", 1);
+
+        assertThat(result.get("code")).isEqualTo(403);
+        assertThat(result.get("message")).asString().contains("黑名单");
+        assertThat(recordMapper.selectCount(null)).isZero();
+    }
+
+    @Test
+    void whitelistedVisitorIsAutoApprovedWithPass() {
+        insertList(2, "13800003001", null);
+
+        Map<String, Object> result = apply(visitorToken, "13800003001", 1);
+
+        assertThat(result.get("code")).isEqualTo(200);
+        assertThat(data(result).get("approvalInstanceId")).isNull();
+        Long recordId = number(data(result).get("recordId"));
+        assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(1);
+        assertThat(passMapper.selectCount(null)).isEqualTo(1L);
+    }
+
+    @Test
+    void expiredListEntryAutoExpires() {
+        AccessList list = insertList(1, "13900009999", LocalDateTime.now().minusHours(1));
+
+        int expired = accessCheckService.expireOverdue();
+
+        assertThat(expired).isGreaterThanOrEqualTo(1);
+        assertThat(accessListMapper.selectById(list.getId()).getStatus()).isZero();
+    }
+
+    private AccessList insertList(int listType, String value, LocalDateTime effectiveTo) {
+        AccessList list = new AccessList();
+        list.setSchoolId(1L);
+        list.setListType(listType);
+        list.setTargetType("PERSON");
+        list.setTargetValue(value);
+        list.setEffectiveTo(effectiveTo);
+        list.setStatus(1);
+        list.setSource("MANUAL");
+        list.setCreatedAt(LocalDateTime.now());
+        list.setUpdatedAt(LocalDateTime.now());
+        accessListMapper.insert(list);
+        return list;
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

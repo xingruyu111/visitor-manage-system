@@ -243,3 +243,22 @@ CREATE TABLE vst_visitor_pass (
   CONSTRAINT uk_pass_no UNIQUE (pass_no),
   CONSTRAINT uk_pass_qr UNIQUE (qr_token)
 );
+DROP TABLE IF EXISTS vst_access_list;
+CREATE TABLE vst_access_list (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  list_type TINYINT NOT NULL,
+  target_type VARCHAR(16) NOT NULL,
+  target_value VARCHAR(64) NOT NULL,
+  person_name VARCHAR(64),
+  plate_number VARCHAR(32),
+  effective_from DATETIME,
+  effective_to DATETIME,
+  reason VARCHAR(255),
+  source VARCHAR(16) NOT NULL DEFAULT 'MANUAL',
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_access_list UNIQUE (school_id, list_type, target_type, target_value)
+);

@@ -17,6 +17,7 @@ import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.VisitorService;
+import com.visitor.server.service.AccessCheckService;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
 import org.springframework.stereotype.Service;
@@ -37,11 +38,12 @@ public class VisitorServiceImpl implements VisitorService {
     private final VisitorPassIssuer passIssuer;
     private final ApprovalEngine approvalEngine;
     private final ApprovalInstanceMapper instanceMapper;
+    private final AccessCheckService accessCheckService;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -49,6 +51,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.passIssuer = passIssuer;
         this.approvalEngine = approvalEngine;
         this.instanceMapper = instanceMapper;
+        this.accessCheckService = accessCheckService;
     }
 
     @Override
@@ -63,6 +66,10 @@ public class VisitorServiceImpl implements VisitorService {
             throw new BizException(400, "被访人不存在或已停用");
         }
         validateTime(dto.getExpectedTime(), dto.getLeaveTime());
+        String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), null);
+        if ("BLACKLIST".equals(access)) {
+            throw new BizException(403, "该访客已被列入黑名单，禁止入校");
+        }
         assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
 
         String visitorType = dto.getVisitorType() == null || dto.getVisitorType().isBlank()
@@ -81,18 +88,24 @@ public class VisitorServiceImpl implements VisitorService {
         record.setVisitPurpose(dto.getVisitPurpose());
         record.setExpectedTime(dto.getExpectedTime());
         record.setLeaveTime(dto.getLeaveTime());
-        record.setStatus(0);
+        record.setStatus("WHITELIST".equals(access) ? 1 : 0);
         record.setCreatedAt(LocalDateTime.now());
         record.setUpdatedAt(LocalDateTime.now());
         recordMapper.insert(record);
 
-        ApprovalInstance instance = approvalEngine.start(new ApprovalEngine.StartCommand(
-                "VISITOR_RECORD", record.getId(), record.getSchoolId(), userId,
-                visitorType, record.getTargetType(), record.getTargetId()));
+        ApprovalInstance instance;
+        if ("WHITELIST".equals(access)) {
+            passIssuer.issue(record);
+            instance = null;
+        } else {
+            instance = approvalEngine.start(new ApprovalEngine.StartCommand(
+                    "VISITOR_RECORD", record.getId(), record.getSchoolId(), userId,
+                    visitorType, record.getTargetType(), record.getTargetId()));
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("recordId", record.getId());
-        result.put("approvalInstanceId", instance.getId());
+        result.put("approvalInstanceId", instance == null ? null : instance.getId());
         result.put("status", record.getStatus());
         return result;
     }
