@@ -4,37 +4,73 @@
       <h1>智慧校园访客管理系统</h1>
       <p class="subtitle">Web 管理后台</p>
 
-      <el-form :model="form" label-position="top">
-        <el-form-item label="账号">
-          <el-input v-model="form.username" placeholder="请输入账号" />
+      <el-form :model="form" label-position="top" @submit.prevent>
+        <el-form-item label="账号（手机号）">
+          <el-input v-model="form.phone" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="密码">
           <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
-        <el-button type="primary" class="submit" @click="handleLogin">登录</el-button>
+        <el-button type="primary" class="submit" :loading="loading" @click="handleLogin">登录</el-button>
       </el-form>
 
-      <p class="tip">骨架阶段：任意账号密码可进入，接入认证后替换为真实校验。</p>
+      <p class="tip">演示账号：13800000000 / admin123（超级管理员）</p>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { http } from '@/api/request'
+
+interface RoleItem {
+  code: number
+  name: string
+}
+
+interface LoginResult {
+  token: string
+  userId: number
+  name: string
+  currentRole: number
+  schoolId: number | null
+  roles: RoleItem[]
+}
 
 const route = useRoute()
 const router = useRouter()
 
-const form = reactive({
-  username: '',
-  password: '',
-})
+const form = reactive({ phone: '', password: '' })
+const loading = ref(false)
 
-function handleLogin() {
-  localStorage.setItem('token', 'dev-token')
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
-  router.replace(redirect)
+async function handleLogin() {
+  if (!form.phone || !form.password) {
+    ElMessage.warning('请输入账号和密码')
+    return
+  }
+  loading.value = true
+  try {
+    const data = await http.post<LoginResult>('/auth/login', {
+      phone: form.phone,
+      password: form.password,
+    })
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('userName', data.name ?? '')
+    localStorage.setItem('roleCode', String(data.currentRole))
+    if (data.schoolId != null) {
+      localStorage.setItem('schoolId', String(data.schoolId))
+    } else {
+      localStorage.removeItem('schoolId')
+    }
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+    router.replace(redirect)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '登录失败')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
