@@ -345,3 +345,16 @@ CREATE TABLE vst_notify_config (
   PRIMARY KEY (id),
   CONSTRAINT uk_notify_type UNIQUE (notify_type)
 );
+DROP TABLE IF EXISTS vst_alarm_record;
+CREATE TABLE vst_alarm_record (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  record_id BIGINT NOT NULL,
+  alarm_type VARCHAR(32) NOT NULL DEFAULT 'OVERSTAY',
+  message VARCHAR(255),
+  handled TINYINT NOT NULL DEFAULT 0,
+  handled_by BIGINT,
+  handled_at DATETIME,
+  created_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_alarm_record UNIQUE (record_id, alarm_type)
+);

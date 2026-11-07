@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-016）
+-- 容器测试用 MySQL 结构（001-017）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -508,3 +508,21 @@ INSERT IGNORE INTO vst_notify_config (notify_type, enabled, channels, updated_at
 -- ============================================================
 
 ALTER TABLE vst_mp_config ADD COLUMN auth_mode VARCHAR(16) NOT NULL DEFAULT 'MOCK' COMMENT 'MOCK/REST';
+
+
+-- ============================================================
+-- 通行预警：超期滞留告警
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vst_alarm_record (
+  id          BIGINT       NOT NULL AUTO_INCREMENT,
+  record_id   BIGINT       NOT NULL,
+  alarm_type  VARCHAR(32)  NOT NULL DEFAULT 'OVERSTAY',
+  message     VARCHAR(255) NULL,
+  handled     TINYINT      NOT NULL DEFAULT 0,
+  handled_by  BIGINT       NULL,
+  handled_at  DATETIME     NULL,
+  created_at  DATETIME     NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_alarm_record UNIQUE (record_id, alarm_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通行预警记录';

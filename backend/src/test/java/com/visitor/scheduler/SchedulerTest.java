@@ -1,6 +1,8 @@
 package com.visitor.scheduler;
 
 import com.visitor.server.scheduler.VisitorExpireScheduler;
+import com.visitor.server.scheduler.OverstayScheduler;
+import com.visitor.server.service.AlarmService;
 import com.visitor.server.service.VisitorService;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalTimeoutScheduler;
@@ -18,6 +20,8 @@ class SchedulerTest {
 
     private final ApprovalTimeoutScheduler approvalScheduler = new ApprovalTimeoutScheduler(approvalEngine);
     private final VisitorExpireScheduler visitorScheduler = new VisitorExpireScheduler(visitorService);
+    private final AlarmService alarmService = mock(AlarmService.class);
+    private final OverstayScheduler overstayScheduler = new OverstayScheduler(alarmService);
 
     @Test
     void approvalSchedulerDelegatesToEngine() {
