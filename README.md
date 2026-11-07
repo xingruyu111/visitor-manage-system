@@ -17,18 +17,39 @@ visitor-manage-system/
 
 | 端 | 技术 | 端口 |
 |---|---|---|
-| backend | Java 21、Spring Boot 3.2.4、Maven、SpringDoc | 8080（context-path `/api`） |
+| backend | Java 21、Spring Boot 3.2.4、Maven、SpringDoc、JdbcTemplate、Spring Data Redis | 8080（context-path `/api`） |
 | frontend-h5 | Vue 3.5、Vant 4、Pinia、Vue Router、Axios、TypeScript | 5174 |
 | frontend-web | Vue 3.5、Element Plus、ECharts、Pinia、Vue Router、Axios、TypeScript | 5173 |
+| 基础设施 | MySQL 8.0（库 `visitor_manage`，utf8mb4）、Redis 7 | 3306 / 6379 |
+
+## 环境变量
+
+后端不在仓库里保存任何密钥，全部走环境变量（见 `.env.example`）：
+
+| 变量 | 说明 |
+|---|---|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | MySQL 地址、端口、库名 |
+| `DB_USERNAME` / `DB_PASSWORD` | MySQL 账号密码 |
+| `REDIS_HOST` / `REDIS_PORT` | Redis 地址端口 |
+| `REDIS_USERNAME` / `REDIS_PASSWORD` | Redis ACL 账号密码 |
+
+本地开发：复制 `.env.example` 为 `backend/.env.local` 填写真实值（该文件已被 git 忽略）。
 
 ## 本地启动
 
 ### 后端
 
-```bash
+```powershell
 cd backend
-mvn spring-boot:run           # 默认 8080，接口前缀 /api
+powershell -ExecutionPolicy Bypass -File .\run-local.ps1   # 读取 .env.local 后启动
+# 或：设置好环境变量后 mvn spring-boot:run
+```
+
+启动后验证：
+
+```bash
 curl http://localhost:8080/api/health
+# {"code":200,"data":{"status":"UP","database":{"status":"UP"},"redis":{"status":"UP"},...}}
 # Swagger: http://localhost:8080/api/swagger-ui.html
 ```
 
@@ -50,11 +71,12 @@ npm run dev                   # http://localhost:5173
 
 两个前端都通过 Vite 代理把 `/api` 转发到 `http://localhost:8080`，无需额外配置跨域。
 
-## 当前阶段
+## 当前阶段（M0）
 
-- 已完成：三端工程骨架、后端健康检查、前端路由与请求层占位。
-- 下一阶段：按实施方案的 M0（工程治理）→ M1（集成适配层）推进，详见
-  `F:\smart-campus\docs\实施方案-模块设计与实现顺序.md`（v1.1 决策：接受 POJO 重建、只做 H5、审批流程可视化配置）。
+- 已完成：三端工程骨架；后端接入 MySQL 8.0 与 Redis 7，`/api/health` 同时探测两者；配置全部走环境变量；`mvn test` 基线通过；CI 工作流已就绪。
+- 已建库：`visitor_manage`（utf8mb4 / utf8mb4_unicode_ci）。
+- 下一阶段：M1 集成适配层（`vst_integration_config` + 6 个 Port + Noop + 配置页），并引入 MyBatis-Plus。
+- 方案文档：`F:\smart-campus\docs\实施方案-模块设计与实现顺序.md`（v1.1）。
 
 ## 约定
 
