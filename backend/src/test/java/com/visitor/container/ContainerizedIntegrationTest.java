@@ -1,12 +1,16 @@
 package com.visitor.container;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.visitor.domain.entity.AccessList;
 import com.visitor.domain.entity.ApprovalFlow;
+import com.visitor.domain.entity.VisitLog;
 import com.visitor.domain.entity.ApprovalRule;
 import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
+import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.mapper.ApprovalFlowMapper;
+import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
 import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
@@ -138,12 +142,20 @@ class ContainerizedIntegrationTest {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private AccessListMapper accessListMapper;
+
+    @Autowired
+    private VisitLogMapper visitLogMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         staffMapper.delete(null);
+        accessListMapper.delete(null);
+        visitLogMapper.delete(null);
         classMapper.delete(null);
         departmentMapper.delete(null);
         integrationConfigMapper.delete(null);
@@ -315,6 +327,95 @@ class ContainerizedIntegrationTest {
         assertThat(visitorPassMapper.selectCount(null)).isEqualTo(2L);
     }
 
+    @Test
+    void visitorChainFromApplyToVerifyWorksAgainstRealMysql() {
+        Long teacherUserId = createUserWithRole("13900007001", RoleEnum.TEACHER);
+        Staff teacher = staff("张老师", "13900007001");
+        insertApprovalFlowAndRule();
+
+        Long visitorId = createUserWithRole("13900007002", RoleEnum.VISITOR);
+        String visitorToken = jwtUtil.generate(visitorId, "访客", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null);
+        String teacherToken = jwtUtil.generate(teacherUserId, "老师", List.of(RoleEnum.TEACHER), RoleEnum.TEACHER, 1L);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        Map<String, Object> applied = data(post("/web/visitor/records", visitorToken, Map.of(
+                "targetId", teacher.getId(), "visitorType", "NORMAL",
+                "expectedTime", formatter.format(LocalDateTime.now()),
+                "leaveTime", formatter.format(LocalDateTime.now().plusHours(2)))));
+        Long recordId = ((Number) applied.get("recordId")).longValue();
+        Long instanceId = ((Number) applied.get("approvalInstanceId")).longValue();
+
+        ApprovalTask task = approvalTaskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
+
+        VisitorPass pass = visitorPassMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        pass.setValidFrom(LocalDateTime.now().minusMinutes(1));
+        visitorPassMapper.updateById(pass);
+
+        Map<String, Object> in = data(exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken()));
+        assertThat(in.get("direction")).isEqualTo("IN");
+
+        Map<String, Object> out = data(exchange("/web/guard/verify?token=" + pass.getQrToken(),
+                HttpMethod.POST, null, adminToken()));
+        assertThat(out.get("direction")).isEqualTo("OUT");
+        assertThat(visitorRecordMapper.selectById(recordId).getStatus()).isEqualTo(4);
+        assertThat(visitLogMapper.selectCount(null)).isEqualTo(2L);
+    }
+
+    @Test
+    void blacklistBlocksAndWhitelistAutoApprovesAgainstRealMysql() {
+        Staff teacher = staff("李老师", "13900007003");
+        Long blockedId = createUserWithRole("13900007004", RoleEnum.VISITOR);
+        Long whitelistId = createUserWithRole("13900007005", RoleEnum.VISITOR);
+        insertList(1, "13900007004");
+        insertList(2, "13900007005");
+        insertApprovalFlowAndRule();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String body = """
+                {"targetId":%d,"visitorType":"NORMAL","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacher.getId(), formatter.format(LocalDateTime.now()),
+                formatter.format(LocalDateTime.now().plusHours(2)));
+
+        Map<String, Object> blocked = post("/web/visitor/records",
+                jwtUtil.generate(blockedId, "黑名单", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null), body);
+        assertThat(blocked.get("code")).isEqualTo(403);
+
+        Map<String, Object> allowed = data(post("/web/visitor/records",
+                jwtUtil.generate(whitelistId, "白名单", List.of(RoleEnum.VISITOR), RoleEnum.VISITOR, null), body));
+        assertThat(allowed.get("approvalInstanceId")).isNull();
+        assertThat(visitorRecordMapper.selectById(((Number) allowed.get("recordId")).longValue()).getStatus())
+                .isEqualTo(1);
+    }
+
+    private Staff staff(String name, String phone) {
+        Staff staff = new Staff();
+        staff.setSchoolId(1L);
+        staff.setName(name);
+        staff.setPhone(phone);
+        staff.setPersonType(PersonTypeEnum.TEACHER);
+        staff.setStatus(1);
+        staff.setSyncSource("LOCAL");
+        staff.setCreatedAt(LocalDateTime.now());
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(staff);
+        return staff;
+    }
+
+    private void insertList(int listType, String value) {
+        AccessList list = new AccessList();
+        list.setSchoolId(1L);
+        list.setListType(listType);
+        list.setTargetType("PERSON");
+        list.setTargetValue(value);
+        list.setStatus(1);
+        list.setSource("MANUAL");
+        list.setCreatedAt(LocalDateTime.now());
+        list.setUpdatedAt(LocalDateTime.now());
+        accessListMapper.insert(list);
+    }
     private void insertApprovalFlowAndRule() {
         approvalFlowMapper.delete(null);
         approvalRuleMapper.delete(null);
