@@ -63,6 +63,12 @@ const router = createRouter({
           meta: { title: '表单字段' },
         },
         {
+          path: 'parent-slots',
+          name: 'ParentSlots',
+          component: () => import('@/views/config/ParentSlotView.vue'),
+          meta: { title: '家长时段' },
+        },
+        {
           path: 'access-list',
           name: 'AccessList',
           component: () => import('@/views/access/AccessListView.vue'),
