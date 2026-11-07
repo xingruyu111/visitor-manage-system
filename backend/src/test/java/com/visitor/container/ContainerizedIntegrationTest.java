@@ -2,6 +2,8 @@ package com.visitor.container;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.domain.entity.AccessList;
+import com.visitor.domain.entity.AlarmRecord;
+import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.domain.entity.FormField;
 import com.visitor.domain.entity.ParentSlot;
 import com.visitor.domain.entity.NotifyConfig;
@@ -12,6 +14,7 @@ import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.server.mapper.AccessListMapper;
+import com.visitor.server.mapper.AlarmRecordMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.ParentSlotMapper;
 import com.visitor.server.mapper.NotifyConfigMapper;
@@ -23,6 +26,7 @@ import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.security.JwtUtil;
+import com.visitor.server.service.AlarmService;
 import java.time.format.DateTimeFormatter;
 import com.github.dockerjava.api.model.HostConfig;
 import com.visitor.common.enums.PersonTypeEnum;
@@ -167,6 +171,12 @@ class ContainerizedIntegrationTest {
 
     @Autowired
     private NotificationMapper notificationMapper;
+
+    @Autowired
+    private AlarmRecordMapper alarmRecordMapper;
+
+    @Autowired
+    private AlarmService alarmService;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -178,6 +188,7 @@ class ContainerizedIntegrationTest {
         formFieldMapper.delete(null);
         parentSlotMapper.delete(null);
         notifyConfigMapper.delete(null);
+        alarmRecordMapper.delete(null);
         classMapper.delete(null);
         departmentMapper.delete(null);
         integrationConfigMapper.delete(null);
@@ -544,6 +555,28 @@ class ContainerizedIntegrationTest {
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
 
         assertThat(notificationMapper.selectCount(null)).isZero();
+    }
+    @Test
+    void overstayCreatesAlarmAgainstRealMysql() {
+        createUserWithRole("13900009001", RoleEnum.SECURITY_ADMIN);
+        VisitorRecord record = new VisitorRecord();
+        record.setSchoolId(1L);
+        record.setVisitorUserId(1L);
+        record.setVisitorName("滞留访客");
+        record.setVisitorType("NORMAL");
+        record.setExpectedTime(LocalDateTime.now().minusHours(14));
+        record.setLeaveTime(LocalDateTime.now().minusHours(13));
+        record.setStatus(3);
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        visitorRecordMapper.insert(record);
+
+        int created = alarmService.checkOverstay();
+
+        assertThat(created).isEqualTo(1);
+        assertThat(alarmRecordMapper.selectCount(null)).isEqualTo(1L);
+        assertThat(notificationMapper.selectCount(null)).isGreaterThanOrEqualTo(1L);
+        assertThat(alarmService.checkOverstay()).isZero();
     }
     private void insertApprovalFlowAndRule() {
         approvalFlowMapper.delete(null);
