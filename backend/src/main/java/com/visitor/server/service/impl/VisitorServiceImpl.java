@@ -18,6 +18,8 @@ import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.VisitorService;
 import com.visitor.server.service.NotificationService;
+import com.visitor.server.service.FormFieldService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
@@ -41,11 +43,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final ApprovalInstanceMapper instanceMapper;
     private final AccessCheckService accessCheckService;
     private final NotificationService notificationService;
+    private final FormFieldService formFieldService;
+    private final ObjectMapper objectMapper;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -55,6 +59,8 @@ public class VisitorServiceImpl implements VisitorService {
         this.instanceMapper = instanceMapper;
         this.accessCheckService = accessCheckService;
         this.notificationService = notificationService;
+        this.formFieldService = formFieldService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -75,6 +81,9 @@ public class VisitorServiceImpl implements VisitorService {
         }
         assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
 
+        formFieldService.validate(dto.getVisitorType() == null || dto.getVisitorType().isBlank()
+                ? "NORMAL" : dto.getVisitorType().trim().toUpperCase(), dto.getExtra());
+
         String visitorType = dto.getVisitorType() == null || dto.getVisitorType().isBlank()
                 ? "NORMAL" : dto.getVisitorType().trim().toUpperCase();
 
@@ -89,6 +98,7 @@ public class VisitorServiceImpl implements VisitorService {
         record.setTargetId(target.getId());
         record.setTargetName(target.getName());
         record.setVisitPurpose(dto.getVisitPurpose());
+        record.setExtraJson(writeExtra(dto.getExtra()));
         record.setExpectedTime(dto.getExpectedTime());
         record.setLeaveTime(dto.getLeaveTime());
         record.setStatus("WHITELIST".equals(access) ? 1 : 0);
@@ -223,6 +233,17 @@ public class VisitorServiceImpl implements VisitorService {
         return recordMapper.update(update, new LambdaQueryWrapper<VisitorRecord>()
                 .in(VisitorRecord::getStatus, 0, 1, 2)
                 .lt(VisitorRecord::getLeaveTime, LocalDateTime.now()));
+    }
+
+    private String writeExtra(Map<String, String> extra) {
+        if (extra == null || extra.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(extra);
+        } catch (Exception e) {
+            throw new BizException(400, "表单数据格式错误");
+        }
     }
 
     private void validateTime(LocalDateTime expected, LocalDateTime leave) {

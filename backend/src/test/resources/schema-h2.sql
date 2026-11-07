@@ -218,6 +218,7 @@ CREATE TABLE vst_visitor_record (
   expected_time DATETIME NOT NULL,
   leave_time DATETIME NOT NULL,
   status TINYINT NOT NULL DEFAULT 0,
+  extra_json TEXT,
   reject_reason VARCHAR(255),
   created_at DATETIME,
   updated_at DATETIME,
@@ -299,4 +300,20 @@ CREATE TABLE vst_mp_config (
   created_at DATETIME,
   updated_at DATETIME,
   PRIMARY KEY (id)
+);
+DROP TABLE IF EXISTS vst_form_field;
+CREATE TABLE vst_form_field (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  visitor_type VARCHAR(32) NOT NULL,
+  field_key VARCHAR(64) NOT NULL,
+  label VARCHAR(64) NOT NULL,
+  field_type VARCHAR(16) NOT NULL DEFAULT 'TEXT',
+  required TINYINT NOT NULL DEFAULT 0,
+  options VARCHAR(512),
+  sort_no INT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_form_field UNIQUE (visitor_type, field_key)
 );

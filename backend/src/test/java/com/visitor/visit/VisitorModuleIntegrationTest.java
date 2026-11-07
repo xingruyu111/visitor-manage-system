@@ -22,6 +22,8 @@ import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitLogMapper;
+import com.visitor.server.mapper.FormFieldMapper;
+import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
@@ -91,6 +93,9 @@ class VisitorModuleIntegrationTest {
     private NotificationMapper notificationMapper;
 
     @Autowired
+    private FormFieldMapper formFieldMapper;
+
+    @Autowired
     private ApprovalTaskMapper taskMapper;
 
     @Autowired
@@ -121,6 +126,8 @@ class VisitorModuleIntegrationTest {
     void setUp() {
         accessListMapper.delete(null);
         notificationMapper.delete(null);
+        formFieldMapper.delete(null);
+        formFieldMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -471,6 +478,23 @@ class VisitorModuleIntegrationTest {
 
         assertThat(notificationMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.Notification>()
                 .eq(com.visitor.domain.entity.Notification::getUserId, teacherUserId))).isEqualTo(1L);
+    }
+    @Test
+    void requiredFormFieldBlocksApplication() {
+        com.visitor.domain.entity.FormField field = new com.visitor.domain.entity.FormField();
+        field.setVisitorType("NORMAL");
+        field.setFieldKey("company");
+        field.setLabel("工作单位");
+        field.setFieldType("TEXT");
+        field.setRequired(1);
+        field.setStatus(1);
+        formFieldMapper.insert(field);
+
+        Map<String, Object> result = apply(visitorToken, "13800003001", 0);
+
+        assertThat(result.get("code")).isEqualTo(400);
+        assertThat(result.get("message")).asString().contains("工作单位");
+        assertThat(recordMapper.selectCount(null)).isZero();
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

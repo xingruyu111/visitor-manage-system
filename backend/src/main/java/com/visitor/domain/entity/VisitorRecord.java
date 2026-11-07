@@ -28,6 +28,7 @@ public class VisitorRecord {
     private LocalDateTime leaveTime;
     /** 0待审批 1已通过 2已拒绝 3已入校 4已离校 5已取消 6已过期 */
     private Integer status;
+    private String extraJson;
     private String rejectReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

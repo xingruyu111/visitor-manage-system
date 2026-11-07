@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 public class VisitorApplyDTO {
@@ -20,4 +21,7 @@ public class VisitorApplyDTO {
     private String visitorType;
     private String visitPurpose;
     private String idCard;
+
+    /** 差异化表单数据 */
+    private Map<String, String> extra;
 }
