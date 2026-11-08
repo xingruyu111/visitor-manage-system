@@ -250,6 +250,48 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         return PageResult.of(result.getTotal(), safePage, safeSize, result.getRecords());
     }
 
+    @Override
+    public PageResult<java.util.Map<String, Object>> history(int page, int size) {
+        Long me = UserContext.getUserId();
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Page<ApprovalTask> result = taskMapper.selectPage(new Page<>(safePage, safeSize),
+                new LambdaQueryWrapper<ApprovalTask>()
+                        .eq(ApprovalTask::getActedBy, me)
+                        .ne(ApprovalTask::getStatus, ApprovalStatuses.PENDING)
+                        .orderByDesc(ApprovalTask::getActedAt));
+        java.util.List<java.util.Map<String, Object>> rows = new java.util.ArrayList<>();
+        for (ApprovalTask task : result.getRecords()) {
+            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("taskId", task.getId());
+            row.put("instanceId", task.getInstanceId());
+            row.put("nodeName", task.getNodeName());
+            row.put("decision", task.getDecision());
+            row.put("comment", task.getComment());
+            row.put("actedAt", task.getActedAt());
+            rows.add(row);
+        }
+        return PageResult.of(result.getTotal(), safePage, safeSize, rows);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void emergencyHandle(Long instanceId, boolean approve, String comment) {
+        ApprovalInstance instance = runningInstance(instanceId);
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId)
+                .eq(ApprovalTask::getStatus, ApprovalStatuses.PENDING)
+                .orderByAsc(ApprovalTask::getSeq)
+                .last("LIMIT 1"));
+        if (task == null) {
+            throw new BizException(400, "当前没有待处理任务");
+        }
+        if (approve) {
+            approve(task.getId(), comment, true);
+        } else {
+            reject(task.getId(), comment, true);
+        }
+    }
     private String resolveFlowCode(StartCommand command) {
         List<ApprovalRule> rules = ruleMapper.selectList(new LambdaQueryWrapper<ApprovalRule>()
                 .eq(ApprovalRule::getStatus, 1)

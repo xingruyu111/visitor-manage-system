@@ -12,6 +12,8 @@ import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
+import com.visitor.server.mapper.ApprovalTaskMapper;
+import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
@@ -46,6 +48,7 @@ public class VisitorServiceImpl implements VisitorService {
     private final VisitorPassIssuer passIssuer;
     private final ApprovalEngine approvalEngine;
     private final ApprovalInstanceMapper instanceMapper;
+    private final ApprovalTaskMapper taskMapper;
     private final AccessCheckService accessCheckService;
     private final NotificationService notificationService;
     private final FormFieldService formFieldService;
@@ -57,7 +60,7 @@ public class VisitorServiceImpl implements VisitorService {
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -65,6 +68,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.passIssuer = passIssuer;
         this.approvalEngine = approvalEngine;
         this.instanceMapper = instanceMapper;
+        this.taskMapper = taskMapper;
         this.accessCheckService = accessCheckService;
         this.notificationService = notificationService;
         this.formFieldService = formFieldService;
@@ -308,6 +312,32 @@ public class VisitorServiceImpl implements VisitorService {
             created++;
         }
         return created;
+    }
+
+    @Override
+    public java.util.Map<String, Object> approvalInfo(Long userId, Long recordId) {
+        detail(userId, recordId);
+        ApprovalInstance instance = instanceMapper.selectOne(new LambdaQueryWrapper<ApprovalInstance>()
+                .eq(ApprovalInstance::getBizType, "VISITOR_RECORD")
+                .eq(ApprovalInstance::getBizId, recordId)
+                .last("LIMIT 1"));
+        if (instance == null) {
+            return java.util.Map.of();
+        }
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instance.getId())
+                .isNotNull(ApprovalTask::getActedAt)
+                .orderByDesc(ApprovalTask::getActedAt)
+                .last("LIMIT 1"));
+        if (task == null) {
+            return java.util.Map.of();
+        }
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("decision", task.getDecision());
+        body.put("comment", task.getComment());
+        body.put("nodeName", task.getNodeName());
+        body.put("actedAt", task.getActedAt());
+        return body;
     }
 
     @Override

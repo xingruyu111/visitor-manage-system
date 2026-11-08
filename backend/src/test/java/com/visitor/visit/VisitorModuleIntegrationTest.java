@@ -943,6 +943,34 @@ class VisitorModuleIntegrationTest {
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, headToken);
         assertThat(recordMapper.selectById(number(applied.get("recordId"))).getStatus()).isEqualTo(1);
     }
+    @Test
+    void approvalCommentIsVisible() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long recordId = number(data(applied).get("recordId"));
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        exchange("/web/approval/tasks/" + task.getId() + "/approve?comment=欢迎来访",
+                HttpMethod.POST, null, teacherToken);
+
+        Map<String, Object> info = data(exchange("/web/visitor/records/" + recordId + "/approval",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(info.get("comment")).isEqualTo("欢迎来访");
+        assertThat(info.get("nodeName")).isEqualTo("被访人审批");
+    }
+    @Test
+    void adminCanEmergencyApproveByRecord() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long recordId = number(data(applied).get("recordId"));
+        Long instanceId = number(data(applied).get("approvalInstanceId"));
+
+        Map<String, Object> result = exchange(
+                "/web/admin/visitor-records/" + recordId + "/emergency?approve=true&comment=紧急通过",
+                HttpMethod.POST, null, adminToken);
+
+        assertThat(result.get("code")).isEqualTo(200);
+        assertThat(instanceMapper.selectById(instanceId).getStatus()).isEqualTo("APPROVED");
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

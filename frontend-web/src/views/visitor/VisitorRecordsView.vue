@@ -65,13 +65,17 @@
         <el-descriptions-item label="离校">{{ current.leaveTime }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ STATUS[current.status] }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="current && current.status === 0" class="emergency">
+        <el-button type="success" @click="emergency(true)">紧急通过</el-button>
+        <el-button type="danger" @click="emergency(false)">紧急驳回</el-button>
+      </div>
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/api/request'
 
 interface VisitorRecord {
@@ -178,6 +182,26 @@ async function submitBatch() {
   }
 }
 
+async function emergency(approve: boolean) {
+  if (!current.value) return
+  try {
+    const { value } = await ElMessageBox.prompt(
+      approve ? '紧急通过意见（可选）' : '紧急驳回原因',
+      approve ? '紧急通过' : '紧急驳回',
+    )
+    await http.post(
+      `/web/admin/visitor-records/${current.value.id}/emergency?approve=${approve}&comment=${encodeURIComponent(value || '')}`,
+    )
+    ElMessage.success(approve ? '已紧急通过' : '已紧急驳回')
+    drawer.value = false
+    await load()
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e instanceof Error ? e.message : '操作失败')
+    }
+  }
+}
+
 function openDetail(row: VisitorRecord) {
   current.value = row
   drawer.value = true
@@ -191,6 +215,10 @@ onMounted(() => load(1))
   color: #909399;
   font-size: 12px;
 }
+.emergency {
+  margin-top: 16px;
+}
+
 .pager {
   margin-top: 16px;
   justify-content: flex-end;

@@ -34,6 +34,15 @@ public class ApprovalInstanceController {
         return Result.success(approvalEngine.instances(SchoolScopes.resolve(schoolId), status, page, size));
     }
 
+    @Operation(summary = "紧急审批（管理员越级）")
+    @PostMapping("/{id}/emergency")
+    public Result<Void> emergency(@PathVariable Long id,
+                                  @RequestParam(defaultValue = "true") boolean approve,
+                                  @RequestParam(required = false) String comment) {
+        approvalEngine.emergencyHandle(id, approve, comment);
+        return Result.success();
+    }
+
     @Operation(summary = "取消审批")
     @PostMapping("/{id}/cancel")
     public Result<Void> cancel(@PathVariable Long id, @RequestParam(required = false) String reason) {

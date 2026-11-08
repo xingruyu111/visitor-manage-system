@@ -36,4 +36,6 @@ public interface VisitorService {
     java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> exportRows(Integer status, String keyword);
 
     java.util.Map<String, Object> preCheck(Long userId, String plate);
+
+    java.util.Map<String, Object> approvalInfo(Long userId, Long recordId);
 }

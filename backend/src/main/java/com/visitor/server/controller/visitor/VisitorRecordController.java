@@ -63,6 +63,12 @@ public class VisitorRecordController {
         return Result.success(visitorService.detail(UserContext.getUserId(), id));
     }
 
+    @Operation(summary = "审批意见")
+    @GetMapping("/{id}/approval")
+    public Result<Map<String, Object>> approval(@PathVariable Long id) {
+        return Result.success(visitorService.approvalInfo(UserContext.getUserId(), id));
+    }
+
     @Operation(summary = "我的通行凭证")
     @GetMapping("/{id}/pass")
     public Result<VisitorPass> pass(@PathVariable Long id) {

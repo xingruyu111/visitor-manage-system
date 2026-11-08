@@ -26,6 +26,10 @@ public interface ApprovalEngine {
 
     PageResult<ApprovalInstance> instances(Long schoolId, String status, int page, int size);
 
+    PageResult<java.util.Map<String, Object>> history(int page, int size);
+
+    void emergencyHandle(Long instanceId, boolean approve, String comment);
+
     record StartCommand(String bizType, Long bizId, Long schoolId, Long applicantId,
                         String visitorType, String targetType, Long targetId, String flowCode, Long assigneeHint) {
 

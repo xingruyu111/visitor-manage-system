@@ -325,6 +325,23 @@ class ApprovalModuleIntegrationTest {
         assertThat(instanceMapper.selectById(first.getId()).getStatus()).isEqualTo(ApprovalStatuses.REJECTED);
         assertThat(instanceMapper.selectById(second.getId()).getStatus()).isEqualTo(ApprovalStatuses.REJECTED);
     }
+    @Test
+    void historyAndEmergencyApprovalWork() {
+        ApprovalInstance first = start(20L, "TEACHER", teacherStaffId);
+        ApprovalTask task = firstTask(first.getId());
+        exchange("/web/approval/tasks/" + task.getId() + "/approve?comment=同意", HttpMethod.POST, null, teacherToken);
+
+        Map<String, Object> history = data(exchange("/web/approval/tasks/history?page=1&size=5",
+                HttpMethod.GET, null, teacherToken));
+        assertThat(((Number) history.get("total")).intValue()).isGreaterThanOrEqualTo(1);
+
+        ApprovalInstance second = start(21L, "TEACHER", teacherStaffId);
+        Map<String, Object> emergency = exchange(
+                "/web/approval/instances/" + second.getId() + "/emergency?approve=true&comment=紧急通过",
+                HttpMethod.POST, null, adminToken);
+        assertThat(emergency.get("code")).isEqualTo(200);
+        assertThat(instanceMapper.selectById(second.getId()).getStatus()).isEqualTo("APPROVED");
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return approvalEngine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));

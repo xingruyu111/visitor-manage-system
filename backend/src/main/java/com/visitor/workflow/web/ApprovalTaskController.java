@@ -37,6 +37,14 @@ public class ApprovalTaskController {
         return Result.success(approvalEngine.myTasks(page, size));
     }
 
+    @Operation(summary = "我的审批历史")
+    @GetMapping("/history")
+    public Result<PageResult<java.util.Map<String, Object>>> history(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(approvalEngine.history(page, size));
+    }
+
     @Operation(summary = "通过")
     @PostMapping("/{id}/approve")
     public Result<ApprovalTask> approve(@PathVariable Long id,

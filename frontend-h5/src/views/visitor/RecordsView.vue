@@ -20,9 +20,17 @@
           >
             通行码
           </van-button>
+          <van-button size="mini" plain type="primary" @click="showApproval(item)">审批意见</van-button>
         </template>
       </van-cell>
     </van-cell-group>
+
+    <van-dialog v-model:show="approvalVisible" title="审批意见" confirm-button-text="关闭">
+      <div class="pass" v-if="approval">
+        <p class="meta">{{ approval.nodeName }} · {{ approval.actedAt }}</p>
+        <p class="token">{{ approval.comment || '无意见' }}</p>
+      </div>
+    </van-dialog>
 
     <van-dialog v-model:show="passVisible" title="通行凭证" confirm-button-text="关闭">
       <div class="pass" v-if="pass">
@@ -70,6 +78,8 @@ const records = ref<RecordItem[]>([])
 const loaded = ref(false)
 const pass = ref<Pass | null>(null)
 const passVisible = ref(false)
+const approvalVisible = ref(false)
+const approval = ref<{ nodeName?: string; comment?: string; actedAt?: string } | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function load() {
@@ -80,6 +90,17 @@ async function load() {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
     loaded.value = true
+  }
+}
+
+async function showApproval(item: RecordItem) {
+  try {
+    approval.value = await http.get<{ nodeName?: string; comment?: string; actedAt?: string }>(
+      `/web/visitor/records/${item.id}/approval`,
+    )
+    approvalVisible.value = true
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '暂无审批意见')
   }
 }
 

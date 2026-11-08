@@ -1,6 +1,10 @@
 <template>
   <div class="page">
-    <van-nav-bar title="我的审批" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="我的审批" left-arrow @click-left="$router.back()">
+      <template #right>
+        <span class="nav-link" @click="openHistory">历史</span>
+      </template>
+    </van-nav-bar>
 
     <van-empty v-if="loaded && tasks.length === 0" description="暂无待审批任务" />
 
@@ -13,6 +17,23 @@
         </template>
       </van-cell>
     </van-cell-group>
+
+    <van-popup v-model:show="historyVisible" position="bottom" round :style="{ height: '70%' }">
+      <div class="history">
+        <h3>历史审批</h3>
+        <van-empty v-if="history.length === 0" description="暂无历史" />
+        <van-cell-group v-for="item in history" :key="item.taskId" inset class="card">
+          <van-cell :title="item.nodeName" :label="`${item.actedAt}`">
+            <template #value>
+              <van-tag :type="item.decision === 'APPROVED' ? 'success' : 'danger'">
+                {{ item.decision === 'APPROVED' ? '通过' : '驳回' }}
+              </van-tag>
+            </template>
+          </van-cell>
+          <van-cell v-if="item.comment" :title="item.comment" />
+        </van-cell-group>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -27,8 +48,18 @@ interface Task {
   dueAt: string
 }
 
+interface HistoryItem {
+  taskId: number
+  nodeName: string
+  decision: string
+  comment?: string
+  actedAt: string
+}
+
 const tasks = ref<Task[]>([])
+const history = ref<HistoryItem[]>([])
 const loaded = ref(false)
+const historyVisible = ref(false)
 
 async function load() {
   try {
@@ -38,6 +69,16 @@ async function load() {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
     loaded.value = true
+  }
+}
+
+async function openHistory() {
+  historyVisible.value = true
+  try {
+    const data = await http.get<{ records: HistoryItem[] }>('/web/approval/tasks/history', { page: 1, size: 50 })
+    history.value = data.records
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '加载失败')
   }
 }
 
@@ -66,5 +107,12 @@ onMounted(load)
 }
 .reject {
   margin-left: 8px;
+}
+.nav-link {
+  color: #1989fa;
+  font-size: 14px;
+}
+.history {
+  padding: 16px;
 }
 </style>
