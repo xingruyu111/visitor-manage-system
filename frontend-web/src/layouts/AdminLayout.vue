@@ -63,6 +63,10 @@
           <el-icon><Setting /></el-icon>
           <span>系统参数</span>
         </el-menu-item>
+        <el-menu-item index="/sync-tasks">
+          <el-icon><Refresh /></el-icon>
+          <span>同步任务</span>
+        </el-menu-item>
         <el-menu-item index="/migration">
           <el-icon><Upload /></el-icon>
           <span>数据迁移</span>
@@ -105,7 +109,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

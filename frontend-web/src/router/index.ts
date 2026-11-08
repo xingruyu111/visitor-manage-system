@@ -69,6 +69,12 @@ const router = createRouter({
           meta: { title: '系统参数' },
         },
         {
+          path: 'sync-tasks',
+          name: 'SyncTasks',
+          component: () => import('@/views/config/SyncTaskView.vue'),
+          meta: { title: '同步任务' },
+        },
+        {
           path: 'migration',
           name: 'Migration',
           component: () => import('@/views/migration/MigrationView.vue'),
