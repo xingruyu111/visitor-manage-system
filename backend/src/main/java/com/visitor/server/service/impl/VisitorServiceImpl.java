@@ -89,6 +89,7 @@ public class VisitorServiceImpl implements VisitorService {
         String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), null);
         if ("BLACKLIST".equals(access)) {
             alarmService.notifyBlacklistHit(user.getName(), user.getPhone());
+            auditLogService.record("BLACKLIST_HIT", "ACCESS_LIST", null, "黑名单拦截：" + user.getPhone());
             throw new BizException(403, "该访客已被列入黑名单，禁止入校");
         }
         assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());

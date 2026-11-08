@@ -716,6 +716,20 @@ class VisitorModuleIntegrationTest {
         assertThat(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))
                 .contains("VISITOR_APPLY");
     }
+    @Test
+    void integrationLogExportReturnsCsv() {
+        org.springframework.http.ResponseEntity<byte[]> response = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/integration-logs/export?success=0",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))
+                .contains("接口");
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",
