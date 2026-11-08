@@ -21,6 +21,9 @@ public class VisitorRecordExportRow {
     @ExcelProperty("事由")
     private String visitPurpose;
 
+    @ExcelProperty("通行方式")
+    private String passMode;
+
     @ExcelProperty("车牌号")
     private String plateNumber;
 

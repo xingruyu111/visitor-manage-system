@@ -104,6 +104,15 @@ public class VisitorServiceImpl implements VisitorService {
             parentSlotService.validate(user.getPhone(), dto.getExpectedTime(), dto.getLeaveTime());
         }
 
+        String passMode = dto.getPassMode() == null || dto.getPassMode().isBlank()
+                ? "WALK" : dto.getPassMode().trim().toUpperCase();
+        if (!java.util.List.of("WALK", "EBIKE", "CAR").contains(passMode)) {
+            throw new BizException(400, "通行方式不合法");
+        }
+        if ("CAR".equals(passMode) && (dto.getPlateNumber() == null || dto.getPlateNumber().isBlank())) {
+            throw new BizException(400, "机动车通行请填写车牌号");
+        }
+
         VisitorRecord record = new VisitorRecord();
         record.setSchoolId(target.getSchoolId());
         record.setVisitorUserId(userId);
@@ -111,6 +120,7 @@ public class VisitorServiceImpl implements VisitorService {
         record.setVisitorPhone(user.getPhone());
         record.setIdCard(dto.getIdCard());
         record.setPlateNumber(dto.getPlateNumber() == null ? null : dto.getPlateNumber().trim().toUpperCase());
+        record.setPassMode(passMode);
         record.setVisitorType(visitorType);
         record.setTargetType(target.getPersonType() == null ? null : target.getPersonType().name());
         record.setTargetId(target.getId());
@@ -296,6 +306,11 @@ public class VisitorServiceImpl implements VisitorService {
             row.setIdCard(record.getIdCard());
             row.setTargetName(record.getTargetName());
             row.setVisitPurpose(record.getVisitPurpose());
+            row.setPassMode(switch (record.getPassMode() == null ? "WALK" : record.getPassMode()) {
+                case "CAR" -> "机动车";
+                case "EBIKE" -> "电动自行车";
+                default -> "步行";
+            });
             row.setPlateNumber(record.getPlateNumber());
             row.setExpectedTime(record.getExpectedTime() == null ? null : record.getExpectedTime().format(formatter));
             row.setLeaveTime(record.getLeaveTime() == null ? null : record.getLeaveTime().format(formatter));

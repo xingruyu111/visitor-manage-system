@@ -25,6 +25,9 @@ public class VisitorApplyDTO {
     /** 车牌号（机动车/电动自行车） */
     private String plateNumber;
 
+    /** WALK/EBIKE/CAR，默认 WALK */
+    private String passMode;
+
     /** 差异化表单数据 */
     private Map<String, String> extra;
 }

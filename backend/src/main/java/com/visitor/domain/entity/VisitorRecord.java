@@ -21,6 +21,8 @@ public class VisitorRecord {
     /** NORMAL / ALUMNI / PARENT / CONSTRUCTION / COOPERATION */
     private String visitorType;
     private String plateNumber;
+    /** WALK/EBIKE/CAR */
+    private String passMode;
     private String targetType;
     private Long targetId;
     private String targetName;

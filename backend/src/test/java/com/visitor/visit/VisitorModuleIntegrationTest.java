@@ -829,6 +829,27 @@ class VisitorModuleIntegrationTest {
                 byte[].class);
         assertThat(new String(logCsv.getBody(), java.nio.charset.StandardCharsets.UTF_8)).contains("GATE");
     }
+    @Test
+    void passModeIsValidatedAndStored() {
+        String fmt = "yyyy-MM-dd HH:mm:ss";
+        String badCar = """
+                {"targetId":%d,"visitorType":"NORMAL","passMode":"CAR","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, LocalDateTime.now().plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern(fmt)),
+                LocalDateTime.now().plusDays(1).plusHours(2).format(java.time.format.DateTimeFormatter.ofPattern(fmt)));
+        Map<String, Object> carRejected = exchange("/web/visitor/records", HttpMethod.POST, badCar, visitorToken);
+        assertThat(carRejected.get("code")).isEqualTo(400);
+        assertThat(carRejected.get("message")).asString().contains("车牌号");
+
+        String ebike = """
+                {"targetId":%d,"visitorType":"NORMAL","passMode":"EBIKE","plateNumber":"粤B12345","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, LocalDateTime.now().plusDays(2).format(java.time.format.DateTimeFormatter.ofPattern(fmt)),
+                LocalDateTime.now().plusDays(2).plusHours(2).format(java.time.format.DateTimeFormatter.ofPattern(fmt)));
+        Map<String, Object> ok = data(exchange("/web/visitor/records", HttpMethod.POST, ebike, visitorToken));
+        assertThat(recordMapper.selectById(number(ok.get("recordId"))).getPassMode()).isEqualTo("EBIKE");
+
+        Map<String, Object> walk = apply(visitorToken, "13800003001", 0);
+        assertThat(recordMapper.selectById(number(data(walk).get("recordId"))).getPassMode()).isEqualTo("WALK");
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

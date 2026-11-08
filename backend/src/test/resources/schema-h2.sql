@@ -212,6 +212,7 @@ CREATE TABLE vst_visitor_record (
   id_card VARCHAR(32),
   visitor_type VARCHAR(32) NOT NULL DEFAULT 'NORMAL',
   plate_number VARCHAR(32),
+  pass_mode VARCHAR(16) NOT NULL DEFAULT 'WALK',
   target_type VARCHAR(32),
   target_id BIGINT,
   target_name VARCHAR(64),

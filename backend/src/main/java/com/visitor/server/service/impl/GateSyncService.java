@@ -41,7 +41,7 @@ public class GateSyncService {
             return;
         }
         GateClient.GatePermission permission = new GateClient.GatePermission(
-                pass.getPassNo(), record.getPlateNumber(), "CAR",
+                pass.getPassNo(), record.getPlateNumber(), record.getPassMode() == null ? "CAR" : record.getPassMode(),
                 record.getVisitorName(), record.getVisitorPhone(),
                 pass.getValidFrom(), pass.getValidTo());
         for (int attempt = 1; attempt <= 3; attempt++) {

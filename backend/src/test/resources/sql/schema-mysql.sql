@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-020）
+-- 容器测试用 MySQL 结构（001-021）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -564,3 +564,10 @@ CREATE TABLE IF NOT EXISTS vst_audit_log (
   KEY idx_audit_action (action, created_at),
   KEY idx_audit_biz (biz_type, biz_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作审计日志';
+
+
+-- ============================================================
+-- 通行方式：WALK 步行 / EBIKE 电动自行车 / CAR 机动车
+-- ============================================================
+
+ALTER TABLE vst_visitor_record ADD COLUMN pass_mode VARCHAR(16) NOT NULL DEFAULT 'WALK' COMMENT '通行方式';

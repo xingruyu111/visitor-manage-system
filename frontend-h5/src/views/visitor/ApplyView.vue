@@ -30,7 +30,16 @@
       <van-field v-model="expectedTime" label="到访时间" placeholder="yyyy-MM-dd HH:mm:ss" />
       <van-field v-model="leaveTime" label="离校时间" placeholder="yyyy-MM-dd HH:mm:ss" />
       <van-field v-model="purpose" label="事由" placeholder="请输入来访事由" />
-      <van-field v-model="plate" label="车牌号" placeholder="选填" />
+      <van-field label="通行方式">
+        <template #input>
+          <van-radio-group v-model="passMode" direction="horizontal">
+            <van-radio name="WALK">步行</van-radio>
+            <van-radio name="EBIKE">电动自行车</van-radio>
+            <van-radio name="CAR">机动车</van-radio>
+          </van-radio-group>
+        </template>
+      </van-field>
+      <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" placeholder="机动车必填" />
     </van-cell-group>
 
     <van-cell-group v-if="fields.length" inset title="补充信息">
@@ -75,6 +84,7 @@ const expectedTime = ref('')
 const leaveTime = ref('')
 const purpose = ref('')
 const plate = ref('')
+const passMode = ref('WALK')
 const visitorType = ref('NORMAL')
 const fields = ref<FormField[]>([])
 const extra = reactive<Record<string, string>>({})
@@ -110,6 +120,10 @@ async function submit() {
     showToast('请选择被访人')
     return
   }
+  if (passMode.value === 'CAR' && !plate.value) {
+    showToast('机动车通行请填写车牌号')
+    return
+  }
   submitting.value = true
   try {
     await http.post('/web/visitor/records', {
@@ -118,6 +132,7 @@ async function submit() {
       leaveTime: leaveTime.value,
       visitPurpose: purpose.value,
       plateNumber: plate.value || undefined,
+      passMode: passMode.value,
       visitorType: visitorType.value,
       extra: Object.fromEntries(
         Object.entries(extra).filter(([, value]) => value !== undefined && value !== ''),
