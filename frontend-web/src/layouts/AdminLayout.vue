@@ -155,17 +155,6 @@ function logout() {
   border-bottom: 1px solid #f0f0f0;
 }
 
-.brand::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin-right: 10px;
-  border-radius: 3px;
-  background: #0a0a0a;
-  vertical-align: -2px;
-}
-
 .menu {
   border-right: none;
   background: transparent;
