@@ -37,14 +37,18 @@
   padding: 16px 0 24px;
 }
 .hero {
-  padding: 8px 20px 20px;
+  padding: 22px 20px;
+  margin: 0 16px 4px;
+  border-radius: 16px;
 }
 .hero h2 {
   margin: 0 0 8px;
+  font-size: 22px;
+  color: #fff;
 }
 .hero p {
   margin: 0;
-  color: #969799;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   line-height: 1.6;
 }

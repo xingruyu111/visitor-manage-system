@@ -3,6 +3,7 @@
     <el-aside width="220px" class="aside">
       <div class="brand">智慧校园访客</div>
       <el-menu :default-active="activeMenu" router class="menu">
+        <div class="menu-group">概览</div>
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
           <span>工作台</span>
@@ -11,6 +12,7 @@
           <el-icon><Monitor /></el-icon>
           <span>数据大屏</span>
         </el-menu-item>
+        <div class="menu-group">业务</div>
         <el-menu-item index="/visitor-records">
           <el-icon><Tickets /></el-icon>
           <span>访客记录</span>
@@ -31,6 +33,7 @@
           <el-icon><Position /></el-icon>
           <span>通行记录</span>
         </el-menu-item>
+        <div class="menu-group">人员</div>
         <el-menu-item index="/users">
           <el-icon><User /></el-icon>
           <span>账号管理</span>
@@ -47,6 +50,7 @@
           <el-icon><Share /></el-icon>
           <span>审批流程</span>
         </el-menu-item>
+        <div class="menu-group">配置</div>
         <el-menu-item index="/notify-config">
           <el-icon><Bell /></el-icon>
           <span>通知配置</span>
@@ -71,6 +75,7 @@
           <el-icon><Refresh /></el-icon>
           <span>同步任务</span>
         </el-menu-item>
+        <div class="menu-group">数据与审计</div>
         <el-menu-item index="/migration">
           <el-icon><Upload /></el-icon>
           <span>数据迁移</span>
@@ -133,38 +138,95 @@ function logout() {
 }
 
 .aside {
-  background: #1f2d3d;
-  color: #fff;
+  background: #ffffff;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
-  height: 60px;
-  line-height: 60px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
+  height: 64px;
+  line-height: 64px;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #0a0a0a;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.brand::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  border-radius: 3px;
+  background: #0a0a0a;
+  vertical-align: -2px;
 }
 
 .menu {
   border-right: none;
   background: transparent;
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.menu-group {
+  margin: 14px 10px 6px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: #9a9a9a;
+  font-weight: 600;
+}
+
+.menu-group:first-child {
+  margin-top: 4px;
+}
+
+.menu :deep(.el-menu-item) {
+  height: 42px;
+  line-height: 42px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+  color: #4d4d4d;
+  font-weight: 500;
+}
+
+.menu :deep(.el-menu-item:hover) {
+  background: #f2f2f2;
+  color: #0a0a0a;
+}
+
+.menu :deep(.el-menu-item.is-active) {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.menu :deep(.el-menu-item.is-active .el-icon) {
+  color: #ffffff;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 0 24px;
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: #0a0a0a;
 }
 
 .main {
   padding: 20px;
+  background: #f5f5f5;
 }
 </style>

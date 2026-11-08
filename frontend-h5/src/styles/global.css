@@ -1,3 +1,30 @@
+/* ============================================================
+   H5 · 蓝白主题
+   白底卡片 + 蓝色强调，浅蓝背景，圆角与留白
+   ============================================================ */
+
+:root {
+  --van-primary-color: #1677ff;
+  --van-blue: #1677ff;
+  --van-nav-bar-background: #ffffff;
+  --van-nav-bar-icon-color: #1677ff;
+  --van-nav-bar-text-color: #1677ff;
+  --van-nav-bar-title-text-color: #0f1c2e;
+  --van-cell-group-inset-radius: 14px;
+  --van-button-primary-background: #1677ff;
+  --van-button-primary-border-color: #1677ff;
+  --van-tabbar-item-active-color: #1677ff;
+  --van-tabs-bottom-bar-color: #1677ff;
+  --van-switch-on-background: #1677ff;
+
+  --h5-bg: #eef5ff;
+  --h5-surface: #ffffff;
+  --h5-border: #dbe9ff;
+  --h5-text: #0f1c2e;
+  --h5-muted: #6b7c93;
+  --h5-radius: 14px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,16 +37,20 @@ body,
 }
 
 body {
-  background: #f5f7fb;
-  color: #1f2329;
+  background: var(--h5-bg);
+  color: var(--h5-text);
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
+/* 页面统一浅蓝底 */
 .page {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--h5-bg) !important;
 }
 
 .content {
@@ -29,21 +60,84 @@ body {
   gap: 16px;
 }
 
-.hero {
-  background: #fff;
-  border-radius: 12px;
+/* 顶部导航：白底蓝字 */
+.van-nav-bar {
+  background: #ffffff;
+  box-shadow: 0 1px 0 var(--h5-border);
+}
+
+.van-nav-bar__title {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* 主按钮：蓝色，44px 触摸高度 */
+.van-button--primary:not(.van-button--plain) {
+  background: #1677ff;
+  border-color: #1677ff;
+  font-weight: 600;
+}
+
+.van-button--primary:not(.van-button--plain):active {
+  background: #0e63d6;
+  border-color: #0e63d6;
+}
+
+.van-button--primary.van-button--plain {
+  color: #1677ff;
+  border-color: #bfd8ff;
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.van-button--large,
+.van-button--block {
+  min-height: 46px;
+}
+
+/* 卡片 */
+.van-cell-group--inset {
+  border-radius: var(--h5-radius);
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(22, 119, 255, 0.06);
+}
+
+.van-cell {
   padding: 16px;
+}
+
+/* 单选/多选项间距，避免换行拥挤 */
+.van-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.van-radio {
+  margin-right: 0;
+}
+
+/* 首页 Hero：蓝色渐变横幅 */
+.hero {
+  margin: 0 16px;
+  padding: 20px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(140deg, #1677ff 0%, #4f9bff 100%);
+  box-shadow: 0 10px 24px rgba(22, 119, 255, 0.28);
 }
 
 .hero h2 {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .hero p {
   margin: 0;
-  color: #6b7280;
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -54,6 +148,33 @@ body {
 .result {
   margin: 12px 0 0;
   font-size: 13px;
-  color: #0f766e;
+  color: #1677ff;
   word-break: break-all;
+}
+
+/* 可点击元素统一手指光标 */
+a,
+button,
+.van-cell,
+.van-tab,
+.van-button {
+  cursor: pointer;
+}
+
+/* 键盘焦点可见 */
+:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+
+/* 小屏安全区 */
+.page {
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -112,25 +112,35 @@ onMounted(loadCaptcha)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eef4ff 0%, #f7f9fc 100%);
+  background: #f5f5f5;
+  background-image: linear-gradient(#e8e8e8 1px, transparent 1px),
+    linear-gradient(90deg, #e8e8e8 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 .login-card {
   width: 400px;
-  padding: 8px 12px;
+  padding: 20px 16px 12px;
+  border: 1px solid #0a0a0a;
+  border-radius: 10px;
+  box-shadow: 8px 8px 0 #0a0a0a;
 }
 
 h1 {
-  margin: 8px 0 4px;
-  font-size: 20px;
+  margin: 4px 0 6px;
+  font-size: 22px;
+  letter-spacing: 0.5px;
   text-align: center;
+  color: #0a0a0a;
 }
 
 .subtitle {
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   text-align: center;
-  color: #909399;
+  color: #6b6b6b;
   font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .submit {

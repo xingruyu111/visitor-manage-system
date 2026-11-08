@@ -1,6 +1,10 @@
 <template>
   <div class="page">
-    <h2 class="title">访客登录</h2>
+    <div class="brand">
+      <div class="logo">访</div>
+      <h2>智慧校园访客</h2>
+      <p>预约 · 审批 · 通行</p>
+    </div>
 
     <van-notice-bar
       v-if="wechatCode"
@@ -36,6 +40,7 @@
     </van-form>
 
     <p class="tip">首次使用微信登录会自动创建访客账号并绑定手机号。</p>
+    <p class="foot">智慧校园访客管理 · H5</p>
   </div>
 </template>
 
@@ -142,11 +147,37 @@ onMounted(() => {
 
 <style scoped>
 .page {
-  padding: 40px 0;
+  padding: 36px 0 max(24px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #1677ff 0, #4f9bff 220px, #eef5ff 221px) !important;
 }
-.title {
+.brand {
   text-align: center;
-  margin-bottom: 24px;
+  color: #fff;
+  margin-bottom: 30px;
+}
+.logo {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 56px;
+}
+.brand h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+}
+.brand p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 1px;
 }
 .actions {
   margin: 24px 16px;
@@ -156,9 +187,17 @@ onMounted(() => {
 }
 .tip {
   margin: 16px;
-  color: #969799;
+  color: #6b7c93;
   font-size: 12px;
   text-align: center;
+}
+.foot {
+  margin-top: auto;
+  padding-top: 40px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #9db3cc;
 }
 .captcha {
   height: 32px;

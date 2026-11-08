@@ -40,7 +40,7 @@
         <template #input>
           <van-radio-group v-model="passMode" direction="horizontal">
             <van-radio name="WALK">步行</van-radio>
-            <van-radio name="EBIKE">电动自行车</van-radio>
+            <van-radio name="EBIKE">电动车</van-radio>
             <van-radio name="CAR">机动车</van-radio>
           </van-radio-group>
         </template>

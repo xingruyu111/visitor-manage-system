@@ -33,3 +33,6 @@ uploads/
 test-results/
 playwright-report/
 blob-report/
+
+# 本地截图
+.screenshots/
