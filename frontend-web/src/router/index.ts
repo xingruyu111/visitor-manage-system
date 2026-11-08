@@ -94,6 +94,12 @@ const router = createRouter({
           meta: { title: '接口日志' },
         },
         {
+          path: 'ip-blacklist',
+          name: 'IpBlacklist',
+          component: () => import('@/views/security/IpBlacklistView.vue'),
+          meta: { title: 'IP 黑名单' },
+        },
+        {
           path: 'form-fields',
           name: 'FormFields',
           component: () => import('@/views/config/FormFieldView.vue'),

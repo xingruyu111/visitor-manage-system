@@ -10,6 +10,7 @@ import com.visitor.integration.sso.IdentityProvider;
 import com.visitor.security.UserContext;
 import com.visitor.security.IpBanService;
 import com.visitor.security.CaptchaService;
+import com.visitor.server.service.IpBlacklistService;
 import com.visitor.server.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,18 +35,21 @@ public class AuthController {
     private final AuthService authService;
     private final IpBanService ipBanService;
     private final CaptchaService captchaService;
+    private final IpBlacklistService ipBlacklistService;
     private final IntegrationFactory integrationFactory;
 
-    public AuthController(AuthService authService, IpBanService ipBanService, CaptchaService captchaService, IntegrationFactory integrationFactory) {
+    public AuthController(AuthService authService, IpBanService ipBanService, IpBlacklistService ipBlacklistService, CaptchaService captchaService, IntegrationFactory integrationFactory) {
         this.authService = authService;
         this.ipBanService = ipBanService;
         this.captchaService = captchaService;
+        this.ipBlacklistService = ipBlacklistService;
         this.integrationFactory = integrationFactory;
     }
 
     @Operation(summary = "账号密码登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
+        ipBlacklistService.assertAllowed(clientIp(request));
         captchaService.validate(dto.getCaptchaId(), dto.getCaptchaCode());
         ipBanService.assertAllowed();
         try {

@@ -971,6 +971,20 @@ class VisitorModuleIntegrationTest {
         assertThat(result.get("code")).isEqualTo(200);
         assertThat(instanceMapper.selectById(instanceId).getStatus()).isEqualTo("APPROVED");
     }
+    @Test
+    void ipBlacklistHttpCrud() {
+        Map<String, Object> added = data(exchange("/web/admin/ip-blacklist?ip=10.1.2.3&reason=e2e",
+                HttpMethod.POST, null, adminToken));
+        assertThat(added.get("ip")).isEqualTo("10.1.2.3");
+
+        Map<String, Object> page = data(exchange("/web/admin/ip-blacklist?keyword=10.1.2",
+                HttpMethod.GET, null, adminToken));
+        assertThat(((Number) page.get("total")).intValue()).isGreaterThanOrEqualTo(1);
+
+        Map<String, Object> removed = exchange("/web/admin/ip-blacklist/" + added.get("id"),
+                HttpMethod.DELETE, null, adminToken);
+        assertThat(removed.get("code")).isEqualTo(200);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

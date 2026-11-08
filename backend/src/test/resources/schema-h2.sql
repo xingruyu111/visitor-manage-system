@@ -375,3 +375,14 @@ CREATE TABLE vst_audit_log (
   created_at DATETIME,
   PRIMARY KEY (id)
 );
+DROP TABLE IF EXISTS vst_ip_blacklist;
+CREATE TABLE vst_ip_blacklist (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  ip VARCHAR(64) NOT NULL,
+  reason VARCHAR(255),
+  expire_at DATETIME,
+  created_by BIGINT,
+  created_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_ip_blacklist UNIQUE (ip)
+);

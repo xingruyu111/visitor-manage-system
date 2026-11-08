@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-022）
+-- 容器测试用 MySQL 结构（001-023）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -584,3 +584,19 @@ UPDATE vst_approval_flow
 SET definition_json = '{"code":"VISIT_AFFILIATED_STUDENT","name":"实验学校学生访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"班主任审批","assignee":"HEAD_TEACHER"}]}',
     updated_at = NOW()
 WHERE flow_code = 'VISIT_AFFILIATED_STUDENT' AND status = 1;
+
+
+-- ============================================================
+-- IP 黑名单（人工维护，支持临时/永久）
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vst_ip_blacklist (
+  id          BIGINT       NOT NULL AUTO_INCREMENT,
+  ip          VARCHAR(64)  NOT NULL,
+  reason      VARCHAR(255) NULL,
+  expire_at   DATETIME     NULL COMMENT 'NULL 表示永久',
+  created_by  BIGINT       NULL,
+  created_at  DATETIME     NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_ip_blacklist UNIQUE (ip)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='IP 黑名单';

@@ -79,6 +79,10 @@
           <el-icon><Link /></el-icon>
           <span>接口日志</span>
         </el-menu-item>
+        <el-menu-item index="/ip-blacklist">
+          <el-icon><Lock /></el-icon>
+          <span>IP 黑名单</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -97,7 +101,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
