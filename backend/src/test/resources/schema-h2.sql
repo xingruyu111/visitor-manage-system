@@ -359,3 +359,16 @@ CREATE TABLE vst_alarm_record (
   PRIMARY KEY (id),
   CONSTRAINT uk_alarm_record UNIQUE (record_id, alarm_type)
 );
+DROP TABLE IF EXISTS vst_audit_log;
+CREATE TABLE vst_audit_log (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT,
+  user_name VARCHAR(64),
+  action VARCHAR(64) NOT NULL,
+  biz_type VARCHAR(32),
+  biz_id BIGINT,
+  detail VARCHAR(512),
+  ip VARCHAR(64),
+  created_at DATETIME,
+  PRIMARY KEY (id)
+);

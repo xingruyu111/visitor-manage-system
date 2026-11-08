@@ -8,6 +8,7 @@ import com.visitor.domain.entity.AccessList;
 import com.visitor.domain.dto.AccessListImportRow;
 import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.service.AccessCheckService;
+import com.visitor.server.service.AuditLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +28,12 @@ public class AccessCheckServiceImpl implements AccessCheckService {
 
     private final AccessListMapper mapper;
     private final GateSyncService gateSyncService;
+    private final AuditLogService auditLogService;
 
-    public AccessCheckServiceImpl(AccessListMapper mapper, GateSyncService gateSyncService) {
+    public AccessCheckServiceImpl(AccessListMapper mapper, GateSyncService gateSyncService, AuditLogService auditLogService) {
         this.mapper = mapper;
         this.gateSyncService = gateSyncService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -101,6 +104,7 @@ public class AccessCheckServiceImpl implements AccessCheckService {
         entity.setUpdatedAt(LocalDateTime.now());
         duplicateCheck(schoolId, entity);
         mapper.insert(entity);
+        auditLogService.record("ACCESS_LIST_CREATE", "ACCESS_LIST", entity.getId(), "新增名单：" + entity.getTargetValue());
         return entity;
     }
 
@@ -122,6 +126,7 @@ public class AccessCheckServiceImpl implements AccessCheckService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(entity);
+        auditLogService.record("ACCESS_LIST_RELEASE", "ACCESS_LIST", entity.getId(), "解除名单：" + entity.getTargetValue());
         return entity;
     }
 

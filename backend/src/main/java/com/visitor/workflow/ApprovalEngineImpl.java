@@ -11,6 +11,7 @@ import com.visitor.domain.entity.ApprovalInstance;
 import com.visitor.domain.entity.ApprovalRule;
 import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.security.UserContext;
+import com.visitor.server.service.AuditLogService;
 import com.visitor.server.mapper.ApprovalFlowMapper;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
@@ -37,10 +38,11 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     private final AssigneeResolver assigneeResolver;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuditLogService auditLogService;
 
     public ApprovalEngineImpl(ApprovalFlowMapper flowMapper, ApprovalRuleMapper ruleMapper,
                               ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper,
-                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher) {
+                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher, AuditLogService auditLogService) {
         this.flowMapper = flowMapper;
         this.ruleMapper = ruleMapper;
         this.instanceMapper = instanceMapper;
@@ -48,6 +50,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         this.assigneeResolver = assigneeResolver;
         this.objectMapper = objectMapper;
         this.eventPublisher = eventPublisher;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -111,6 +114,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setActedBy(UserContext.getUserId());
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
+        auditLogService.record("APPROVAL_APPROVE", "APPROVAL_TASK", task.getId(), "通过审批");
 
         FlowDefinition definition = read(instance.getDefinitionJson());
         FlowDefinition.Node next = nextNode(definition, task.getSeq());
@@ -137,6 +141,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setActedBy(UserContext.getUserId());
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
+        auditLogService.record("APPROVAL_REJECT", "APPROVAL_TASK", task.getId(), "驳回审批");
 
         skipPending(instance.getId());
         complete(instance, ApprovalStatuses.REJECTED);

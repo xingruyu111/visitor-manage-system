@@ -12,6 +12,7 @@ import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.VerifyService;
+import com.visitor.server.service.AuditLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +26,14 @@ public class VerifyServiceImpl implements VerifyService {
     private final VisitorPassMapper passMapper;
     private final VisitorRecordMapper recordMapper;
     private final VisitLogMapper visitLogMapper;
+    private final AuditLogService auditLogService;
 
     public VerifyServiceImpl(VisitorPassMapper passMapper, VisitorRecordMapper recordMapper,
-                             VisitLogMapper visitLogMapper) {
+                             VisitLogMapper visitLogMapper, AuditLogService auditLogService) {
         this.passMapper = passMapper;
         this.recordMapper = recordMapper;
         this.visitLogMapper = visitLogMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -88,6 +91,7 @@ public class VerifyServiceImpl implements VerifyService {
         log.setEventTime(now);
         log.setCreatedAt(now);
         visitLogMapper.insert(log);
+        auditLogService.record("ACCESS_VERIFY", "VISITOR_RECORD", record.getId(), "核验：" + direction);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("direction", direction);

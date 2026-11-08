@@ -698,6 +698,24 @@ class VisitorModuleIntegrationTest {
         assertThat(response.getHeaders().getContentType().toString()).contains("spreadsheetml");
         assertThat(response.getBody()).hasSizeGreaterThan(100);
     }
+    @Test
+    void auditLogRecordsApplyAndSupportsQueryExport() {
+        apply(visitorToken, "13800003001", 0);
+
+        Map<String, Object> page = data(exchange("/web/admin/audit-logs?action=VISITOR_APPLY",
+                HttpMethod.GET, null, adminToken));
+        assertThat(number(page.get("total"))).isGreaterThanOrEqualTo(1);
+
+        org.springframework.http.ResponseEntity<byte[]> response = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/audit-logs/export?action=VISITOR_APPLY",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+        assertThat(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))
+                .contains("VISITOR_APPLY");
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

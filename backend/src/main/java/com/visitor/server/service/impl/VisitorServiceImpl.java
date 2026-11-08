@@ -21,6 +21,7 @@ import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.FormFieldService;
 import com.visitor.server.service.ParentSlotService;
 import com.visitor.server.service.AlarmService;
+import com.visitor.server.service.AuditLogService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.RoleEnum;
@@ -50,12 +51,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final FormFieldService formFieldService;
     private final ParentSlotService parentSlotService;
     private final AlarmService alarmService;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -68,6 +70,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.formFieldService = formFieldService;
         this.parentSlotService = parentSlotService;
         this.alarmService = alarmService;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
 
@@ -136,6 +139,9 @@ public class VisitorServiceImpl implements VisitorService {
                     "VISITOR_RECORD", record.getId(), record.getSchoolId(), userId,
                     visitorType, record.getTargetType(), record.getTargetId()));
         }
+
+        auditLogService.record("VISITOR_APPLY", "VISITOR_RECORD", record.getId(),
+                "提交预约：" + record.getVisitorName() + " → " + record.getTargetName());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("recordId", record.getId());
