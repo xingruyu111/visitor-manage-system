@@ -25,7 +25,7 @@
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260">
+        <el-table-column label="操作" min-width="260" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="toggle(row)">{{ row.status === 1 ? '停用' : '启用' }}</el-button>
             <el-button link type="primary" @click="openRole(row)">分配角色</el-button>
