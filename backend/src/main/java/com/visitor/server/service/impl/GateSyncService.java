@@ -4,6 +4,12 @@ import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.gate.GateClient;
+import com.visitor.domain.entity.UserRole;
+import com.visitor.common.enums.RoleEnum;
+import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.service.NotificationService;
+import com.visitor.server.service.AuditLogService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,30 +24,59 @@ import java.util.List;
 public class GateSyncService {
 
     private final IntegrationFactory integrationFactory;
+    private final NotificationService notificationService;
+    private final UserRoleMapper userRoleMapper;
+    private final AuditLogService auditLogService;
 
-    public GateSyncService(IntegrationFactory integrationFactory) {
+    public GateSyncService(IntegrationFactory integrationFactory, NotificationService notificationService,
+                           UserRoleMapper userRoleMapper, AuditLogService auditLogService) {
         this.integrationFactory = integrationFactory;
+        this.notificationService = notificationService;
+        this.userRoleMapper = userRoleMapper;
+        this.auditLogService = auditLogService;
     }
 
     public void push(VisitorRecord record, VisitorPass pass) {
         if (record.getPlateNumber() == null || record.getPlateNumber().isBlank()) {
             return;
         }
-        try {
-            GateClient gate = integrationFactory.gate();
-            if (gate == null || !gate.isConfigured()) {
-                return;
-            }
-            GateClient.GateOpResult result = gate.pushPermission(new GateClient.GatePermission(
-                    pass.getPassNo(), record.getPlateNumber(), "CAR",
-                    record.getVisitorName(), record.getVisitorPhone(),
-                    pass.getValidFrom(), pass.getValidTo()));
-            if (result == null || !result.success()) {
-                log.warn("门闸权限下发失败: passNo={}, msg={}", pass.getPassNo(),
+        GateClient.GatePermission permission = new GateClient.GatePermission(
+                pass.getPassNo(), record.getPlateNumber(), "CAR",
+                record.getVisitorName(), record.getVisitorPhone(),
+                pass.getValidFrom(), pass.getValidTo());
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                GateClient gate = integrationFactory.gate();
+                if (gate == null || !gate.isConfigured()) {
+                    return;
+                }
+                GateClient.GateOpResult result = gate.pushPermission(permission);
+                if (result != null && result.success()) {
+                    return;
+                }
+                log.warn("门闸权限下发失败（第 {} 次）: passNo={}, msg={}", attempt, pass.getPassNo(),
                         result == null ? "null" : result.message());
+            } catch (Exception e) {
+                log.warn("门闸权限下发异常（第 {} 次）: passNo={}, err={}", attempt, pass.getPassNo(), e.getMessage());
+            }
+        }
+        notifyFailure("门闸权限下发失败", "passNo=" + pass.getPassNo() + ", plate=" + record.getPlateNumber());
+    }
+
+    private void notifyFailure(String title, String detail) {
+        try {
+            auditLogService.record("GATE_PUSH_FAILED", "VISITOR_PASS", null, title + "：" + detail);
+        } catch (Exception ignored) {
+            // 审计失败不影响告警
+        }
+        try {
+            for (UserRole role : userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                    .eq(UserRole::getRole, RoleEnum.SECURITY_ADMIN)
+                    .eq(UserRole::getStatus, 1))) {
+                notificationService.notifyUser(role.getUserId(), title, detail, "ACCESS_ALERT", null, null);
             }
         } catch (Exception e) {
-            log.warn("门闸权限下发异常（已忽略）: passNo={}, err={}", pass.getPassNo(), e.getMessage());
+            log.warn("门闸失败告警发送异常（已忽略）: {}", e.getMessage());
         }
     }
 

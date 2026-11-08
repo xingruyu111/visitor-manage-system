@@ -5,6 +5,11 @@ import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.gate.GateClient;
 import com.visitor.server.service.impl.GateSyncService;
+import com.visitor.server.service.NotificationService;
+import com.visitor.server.service.AuditLogService;
+import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.domain.entity.UserRole;
+import com.visitor.common.enums.RoleEnum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +18,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,7 +28,10 @@ class GateSyncServiceTest {
 
     private final IntegrationFactory factory = mock(IntegrationFactory.class);
     private final GateClient gate = mock(GateClient.class);
-    private final GateSyncService service = new GateSyncService(factory);
+    private final NotificationService notificationService = mock(NotificationService.class);
+    private final UserRoleMapper userRoleMapper = mock(UserRoleMapper.class);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final GateSyncService service = new GateSyncService(factory, notificationService, userRoleMapper, auditLogService);
 
     private final VisitorRecord record = new VisitorRecord();
     private final VisitorPass pass = new VisitorPass();
@@ -38,6 +47,34 @@ class GateSyncServiceTest {
         pass.setValidTo(LocalDateTime.now().plusHours(2));
     }
 
+    @Test
+    void retriesTransientFailureThenSucceeds() {
+        when(gate.isConfigured()).thenReturn(true);
+        when(gate.pushPermission(any()))
+                .thenThrow(new RuntimeException("timeout"))
+                .thenReturn(GateClient.GateOpResult.ok("ref"));
+
+        service.push(record, pass);
+
+        verify(gate, org.mockito.Mockito.times(2)).pushPermission(any());
+        verify(notificationService, never()).notifyUser(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void alertsSecurityWhenAllRetriesFail() {
+        when(gate.isConfigured()).thenReturn(true);
+        when(gate.pushPermission(any())).thenThrow(new RuntimeException("down"));
+        UserRole role = new UserRole();
+        role.setUserId(9L);
+        role.setRole(RoleEnum.SECURITY_ADMIN);
+        when(userRoleMapper.selectList(any())).thenReturn(java.util.List.of(role));
+
+        service.push(record, pass);
+
+        verify(gate, org.mockito.Mockito.times(3)).pushPermission(any());
+        verify(notificationService).notifyUser(eq(9L), eq("门闸权限下发失败"), any(), eq("ACCESS_ALERT"), any(), any());
+        verify(auditLogService).record(eq("GATE_PUSH_FAILED"), any(), any(), any());
+    }
     @Test
     void pushesPermissionWhenConfigured() {
         when(gate.isConfigured()).thenReturn(true);
