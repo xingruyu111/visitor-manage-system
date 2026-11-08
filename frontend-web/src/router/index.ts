@@ -21,6 +21,12 @@ const router = createRouter({
           meta: { title: '工作台' },
         },
         {
+          path: 'screen',
+          name: 'Screen',
+          component: () => import('@/views/screen/ScreenView.vue'),
+          meta: { title: '数据大屏' },
+        },
+        {
           path: 'visitor-records',
           name: 'VisitorRecords',
           component: () => import('@/views/visitor/VisitorRecordsView.vue'),
