@@ -28,6 +28,13 @@ public class DashboardController {
         return Result.success(dashboardService.trend(days));
     }
 
+    @Operation(summary = "月度统计")
+    @GetMapping("/monthly")
+    public Result<java.util.List<java.util.Map<String, Object>>> monthly(
+            @RequestParam(defaultValue = "6") int months) {
+        return Result.success(dashboardService.monthly(months));
+    }
+
     @Operation(summary = "统计概览")
     @GetMapping("/summary")
     public Result<Map<String, Object>> summary() {

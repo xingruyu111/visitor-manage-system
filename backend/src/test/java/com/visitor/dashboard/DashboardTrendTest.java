@@ -103,6 +103,20 @@ class DashboardTrendTest {
         assertThat(integrationLogService.exportRows(null, 0)).hasSize(1);
     }
 
+    @Test
+    void monthlyAggregatesCurrentMonth() {
+        record(1);
+        record(2);
+
+        List<Map<String, Object>> months = dashboardService.monthly(3);
+
+        assertThat(months).hasSize(3);
+        Map<String, Object> current = months.get(2);
+        assertThat(((Number) current.get("total")).intValue()).isEqualTo(2);
+        assertThat(((Number) current.get("approved")).intValue()).isEqualTo(1);
+        assertThat(((Number) current.get("rejected")).intValue()).isEqualTo(1);
+        assertThat(((Number) current.get("approvalRate")).doubleValue()).isEqualTo(50.0);
+    }
     private void record(int status) {
         VisitorRecord record = new VisitorRecord();
         record.setSchoolId(1L);

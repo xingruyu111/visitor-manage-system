@@ -16,6 +16,7 @@ import com.visitor.workflow.ApprovalStatuses;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -105,6 +106,32 @@ public class DashboardServiceImpl implements DashboardService {
         return result;
     }
 
+    @Override
+    public List<Map<String, Object>> monthly(int months) {
+        int span = Math.min(Math.max(months, 1), 24);
+        YearMonth current = YearMonth.now();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (int i = span - 1; i >= 0; i--) {
+            YearMonth month = current.minusMonths(i);
+            LocalDateTime start = month.atDay(1).atStartOfDay();
+            LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
+            long total = countRange(start, end, null);
+            long approved = countRange(start, end, 1);
+            long rejected = countRange(start, end, 2);
+            long left = countRange(start, end, 4);
+            double rate = approved + rejected == 0 ? 0
+                    : Math.round(approved * 10000.0 / (approved + rejected)) / 100.0;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("month", month.toString());
+            row.put("total", total);
+            row.put("approved", approved);
+            row.put("rejected", rejected);
+            row.put("left", left);
+            row.put("approvalRate", rate);
+            result.add(row);
+        }
+        return result;
+    }
     private long countRange(LocalDateTime start, LocalDateTime end, Integer status) {
         return recordMapper.selectCount(new LambdaQueryWrapper<VisitorRecord>()
                 .ge(VisitorRecord::getExpectedTime, start)
