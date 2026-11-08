@@ -850,6 +850,18 @@ class VisitorModuleIntegrationTest {
         Map<String, Object> walk = apply(visitorToken, "13800003001", 0);
         assertThat(recordMapper.selectById(number(data(walk).get("recordId"))).getPassMode()).isEqualTo("WALK");
     }
+    @Test
+    void preCheckReportsBlacklistAndWhitelist() {
+        Map<String, Object> none = data(exchange("/web/visitor/records/pre-check",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(none.get("status")).isEqualTo("NONE");
+
+        insertList(1, "13800003001", null);
+        Map<String, Object> black = data(exchange("/web/visitor/records/pre-check?plate=粤B00001",
+                HttpMethod.GET, null, visitorToken));
+        assertThat(black.get("status")).isEqualTo("BLACKLIST");
+        assertThat(black.get("message")).asString().contains("黑名单");
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

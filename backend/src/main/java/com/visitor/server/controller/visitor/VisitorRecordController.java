@@ -31,6 +31,12 @@ public class VisitorRecordController {
         this.visitorService = visitorService;
     }
 
+    @Operation(summary = "申请前预检（黑/白名单）")
+    @GetMapping("/pre-check")
+    public Result<Map<String, Object>> preCheck(@RequestParam(required = false) String plate) {
+        return Result.success(visitorService.preCheck(UserContext.getUserId(), plate));
+    }
+
     @Operation(summary = "提交访客申请（自动进入审批）")
     @PostMapping
     public Result<Map<String, Object>> apply(@Valid @RequestBody VisitorApplyDTO dto) {

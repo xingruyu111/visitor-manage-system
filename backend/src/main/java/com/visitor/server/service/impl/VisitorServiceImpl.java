@@ -288,6 +288,23 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
+    public java.util.Map<String, Object> preCheck(Long userId, String plate) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(401, "用户不存在");
+        }
+        String result = accessCheckService.check(1L, user.getPhone(), user.getIdCard(), plate);
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("status", result);
+        body.put("message", switch (result) {
+            case "BLACKLIST" -> "您在黑名单中，无法提交预约";
+            case "WHITELIST" -> "您在白名单中，可免审批通行";
+            default -> "";
+        });
+        return body;
+    }
+
+    @Override
     public java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> exportRows(Integer status, String keyword) {
         java.util.List<VisitorRecord> records = recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
                 .eq(status != null, VisitorRecord::getStatus, status)

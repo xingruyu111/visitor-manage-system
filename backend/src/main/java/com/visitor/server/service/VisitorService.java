@@ -34,4 +34,6 @@ public interface VisitorService {
     java.util.List<Staff> queryTargets(String keyword);
 
     java.util.List<com.visitor.domain.vo.VisitorRecordExportRow> exportRows(Integer status, String keyword);
+
+    java.util.Map<String, Object> preCheck(Long userId, String plate);
 }

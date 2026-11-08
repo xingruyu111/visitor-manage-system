@@ -2,6 +2,12 @@
   <div class="page">
     <van-nav-bar title="访客预约" left-arrow @click-left="$router.back()" />
 
+    <van-notice-bar
+      v-if="checkMessage"
+      :type="checkStatus === 'BLACKLIST' ? 'error' : 'success'"
+      :text="checkMessage"
+    />
+
     <van-cell-group inset title="选择被访人">
       <van-field v-model="keyword" placeholder="输入姓名或手机号搜索" @keyup.enter="search">
         <template #button>
@@ -85,6 +91,8 @@ const leaveTime = ref('')
 const purpose = ref('')
 const plate = ref('')
 const passMode = ref('WALK')
+const checkStatus = ref('NONE')
+const checkMessage = ref('')
 const visitorType = ref('NORMAL')
 const fields = ref<FormField[]>([])
 const extra = reactive<Record<string, string>>({})
@@ -115,7 +123,24 @@ async function loadFields() {
   }
 }
 
+async function loadPreCheck() {
+  try {
+    const data = await http.get<{ status: string; message?: string }>('/web/visitor/records/pre-check', {
+      plate: plate.value || undefined,
+    })
+    checkStatus.value = data.status
+    checkMessage.value = data.message ?? ''
+  } catch {
+    checkStatus.value = 'NONE'
+    checkMessage.value = ''
+  }
+}
+
 async function submit() {
+  if (checkStatus.value === 'BLACKLIST') {
+    showToast('您在黑名单中，无法提交预约')
+    return
+  }
   if (!targetId.value) {
     showToast('请选择被访人')
     return
@@ -152,6 +177,7 @@ onMounted(() => {
   leaveTime.value = defaultTime(3)
   search()
   loadFields()
+  loadPreCheck()
 })
 </script>
 
