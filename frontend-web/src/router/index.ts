@@ -63,6 +63,12 @@ const router = createRouter({
           meta: { title: '接口配置' },
         },
         {
+          path: 'settings',
+          name: 'Settings',
+          component: () => import('@/views/config/SettingsView.vue'),
+          meta: { title: '系统参数' },
+        },
+        {
           path: 'migration',
           name: 'Migration',
           component: () => import('@/views/migration/MigrationView.vue'),

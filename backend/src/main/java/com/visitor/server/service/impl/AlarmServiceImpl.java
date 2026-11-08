@@ -13,6 +13,7 @@ import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AlarmService;
 import com.visitor.server.service.NotificationService;
+import com.visitor.server.service.SystemSettingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,22 +32,25 @@ public class AlarmServiceImpl implements AlarmService {
     private final VisitorRecordMapper recordMapper;
     private final UserRoleMapper userRoleMapper;
     private final NotificationService notificationService;
+    private final SystemSettingService settingService;
 
     @Value("${visitor.alarm.max-stay-hours:12}")
     private int maxStayHours;
 
     public AlarmServiceImpl(AlarmRecordMapper alarmMapper, VisitorRecordMapper recordMapper,
-                            UserRoleMapper userRoleMapper, NotificationService notificationService) {
+                            UserRoleMapper userRoleMapper, NotificationService notificationService, SystemSettingService settingService) {
         this.alarmMapper = alarmMapper;
         this.recordMapper = recordMapper;
         this.userRoleMapper = userRoleMapper;
         this.notificationService = notificationService;
+        this.settingService = settingService;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int checkOverstay() {
-        LocalDateTime deadline = LocalDateTime.now().minusHours(maxStayHours);
+        int maxHours = settingService.getInt("visit.max_stay_hours", maxStayHours);
+        LocalDateTime deadline = LocalDateTime.now().minusHours(maxHours);
         List<VisitorRecord> overstays = recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
                 .eq(VisitorRecord::getStatus, 3)
                 .lt(VisitorRecord::getLeaveTime, deadline));

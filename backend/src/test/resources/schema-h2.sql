@@ -386,3 +386,13 @@ CREATE TABLE vst_ip_blacklist (
   PRIMARY KEY (id),
   CONSTRAINT uk_ip_blacklist UNIQUE (ip)
 );
+DROP TABLE IF EXISTS vst_system_setting;
+CREATE TABLE vst_system_setting (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  setting_key VARCHAR(64) NOT NULL,
+  setting_value VARCHAR(255),
+  description VARCHAR(255),
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_setting_key UNIQUE (setting_key)
+);

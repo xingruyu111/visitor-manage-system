@@ -21,6 +21,7 @@ import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.mapper.SystemSettingMapper;
 import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.FormFieldMapper;
@@ -109,6 +110,9 @@ class VisitorModuleIntegrationTest {
     private IntegrationLogMapper integrationLogMapper;
 
     @Autowired
+    private SystemSettingMapper systemSettingMapper;
+
+    @Autowired
     private VisitorPassIssuer passIssuer;
 
     @Autowired
@@ -145,10 +149,12 @@ class VisitorModuleIntegrationTest {
         accessListMapper.delete(null);
         notificationMapper.delete(null);
         formFieldMapper.delete(null);
+        systemSettingMapper.delete(null);
         parentSlotMapper.delete(null);
         notifyConfigMapper.delete(null);
         integrationLogMapper.delete(null);
         formFieldMapper.delete(null);
+        systemSettingMapper.delete(null);
         parentSlotMapper.delete(null);
         notifyConfigMapper.delete(null);
         integrationLogMapper.delete(null);
@@ -984,6 +990,28 @@ class VisitorModuleIntegrationTest {
         Map<String, Object> removed = exchange("/web/admin/ip-blacklist/" + added.get("id"),
                 HttpMethod.DELETE, null, adminToken);
         assertThat(removed.get("code")).isEqualTo(200);
+    }
+    @Test
+    void unusualHoursSettingBlocksApply() {
+        systemSettingMapper.delete(null);
+        insertSetting("visit.unusual_hours_enabled", "true");
+        insertSetting("visit.unusual_hours_start", "00:00");
+        insertSetting("visit.unusual_hours_end", "00:01");
+        try {
+            Map<String, Object> result = apply(visitorToken, "13800003001", 0);
+            assertThat(result.get("code")).isEqualTo(400);
+            assertThat(result.get("message")).asString().contains("非常规时段");
+        } finally {
+            systemSettingMapper.delete(null);
+        }
+    }
+
+    private void insertSetting(String key, String value) {
+        com.visitor.domain.entity.SystemSetting setting = new com.visitor.domain.entity.SystemSetting();
+        setting.setSettingKey(key);
+        setting.setSettingValue(value);
+        setting.setUpdatedAt(LocalDateTime.now());
+        systemSettingMapper.insert(setting);
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """

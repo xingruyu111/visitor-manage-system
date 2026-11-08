@@ -24,6 +24,7 @@ import com.visitor.server.service.FormFieldService;
 import com.visitor.server.service.ParentSlotService;
 import com.visitor.server.service.AlarmService;
 import com.visitor.server.service.AuditLogService;
+import com.visitor.server.service.SystemSettingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.RoleEnum;
@@ -55,12 +56,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final ParentSlotService parentSlotService;
     private final AlarmService alarmService;
     private final AuditLogService auditLogService;
+    private final SystemSettingService settingService;
     private final ObjectMapper objectMapper;
 
     public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
@@ -75,6 +77,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.parentSlotService = parentSlotService;
         this.alarmService = alarmService;
         this.auditLogService = auditLogService;
+        this.settingService = settingService;
         this.objectMapper = objectMapper;
     }
 
@@ -96,7 +99,9 @@ public class VisitorServiceImpl implements VisitorService {
             auditLogService.record("BLACKLIST_HIT", "ACCESS_LIST", null, "黑名单拦截：" + user.getPhone());
             throw new BizException(403, "该访客已被列入黑名单，禁止入校");
         }
-        assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
+        if (settingService.getBool("visit.duplicate_check_enabled", true)) {
+            assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
+        }
 
         formFieldService.validate(dto.getVisitorType() == null || dto.getVisitorType().isBlank()
                 ? "NORMAL" : dto.getVisitorType().trim().toUpperCase(), dto.getExtra());
@@ -110,7 +115,7 @@ public class VisitorServiceImpl implements VisitorService {
 
         String passMode = dto.getPassMode() == null || dto.getPassMode().isBlank()
                 ? "WALK" : dto.getPassMode().trim().toUpperCase();
-        if (!java.util.List.of("WALK", "EBIKE", "CAR").contains(passMode)) {
+        if (!settingService.getList("visit.pass_modes", "WALK,EBIKE,CAR").contains(passMode)) {
             throw new BizException(400, "通行方式不合法");
         }
         if ("CAR".equals(passMode) && (dto.getPlateNumber() == null || dto.getPlateNumber().isBlank())) {
@@ -454,6 +459,14 @@ public class VisitorServiceImpl implements VisitorService {
         }
         if (!leave.isAfter(expected)) {
             throw new BizException(400, "离校时间必须晚于到访时间");
+        }
+        if (settingService.getBool("visit.unusual_hours_enabled", false)) {
+            java.time.LocalTime start = java.time.LocalTime.parse(settingService.get("visit.unusual_hours_start", "07:00"));
+            java.time.LocalTime end = java.time.LocalTime.parse(settingService.get("visit.unusual_hours_end", "22:00"));
+            java.time.LocalTime expectedTime = expected.toLocalTime();
+            if (expectedTime.isBefore(start) || expectedTime.isAfter(end)) {
+                throw new BizException(400, "非常规时段暂不可预约（允许 " + start + "-" + end + "）");
+            }
         }
         if (leave.isBefore(LocalDateTime.now())) {
             throw new BizException(400, "离校时间已过");
