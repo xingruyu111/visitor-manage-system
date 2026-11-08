@@ -11,6 +11,12 @@
         <el-form-item label="密码">
           <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
+        <el-form-item v-if="captchaEnabled" label="验证码">
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" placeholder="请输入验证码" />
+            <img :src="captchaImage" class="captcha-img" alt="验证码" @click="loadCaptcha" />
+          </div>
+        </el-form-item>
         <el-button type="primary" class="submit" :loading="loading" @click="handleLogin">登录</el-button>
       </el-form>
 
@@ -20,15 +26,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { http } from '@/api/request'
-
-interface RoleItem {
-  code: number
-  name: string
-}
 
 interface LoginResult {
   token: string
@@ -36,18 +37,42 @@ interface LoginResult {
   name: string
   currentRole: number
   schoolId: number | null
-  roles: RoleItem[]
+}
+
+interface CaptchaResult {
+  enabled: boolean
+  captchaId?: string
+  image?: string
 }
 
 const route = useRoute()
 const router = useRouter()
 
-const form = reactive({ phone: '', password: '' })
+const form = reactive({ phone: '', password: '', captchaCode: '' })
 const loading = ref(false)
+const captchaEnabled = ref(false)
+const captchaId = ref('')
+const captchaImage = ref('')
+
+async function loadCaptcha() {
+  try {
+    const data = await http.get<CaptchaResult>('/auth/captcha')
+    captchaEnabled.value = data.enabled
+    captchaId.value = data.captchaId ?? ''
+    captchaImage.value = data.image ?? ''
+    form.captchaCode = ''
+  } catch {
+    captchaEnabled.value = false
+  }
+}
 
 async function handleLogin() {
   if (!form.phone || !form.password) {
     ElMessage.warning('请输入账号和密码')
+    return
+  }
+  if (captchaEnabled.value && !form.captchaCode) {
+    ElMessage.warning('请输入验证码')
     return
   }
   loading.value = true
@@ -55,6 +80,8 @@ async function handleLogin() {
     const data = await http.post<LoginResult>('/auth/login', {
       phone: form.phone,
       password: form.password,
+      captchaId: captchaEnabled.value ? captchaId.value : undefined,
+      captchaCode: captchaEnabled.value ? form.captchaCode : undefined,
     })
     localStorage.setItem('token', data.token)
     localStorage.setItem('userName', data.name ?? '')
@@ -68,10 +95,15 @@ async function handleLogin() {
     router.replace(redirect)
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '登录失败')
+    if (captchaEnabled.value) {
+      await loadCaptcha()
+    }
   } finally {
     loading.value = false
   }
 }
+
+onMounted(loadCaptcha)
 </script>
 
 <style scoped>
@@ -84,7 +116,7 @@ async function handleLogin() {
 }
 
 .login-card {
-  width: 380px;
+  width: 400px;
   padding: 8px 12px;
 }
 
@@ -111,5 +143,19 @@ h1 {
   font-size: 12px;
   color: #b1b3b8;
   text-align: center;
+}
+
+.captcha-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.captcha-img {
+  height: 40px;
+  width: 120px;
+  cursor: pointer;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
 }
 </style>
