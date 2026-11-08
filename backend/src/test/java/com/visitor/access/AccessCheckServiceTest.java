@@ -169,6 +169,18 @@ class AccessCheckServiceTest {
         assertThat(mapper.selectCount(null)).isEqualTo(2L);
     }
 
+    @Test
+    void importSupportsValidityWindow() {
+        AccessListImportRow row = row("时间访客", "13800008881", null, "白名单", "2099-12-31");
+        row.setEffectiveFrom("2099-01-01");
+
+        service.importRows(1L, java.util.List.of(row));
+
+        AccessList saved = mapper.selectList(null).get(0);
+        assertThat(saved.getEffectiveFrom()).isNotNull();
+        assertThat(saved.getEffectiveTo()).isNotNull();
+    }
+
     private AccessListImportRow row(String name, String phone, String plate, String type, String effectiveTo) {
         AccessListImportRow row = new AccessListImportRow();
         row.setPersonName(name);

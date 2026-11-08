@@ -21,6 +21,9 @@ public class AccessListImportRow {
     @ExcelProperty("类型")
     private String listType;
 
+    @ExcelProperty("生效时间")
+    private String effectiveFrom;
+
     @ExcelProperty("失效时间")
     private String effectiveTo;
 

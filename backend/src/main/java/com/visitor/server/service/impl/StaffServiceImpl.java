@@ -83,7 +83,21 @@ public class StaffServiceImpl implements StaffService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public StaffVO create(Long schoolId, StaffSaveDTO dto) {
-        Staff staff = new Staff();
+        Staff staff = dto.getPhone() == null ? null : staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                .eq(Staff::getSchoolId, schoolId)
+                .eq(Staff::getPhone, dto.getPhone())
+                .eq(Staff::getStatus, 0)
+                .last("LIMIT 1"));
+        if (staff != null) {
+            apply(staff, schoolId, dto);
+            staff.setStatus(1);
+            staff.setUpdatedAt(LocalDateTime.now());
+            staffMapper.updateById(staff);
+            restoreAccount(staff);
+            return toVO(staff, departmentNames(schoolId), classNames(schoolId));
+        }
+
+        staff = new Staff();
         staff.setSchoolId(schoolId);
         staff.setSyncSource("LOCAL");
         staff.setStatus(dto.getStatus() == null ? 1 : dto.getStatus());
@@ -91,7 +105,43 @@ public class StaffServiceImpl implements StaffService {
         apply(staff, schoolId, dto);
         assertPhoneUnique(schoolId, dto.getPhone(), null);
         staffMapper.insert(staff);
+        restoreAccount(staff);
         return toVO(staff, departmentNames(schoolId), classNames(schoolId));
+    }
+
+    /** 重新添加人员时恢复历史账号与角色。 */
+    private void restoreAccount(Staff staff) {
+        if (staff.getPhone() == null || staff.getPhone().isBlank()) {
+            return;
+        }
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, staff.getPhone()).last("LIMIT 1"));
+        if (user == null) {
+            return;
+        }
+        user.setStatus(1);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        List<UserRole> roles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, user.getId()));
+        if (roles.isEmpty() && staff.getPersonType() != null) {
+            UserRole role = new UserRole();
+            role.setUserId(user.getId());
+            role.setRole(staff.getPersonType().getRole());
+            role.setSchoolId(staff.getSchoolId());
+            role.setIsDefault(1);
+            role.setStatus(1);
+            role.setCreatedAt(LocalDateTime.now());
+            role.setUpdatedAt(LocalDateTime.now());
+            userRoleMapper.insert(role);
+            return;
+        }
+        for (UserRole role : roles) {
+            role.setStatus(1);
+            role.setUpdatedAt(LocalDateTime.now());
+            userRoleMapper.updateById(role);
+        }
     }
 
     @Override

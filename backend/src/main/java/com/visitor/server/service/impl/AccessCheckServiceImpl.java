@@ -185,6 +185,9 @@ public class AccessCheckServiceImpl implements AccessCheckService {
         body.setPersonName(row.getPersonName());
         body.setPlateNumber(row.getPlateNumber());
         body.setReason(row.getReason());
+        if (row.getEffectiveFrom() != null && !row.getEffectiveFrom().isBlank()) {
+            body.setEffectiveFrom(parseTime(row.getEffectiveFrom().trim()));
+        }
         if (row.getEffectiveTo() != null && !row.getEffectiveTo().isBlank()) {
             body.setEffectiveTo(parseTime(row.getEffectiveTo().trim()));
         }
