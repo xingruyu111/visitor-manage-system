@@ -7,6 +7,10 @@ test.beforeAll(async ({ request }) => {
     headers: { Authorization: `Bearer ${token}` },
     data: { phone: '13911110001', name: 'E2E老师', role: 5 },
   })
+  await request.post('/api/web/admin/staff', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { name: 'E2E老师', phone: '13911110001', personType: 1 },
+  })
 })
 
 test('访客登录并提交预约、查看记录', async ({ page }) => {
@@ -24,6 +28,17 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.getByRole('button', { name: '搜索' }).click()
   await expect(page.getByText('E2E老师').first()).toBeVisible()
   await page.locator('.van-radio').first().click()
+
+  const start = new Date()
+  start.setDate(start.getDate() + 1 + (Date.now() % 27))
+  start.setHours(9, 0, 0, 0)
+  const end = new Date(start.getTime() + 2 * 3600 * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const format = (date: Date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00`
+  const timeInputs = page.locator('input[placeholder="yyyy-MM-dd HH:mm:ss"]')
+  await timeInputs.nth(0).fill(format(start))
+  await timeInputs.nth(1).fill(format(end))
 
   await page.getByRole('button', { name: '提交申请' }).click()
   await expect(page).toHaveURL(/\/v\/records/)

@@ -16,7 +16,15 @@ test.beforeAll(async ({ request }) => {
     headers: adminAuth,
     data: { name: 'E2E老师', phone: TEACHER.phone, personType: 1 },
   })
-  TARGET_ID = (await staff.json()).data.id
+  const staffBody = await staff.json()
+  if (staffBody.code === 200) {
+    TARGET_ID = staffBody.data.id
+  } else {
+    const list = await request.get(`/api/web/admin/staff?keyword=${TEACHER.phone}&page=1&size=10`, {
+      headers: adminAuth,
+    })
+    TARGET_ID = (await list.json()).data.records[0].id
+  }
 })
 
 async function apiLogin(request: import('@playwright/test').APIRequestContext) {
