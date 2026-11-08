@@ -11,4 +11,8 @@ public class LoginDTO {
 
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /** 验证码（开启人机校验时必填） */
+    private String captchaId;
+    private String captchaCode;
 }
