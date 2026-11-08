@@ -5,6 +5,11 @@ package com.visitor.integration.portal;
  */
 public interface PortalClient {
 
+    /** 实现协议：REST/MOCK。 */
+    default String protocol() {
+        return "REST";
+    }
+
     boolean isConfigured();
 
     String buildSsoUrl(String targetPath);

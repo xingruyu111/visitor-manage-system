@@ -68,11 +68,11 @@ public class IntegrationFactory {
     }
 
     public FaceClient face() {
-        return pick(IntegrationKey.FACE, faceClients, client -> "REST", NoopFaceClient.INSTANCE);
+        return pick(IntegrationKey.FACE, faceClients, FaceClient::protocol, NoopFaceClient.INSTANCE);
     }
 
     public PortalClient portal() {
-        return pick(IntegrationKey.PORTAL, portalClients, client -> "REST", NoopPortalClient.INSTANCE);
+        return pick(IntegrationKey.PORTAL, portalClients, PortalClient::protocol, NoopPortalClient.INSTANCE);
     }
 
     public TodoMessageClient todoMessage() {

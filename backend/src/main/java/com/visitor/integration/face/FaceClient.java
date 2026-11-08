@@ -5,6 +5,11 @@ package com.visitor.integration.face;
  */
 public interface FaceClient {
 
+    /** 实现协议：REST/MOCK。 */
+    default String protocol() {
+        return "REST";
+    }
+
     boolean isConfigured();
 
     FaceOpResult enroll(FaceEnrollRequest request);
