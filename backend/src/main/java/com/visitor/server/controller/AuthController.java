@@ -8,6 +8,7 @@ import com.visitor.domain.vo.UserInfoVO;
 import com.visitor.integration.IntegrationFactory;
 import com.visitor.integration.sso.IdentityProvider;
 import com.visitor.security.UserContext;
+import com.visitor.security.IpBanService;
 import com.visitor.server.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,17 +31,27 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final IpBanService ipBanService;
     private final IntegrationFactory integrationFactory;
 
-    public AuthController(AuthService authService, IntegrationFactory integrationFactory) {
+    public AuthController(AuthService authService, IpBanService ipBanService, IntegrationFactory integrationFactory) {
         this.authService = authService;
+        this.ipBanService = ipBanService;
         this.integrationFactory = integrationFactory;
     }
 
     @Operation(summary = "账号密码登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
-        return Result.success(authService.login(dto.getPhone(), dto.getPassword(), clientIp(request)));
+        ipBanService.assertAllowed();
+        try {
+            LoginVO loginVO = authService.login(dto.getPhone(), dto.getPassword(), clientIp(request));
+            ipBanService.clear();
+            return Result.success(loginVO);
+        } catch (BizException e) {
+            ipBanService.recordFailure();
+            throw e;
+        }
     }
 
     @Operation(summary = "退出登录（令牌加入黑名单）")
