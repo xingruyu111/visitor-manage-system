@@ -69,6 +69,24 @@ const router = createRouter({
           meta: { title: '数据迁移' },
         },
         {
+          path: 'trend',
+          name: 'Trend',
+          component: () => import('@/views/dashboard/TrendView.vue'),
+          meta: { title: '统计趋势' },
+        },
+        {
+          path: 'audit-logs',
+          name: 'AuditLogs',
+          component: () => import('@/views/audit/AuditLogView.vue'),
+          meta: { title: '审计日志' },
+        },
+        {
+          path: 'interface-logs',
+          name: 'InterfaceLogs',
+          component: () => import('@/views/audit/InterfaceLogView.vue'),
+          meta: { title: '接口日志' },
+        },
+        {
           path: 'form-fields',
           name: 'FormFields',
           component: () => import('@/views/config/FormFieldView.vue'),

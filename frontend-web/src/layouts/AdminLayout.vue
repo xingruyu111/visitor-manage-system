@@ -63,6 +63,18 @@
           <el-icon><Upload /></el-icon>
           <span>数据迁移</span>
         </el-menu-item>
+        <el-menu-item index="/trend">
+          <el-icon><TrendCharts /></el-icon>
+          <span>统计趋势</span>
+        </el-menu-item>
+        <el-menu-item index="/audit-logs">
+          <el-icon><Document /></el-icon>
+          <span>审计日志</span>
+        </el-menu-item>
+        <el-menu-item index="/interface-logs">
+          <el-icon><Link /></el-icon>
+          <span>接口日志</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -81,7 +93,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
