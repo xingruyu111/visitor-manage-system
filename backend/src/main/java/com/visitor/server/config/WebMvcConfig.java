@@ -21,6 +21,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",
                         "/auth/wechat",
+                        "/auth/wechat/phone",
                         "/auth/captcha",
                         "/auth/sso/**",
                         "/health",
