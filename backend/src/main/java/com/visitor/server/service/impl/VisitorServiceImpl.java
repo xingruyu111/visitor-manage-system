@@ -129,7 +129,8 @@ public class VisitorServiceImpl implements VisitorService {
         record.setExtraJson(writeExtra(dto.getExtra()));
         record.setExpectedTime(dto.getExpectedTime());
         record.setLeaveTime(dto.getLeaveTime());
-        record.setStatus("WHITELIST".equals(access) ? 1 : 0);
+        boolean autoApprove = "WHITELIST".equals(access) || "ALUMNI".equals(visitorType);
+        record.setStatus(autoApprove ? 1 : 0);
         record.setCreatedAt(LocalDateTime.now());
         record.setUpdatedAt(LocalDateTime.now());
         recordMapper.insert(record);
@@ -142,7 +143,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
 
         ApprovalInstance instance;
-        if ("WHITELIST".equals(access)) {
+        if (autoApprove) {
             passIssuer.issue(record);
             instance = null;
         } else {

@@ -862,6 +862,22 @@ class VisitorModuleIntegrationTest {
         assertThat(black.get("status")).isEqualTo("BLACKLIST");
         assertThat(black.get("message")).asString().contains("黑名单");
     }
+    @Test
+    void alumniIsAutoApprovedWithPass() {
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        java.time.LocalDateTime start = java.time.LocalDate.now().plusDays(5).atTime(9, 0);
+        String body = """
+                {"targetId":%d,"visitorType":"ALUMNI","expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId, start.format(fmt), start.plusHours(2).format(fmt));
+
+        Map<String, Object> applied = data(exchange("/web/visitor/records", HttpMethod.POST, body, visitorToken));
+
+        assertThat(applied.get("approvalInstanceId")).isNull();
+        Long recordId = number(applied.get("recordId"));
+        assertThat(recordMapper.selectById(recordId).getStatus()).isEqualTo(1);
+        assertThat(passMapper.selectCount(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId))).isEqualTo(1L);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",
