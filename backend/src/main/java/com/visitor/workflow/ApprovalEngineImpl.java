@@ -80,6 +80,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         instance.setFlowCode(flow.getFlowCode());
         instance.setFlowVersion(flow.getVersion());
         instance.setDefinitionJson(flow.getDefinitionJson());
+        instance.setAssigneeHint(command.assigneeHint());
         instance.setStatus(ApprovalStatuses.RUNNING);
         instance.setApplicantId(command.applicantId());
         instance.setVisitorType(command.visitorType());
@@ -294,7 +295,10 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setNodeCode(node.assignee());
         task.setNodeName(node.name());
         task.setAssigneeType(AssigneeType.of(node.assignee()).name());
-        task.setAssigneeId(assigneeResolver.resolveUserId(node.assignee(), instance.getTargetId()));
+        Long assigneeId = "HEAD_TEACHER".equalsIgnoreCase(node.assignee()) && instance.getAssigneeHint() != null
+                ? instance.getAssigneeHint()
+                : assigneeResolver.resolveUserId(node.assignee(), instance.getTargetId());
+        task.setAssigneeId(assigneeId);
         task.setStatus(ApprovalStatuses.PENDING);
         task.setEmergency(0);
         task.setDueAt(LocalDateTime.now().plusHours(timeoutHours));

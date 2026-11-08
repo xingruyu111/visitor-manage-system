@@ -23,6 +23,8 @@ public class VisitorRecord {
     private String plateNumber;
     /** WALK/EBIKE/CAR */
     private String passMode;
+    /** 附属学生预约时填写的班主任工号 */
+    private String headTeacherNo;
     private String targetType;
     private Long targetId;
     private String targetName;

@@ -121,6 +121,28 @@ public class VisitorServiceImpl implements VisitorService {
         record.setIdCard(dto.getIdCard());
         record.setPlateNumber(dto.getPlateNumber() == null ? null : dto.getPlateNumber().trim().toUpperCase());
         record.setPassMode(passMode);
+
+        Long assigneeHint = null;
+        if (target.getPersonType() != null && "AFFILIATED_STUDENT".equals(target.getPersonType().name())) {
+            if (dto.getHeadTeacherNo() == null || dto.getHeadTeacherNo().isBlank()) {
+                throw new BizException(400, "附属学生预约请填写班主任工号");
+            }
+            Staff headTeacher = staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                    .eq(Staff::getJobNo, dto.getHeadTeacherNo().trim())
+                    .eq(Staff::getStatus, 1)
+                    .last("LIMIT 1"));
+            if (headTeacher == null) {
+                throw new BizException(400, "班主任工号不存在");
+            }
+            User headTeacherUser = headTeacher.getPhone() == null ? null
+                    : userMapper.selectOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getPhone, headTeacher.getPhone()).last("LIMIT 1"));
+            if (headTeacherUser == null) {
+                throw new BizException(400, "班主任未绑定系统账号");
+            }
+            assigneeHint = headTeacherUser.getId();
+            record.setHeadTeacherNo(dto.getHeadTeacherNo().trim());
+        }
         record.setVisitorType(visitorType);
         record.setTargetType(target.getPersonType() == null ? null : target.getPersonType().name());
         record.setTargetId(target.getId());
@@ -149,7 +171,7 @@ public class VisitorServiceImpl implements VisitorService {
         } else {
             instance = approvalEngine.start(new ApprovalEngine.StartCommand(
                     "VISITOR_RECORD", record.getId(), record.getSchoolId(), userId,
-                    visitorType, record.getTargetType(), record.getTargetId()));
+                    visitorType, record.getTargetType(), record.getTargetId(), null, assigneeHint));
         }
 
         auditLogService.record("VISITOR_APPLY", "VISITOR_RECORD", record.getId(),

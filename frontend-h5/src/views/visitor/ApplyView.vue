@@ -46,6 +46,7 @@
         </template>
       </van-field>
       <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" placeholder="机动车必填" />
+      <van-field v-model="headTeacherNo" label="班主任工号" placeholder="附属学生预约必填" />
     </van-cell-group>
 
     <van-cell-group v-if="fields.length" inset title="补充信息">
@@ -91,6 +92,7 @@ const leaveTime = ref('')
 const purpose = ref('')
 const plate = ref('')
 const passMode = ref('WALK')
+const headTeacherNo = ref('')
 const checkStatus = ref('NONE')
 const checkMessage = ref('')
 const visitorType = ref('NORMAL')
@@ -158,6 +160,7 @@ async function submit() {
       visitPurpose: purpose.value,
       plateNumber: plate.value || undefined,
       passMode: passMode.value,
+      headTeacherNo: headTeacherNo.value || undefined,
       visitorType: visitorType.value,
       extra: Object.fromEntries(
         Object.entries(extra).filter(([, value]) => value !== undefined && value !== ''),

@@ -23,6 +23,8 @@ public class ApprovalInstance {
     /** RUNNING / APPROVED / REJECTED / CANCELLED */
     private String status;
     private Integer currentSeq;
+    /** 指定审批人（如班主任工号解析出的用户） */
+    private Long assigneeHint;
     private Long applicantId;
     private String visitorType;
     private String targetType;

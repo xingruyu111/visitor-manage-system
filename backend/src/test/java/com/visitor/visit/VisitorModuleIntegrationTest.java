@@ -878,6 +878,71 @@ class VisitorModuleIntegrationTest {
         assertThat(passMapper.selectCount(new LambdaQueryWrapper<VisitorPass>()
                 .eq(VisitorPass::getRecordId, recordId))).isEqualTo(1L);
     }
+    @Test
+    void affiliatedStudentRequiresHeadTeacherJobNo() {
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        java.time.LocalDateTime start = java.time.LocalDate.now().plusDays(6).atTime(9, 0);
+
+        Long headTeacherUserId = createUser("13800003008", RoleEnum.TEACHER, 1L);
+        com.visitor.domain.entity.Staff headTeacher = new com.visitor.domain.entity.Staff();
+        headTeacher.setSchoolId(1L);
+        headTeacher.setName("班主任");
+        headTeacher.setPhone("13800003008");
+        headTeacher.setJobNo("T001");
+        headTeacher.setPersonType(PersonTypeEnum.TEACHER);
+        headTeacher.setStatus(1);
+        headTeacher.setSyncSource("LOCAL");
+        headTeacher.setCreatedAt(LocalDateTime.now());
+        headTeacher.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(headTeacher);
+
+        com.visitor.domain.entity.Staff affiliated = new com.visitor.domain.entity.Staff();
+        affiliated.setSchoolId(1L);
+        affiliated.setName("附属学生");
+        affiliated.setPhone("13800003009");
+        affiliated.setPersonType(PersonTypeEnum.AFFILIATED_STUDENT);
+        affiliated.setStatus(1);
+        affiliated.setSyncSource("LOCAL");
+        affiliated.setCreatedAt(LocalDateTime.now());
+        affiliated.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(affiliated);
+
+        com.visitor.domain.entity.ApprovalFlow flow = new com.visitor.domain.entity.ApprovalFlow();
+        flow.setFlowCode("VISIT_AFFILIATED_STUDENT");
+        flow.setName("附属学生流程");
+        flow.setVersion(1);
+        flow.setStatus(1);
+        flow.setDefinitionJson("{\"code\":\"VISIT_AFFILIATED_STUDENT\",\"name\":\"附属学生流程\",\"timeoutHours\":24,"
+                + "\"nodes\":[{\"seq\":1,\"name\":\"班主任审批\",\"assignee\":\"HEAD_TEACHER\"}]}");
+        flow.setCreatedAt(LocalDateTime.now());
+        flow.setUpdatedAt(LocalDateTime.now());
+        flowMapper.insert(flow);
+        com.visitor.domain.entity.ApprovalRule rule = new com.visitor.domain.entity.ApprovalRule();
+        rule.setTargetType("AFFILIATED_STUDENT");
+        rule.setFlowCode("VISIT_AFFILIATED_STUDENT");
+        rule.setPriority(1);
+        rule.setStatus(1);
+        rule.setCreatedAt(LocalDateTime.now());
+        rule.setUpdatedAt(LocalDateTime.now());
+        ruleMapper.insert(rule);
+
+        String base = """
+                {"targetId":%d,"visitorType":"NORMAL","headTeacherNo":"%s","expectedTime":"%s","leaveTime":"%s"}
+                """;
+        String missing = base.formatted(affiliated.getId(), "", start.format(fmt), start.plusHours(2).format(fmt));
+        assertThat(exchange("/web/visitor/records", HttpMethod.POST, missing, visitorToken).get("code")).isEqualTo(400);
+
+        String valid = base.formatted(affiliated.getId(), "T001", start.format(fmt), start.plusHours(2).format(fmt));
+        Map<String, Object> applied = data(exchange("/web/visitor/records", HttpMethod.POST, valid, visitorToken));
+        Long instanceId = number(applied.get("approvalInstanceId"));
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instanceId));
+        assertThat(task.getAssigneeId()).isEqualTo(headTeacherUserId);
+
+        String headToken = token(headTeacherUserId, "13800003008", RoleEnum.TEACHER, 1L);
+        exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, headToken);
+        assertThat(recordMapper.selectById(number(applied.get("recordId"))).getStatus()).isEqualTo(1);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",

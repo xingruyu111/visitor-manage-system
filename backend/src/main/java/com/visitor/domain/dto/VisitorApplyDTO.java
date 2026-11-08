@@ -28,6 +28,9 @@ public class VisitorApplyDTO {
     /** WALK/EBIKE/CAR，默认 WALK */
     private String passMode;
 
+    /** 附属学生必填：班主任工号 */
+    private String headTeacherNo;
+
     /** 差异化表单数据 */
     private Map<String, String> extra;
 }
