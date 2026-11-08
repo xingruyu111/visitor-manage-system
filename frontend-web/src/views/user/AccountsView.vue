@@ -7,7 +7,7 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="role" clearable placeholder="全部" style="width: 160px" @change="load(1)">
-            <el-option v-for="item in ROLES" :key="item.value" :label="item.label" :value="item.value" />
+            <el-option v-for="item in assignableRoles" :key="item.code" :label="item.name" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
@@ -50,7 +50,7 @@
         <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="角色">
           <el-select v-model="form.role" style="width: 100%">
-            <el-option v-for="item in ROLES" :key="item.value" :label="item.label" :value="item.value" />
+            <el-option v-for="item in assignableRoles" :key="item.code" :label="item.name" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="初始密码">
@@ -65,7 +65,7 @@
 
     <el-dialog v-model="roleVisible" title="分配角色" width="360px">
       <el-select v-model="newRole" style="width: 100%">
-        <el-option v-for="item in ROLES" :key="item.value" :label="item.label" :value="item.value" />
+        <el-option v-for="item in assignableRoles" :key="item.code" :label="item.name" :value="item.code" />
       </el-select>
       <template #footer>
         <el-button @click="roleVisible = false">取消</el-button>
@@ -76,9 +76,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/api/request'
+
+interface RoleItem {
+  code: number
+  name: string
+  assignable: boolean
+}
 
 interface Row {
   id: number
@@ -88,17 +94,9 @@ interface Row {
   roles: number[]
 }
 
-const ROLES = [
-  { value: 2, label: '保卫处管理员' },
-  { value: 3, label: '门卫' },
-  { value: 5, label: '教职工' },
-  { value: 6, label: '学生' },
-  { value: 7, label: '校内商户' },
-  { value: 8, label: '食堂人员' },
-  { value: 9, label: '校友' },
-  { value: 10, label: '部门经办人' },
-]
 
+const roles = ref<RoleItem[]>([])
+const assignableRoles = computed(() => roles.value.filter((item) => item.assignable))
 const rows = ref<Row[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -112,8 +110,9 @@ const newRole = ref<number>()
 const currentId = ref<number>()
 const form = reactive({ phone: '', name: '', role: 5, password: '' })
 
-function roleText(roles: number[]) {
-  return roles.map((code) => ROLES.find((item) => item.value === code)?.label ?? code).join('、')
+
+function roleText(codes: number[]) {
+  return codes.map((code) => roles.value.find((item) => item.code === code)?.name ?? String(code)).join('、')
 }
 
 async function load(target = page.value) {
@@ -196,7 +195,18 @@ async function resetPassword(row: Row) {
   }
 }
 
-onMounted(() => load(1))
+async function loadRoles() {
+  try {
+    roles.value = await http.get<RoleItem[]>('/web/common/roles')
+  } catch {
+    roles.value = []
+  }
+}
+
+onMounted(async () => {
+  await loadRoles()
+  await load(1)
+})
 </script>
 
 <style scoped>

@@ -1013,6 +1013,21 @@ class VisitorModuleIntegrationTest {
         setting.setUpdatedAt(LocalDateTime.now());
         systemSettingMapper.insert(setting);
     }
+    @Test
+    void roleCatalogMatchesEnumAndMarksAssignable() {
+        java.util.List<?> roles = (java.util.List<?>) exchange("/web/common/roles", HttpMethod.GET, null, adminToken).get("data");
+        assertThat(roles).hasSize(RoleEnum.values().length);
+        java.util.Map<?, ?> dept = roles.stream()
+                .map(item -> (java.util.Map<?, ?>) item)
+                .filter(item -> ((Number) item.get("code")).intValue() == 11)
+                .findFirst().orElseThrow();
+        assertThat(dept.get("assignable")).isEqualTo(true);
+        java.util.Map<?, ?> sys = roles.stream()
+                .map(item -> (java.util.Map<?, ?>) item)
+                .filter(item -> ((Number) item.get("code")).intValue() == 1)
+                .findFirst().orElseThrow();
+        assertThat(sys.get("assignable")).isEqualTo(false);
+    }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
                 {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",
