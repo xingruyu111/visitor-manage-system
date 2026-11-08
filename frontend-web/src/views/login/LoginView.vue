@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <el-card class="login-card">
-      <h1>智慧校园访客管理系统</h1>
+      <h1>访客管理系统</h1>
       <p class="subtitle">Web 管理后台</p>
 
       <el-form :model="form" label-position="top" @submit.prevent>

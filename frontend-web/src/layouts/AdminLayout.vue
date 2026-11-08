@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout">
     <el-aside width="220px" class="aside">
-      <div class="brand">智慧校园访客</div>
+      <div class="brand">访客管理系统</div>
       <el-menu :default-active="activeMenu" router class="menu">
         <div class="menu-group">概览</div>
         <el-menu-item index="/dashboard">

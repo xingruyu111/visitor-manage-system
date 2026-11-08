@@ -1,7 +1,7 @@
 <template>
   <div class="screen">
     <header class="head">
-      <div class="title">智慧校园访客管理 · 数据大屏</div>
+      <div class="title">访客管理系统 · 数据大屏</div>
       <div class="time">{{ now }}</div>
       <el-button size="small" plain @click="$router.push('/dashboard')">退出大屏</el-button>
     </header>
