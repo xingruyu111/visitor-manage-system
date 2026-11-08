@@ -98,6 +98,12 @@ const router = createRouter({
           component: () => import('@/views/alarm/AlarmListView.vue'),
           meta: { title: '通行告警' },
         },
+        {
+          path: 'visit-logs',
+          name: 'VisitLogs',
+          component: () => import('@/views/visitlog/VisitLogView.vue'),
+          meta: { title: '通行记录' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },

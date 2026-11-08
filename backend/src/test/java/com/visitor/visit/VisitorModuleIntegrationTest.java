@@ -24,6 +24,7 @@ import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitLogMapper;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.FormFieldMapper;
+import com.visitor.server.mapper.IntegrationLogMapper;
 import com.visitor.server.mapper.NotificationMapper;
 import com.visitor.server.mapper.NotifyConfigMapper;
 import com.visitor.server.mapper.ParentSlotMapper;
@@ -105,6 +106,9 @@ class VisitorModuleIntegrationTest {
     private NotifyConfigMapper notifyConfigMapper;
 
     @Autowired
+    private IntegrationLogMapper integrationLogMapper;
+
+    @Autowired
     private VisitorPassIssuer passIssuer;
 
     @Autowired
@@ -143,9 +147,11 @@ class VisitorModuleIntegrationTest {
         formFieldMapper.delete(null);
         parentSlotMapper.delete(null);
         notifyConfigMapper.delete(null);
+        integrationLogMapper.delete(null);
         formFieldMapper.delete(null);
         parentSlotMapper.delete(null);
         notifyConfigMapper.delete(null);
+        integrationLogMapper.delete(null);
         passMapper.delete(null);
         recordMapper.delete(null);
         taskMapper.delete(null);
@@ -729,6 +735,99 @@ class VisitorModuleIntegrationTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))
                 .contains("接口");
+    }
+    @Test
+    void visitLogExportReturnsCsv() {
+        org.springframework.http.ResponseEntity<byte[]> response = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/visit-logs/export",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8)).contains("方向");
+    }
+    @Test
+    void visitLogPageRequiresAdmin() {
+        Map<String, Object> page = data(exchange("/web/admin/visit-logs?page=1&size=5",
+                HttpMethod.GET, null, adminToken));
+        assertThat(page.get("total")).isNotNull();
+
+        Map<String, Object> forbidden = exchange("/web/admin/visit-logs", HttpMethod.GET, null, visitorToken);
+        assertThat(forbidden.get("code")).isEqualTo(403);
+    }
+    @Test
+    void accessListHttpCrud() {
+        Map<String, Object> created = data(exchange("/web/admin/access-list", HttpMethod.POST,
+                Map.of("listType", 1, "targetType", "PERSON", "targetValue", "13800007777"), adminToken));
+        Long id = number(created.get("id"));
+
+        Map<String, Object> page = data(exchange("/web/admin/access-list?listType=1",
+                HttpMethod.GET, null, adminToken));
+        assertThat(number(page.get("total"))).isGreaterThanOrEqualTo(1);
+
+        Map<String, Object> released = exchange("/web/admin/access-list/" + id + "/release?reason=test",
+                HttpMethod.POST, null, adminToken);
+        assertThat(released.get("code")).isEqualTo(200);
+    }
+
+    @Test
+    void formFieldAndParentSlotHttpCrud() {
+        Map<String, Object> field = data(exchange("/web/admin/form-fields", HttpMethod.POST,
+                Map.of("visitorType", "NORMAL", "fieldKey", "k1", "label", "字段1"), adminToken));
+        assertThat(field.get("fieldKey")).isEqualTo("k1");
+        assertThat((List<?>) exchange("/web/admin/form-fields?visitorType=NORMAL",
+                HttpMethod.GET, null, adminToken).get("data")).hasSize(1);
+
+        Map<String, Object> slotResp = exchange("/web/admin/parent-slots", HttpMethod.POST,
+                Map.of("visitorPhone", "13800007778", "weekday", 1,
+                        "startTime", "08:00:00", "endTime", "10:00:00"), adminToken);
+        assertThat(slotResp.get("code")).as(String.valueOf(slotResp.get("message"))).isEqualTo(200);
+        Map<String, Object> slot = data(slotResp);
+        assertThat(slot.get("visitorPhone")).isEqualTo("13800007778");
+        assertThat((List<?>) exchange("/web/admin/parent-slots?visitorPhone=13800007778",
+                HttpMethod.GET, null, adminToken).get("data")).hasSize(1);
+    }
+
+    @Test
+    void visitLogAndIntegrationLogExportWithData() {
+        Map<String, Object> applied = apply(visitorToken, "13800003001", 0);
+        Long recordId = number(data(applied).get("recordId"));
+        com.visitor.domain.entity.VisitLog log = new com.visitor.domain.entity.VisitLog();
+        log.setSchoolId(1L);
+        log.setRecordId(recordId);
+        log.setDirection("IN");
+        log.setSource("LOCAL");
+        log.setEventTime(LocalDateTime.now());
+        visitLogMapper.insert(log);
+
+        com.visitor.domain.entity.IntegrationLog ilog = new com.visitor.domain.entity.IntegrationLog();
+        ilog.setIntegrationKey("GATE");
+        ilog.setAction("pushPermission");
+        ilog.setSuccess(0);
+        ilog.setErrorCode("TIMEOUT");
+        ilog.setCreatedAt(LocalDateTime.now());
+        integrationLogMapper.insert(ilog);
+
+        org.springframework.http.ResponseEntity<byte[]> visitCsv = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/visit-logs/export",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+        assertThat(new String(visitCsv.getBody(), java.nio.charset.StandardCharsets.UTF_8)).contains("访客");
+
+        org.springframework.http.ResponseEntity<byte[]> logCsv = rest.exchange(
+                "http://localhost:" + port + "/api/web/admin/integration-logs/export?success=0",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(new org.springframework.http.HttpHeaders() {{
+                    setBearerAuth(adminToken);
+                }}),
+                byte[].class);
+        assertThat(new String(logCsv.getBody(), java.nio.charset.StandardCharsets.UTF_8)).contains("GATE");
     }
     private Map<String, Object> apply(String token, String phone, int offsetDays) {
         String body = """
