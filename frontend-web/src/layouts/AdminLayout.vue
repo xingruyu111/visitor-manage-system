@@ -71,6 +71,10 @@
           <el-icon><Document /></el-icon>
           <span>审计日志</span>
         </el-menu-item>
+        <el-menu-item index="/blacklist-ledger">
+          <el-icon><CircleClose /></el-icon>
+          <span>拦截台账</span>
+        </el-menu-item>
         <el-menu-item index="/interface-logs">
           <el-icon><Link /></el-icon>
           <span>接口日志</span>
@@ -93,7 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link } from '@element-plus/icons-vue'
+import { Odometer, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

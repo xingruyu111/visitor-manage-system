@@ -81,6 +81,13 @@ const router = createRouter({
           meta: { title: '审计日志' },
         },
         {
+          path: 'blacklist-ledger',
+          name: 'BlacklistLedger',
+          component: () => import('@/views/audit/AuditLogView.vue'),
+          props: { fixedAction: 'BLACKLIST_HIT' },
+          meta: { title: '拦截台账' },
+        },
+        {
           path: 'interface-logs',
           name: 'InterfaceLogs',
           component: () => import('@/views/audit/InterfaceLogView.vue'),

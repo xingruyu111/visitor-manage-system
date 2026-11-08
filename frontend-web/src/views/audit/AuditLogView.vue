@@ -2,7 +2,7 @@
   <div>
     <el-card shadow="never">
       <el-form inline>
-        <el-form-item label="动作">
+        <el-form-item v-if="!fixedAction" label="动作">
           <el-select v-model="action" clearable placeholder="全部" style="width: 180px" @change="load(1)">
             <el-option v-for="item in ACTIONS" :key="item" :label="item" :value="item" />
           </el-select>
@@ -64,11 +64,13 @@ const ACTIONS = [
   'DATA_SYNC_FAILED',
 ]
 
+const props = defineProps<{ fixedAction?: string }>()
+
 const rows = ref<AuditLog[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
-const action = ref<string>()
+const action = ref<string | undefined>(props.fixedAction)
 const keyword = ref('')
 const loading = ref(false)
 const exporting = ref(false)
