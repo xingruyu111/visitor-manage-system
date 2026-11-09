@@ -9,6 +9,7 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.StaffSaveDTO;
 import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.Department;
+import com.visitor.domain.entity.Org;
 import com.visitor.domain.entity.SchoolClass;
 import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
@@ -16,6 +17,7 @@ import com.visitor.domain.entity.UserRole;
 import com.visitor.domain.vo.StaffVO;
 import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.DepartmentMapper;
+import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.SchoolClassMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
@@ -39,6 +41,7 @@ public class StaffServiceImpl implements StaffService {
 
     private final StaffMapper staffMapper;
     private final DepartmentMapper departmentMapper;
+    private final OrgMapper orgMapper;
     private final SchoolClassMapper classMapper;
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
@@ -46,11 +49,12 @@ public class StaffServiceImpl implements StaffService {
     private final PasswordEncoder passwordEncoder;
 
     public StaffServiceImpl(StaffMapper staffMapper, DepartmentMapper departmentMapper,
-                            SchoolClassMapper classMapper, UserMapper userMapper,
+                            OrgMapper orgMapper, SchoolClassMapper classMapper, UserMapper userMapper,
                             UserRoleMapper userRoleMapper, ApprovalTaskMapper taskMapper,
                             PasswordEncoder passwordEncoder) {
         this.staffMapper = staffMapper;
         this.departmentMapper = departmentMapper;
+        this.orgMapper = orgMapper;
         this.classMapper = classMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
@@ -332,6 +336,18 @@ public class StaffServiceImpl implements StaffService {
             throw new BizException(400, "人员类型不合法");
         }
         staff.setPersonType(personType);
+        if (dto.getOrgId() != null) {
+            Org org = orgMapper.selectById(dto.getOrgId());
+            if (org == null) {
+                throw new BizException(400, "组织节点不存在");
+            }
+            staff.setOrgId(org.getId());
+            if (org.getExternalId() != null && org.getExternalId().startsWith("DEPT:")) {
+                staff.setDeptId(Long.valueOf(org.getExternalId().substring(5)));
+            } else if (org.getExternalId() != null && org.getExternalId().startsWith("CLASS:")) {
+                staff.setClassId(Long.valueOf(org.getExternalId().substring(6)));
+            }
+        }
         staff.setDeptId(validateDepartment(schoolId, dto.getDeptId()));
         staff.setClassId(validateClass(schoolId, dto.getClassId()));
         staff.setJobNo(trimToNull(dto.getJobNo()) == null ? staff.getPersonNo() : trimToNull(dto.getJobNo()));
@@ -412,6 +428,11 @@ public class StaffServiceImpl implements StaffService {
         StaffVO vo = new StaffVO();
         vo.setId(staff.getId());
         vo.setSchoolId(staff.getSchoolId());
+        vo.setOrgId(staff.getOrgId());
+        if (staff.getOrgId() != null) {
+            Org org = orgMapper.selectById(staff.getOrgId());
+            vo.setOrgName(org == null ? null : org.getName());
+        }
         vo.setDeptId(staff.getDeptId());
         vo.setDeptName(staff.getDeptId() == null ? null : deptNames.get(staff.getDeptId()));
         vo.setClassId(staff.getClassId());

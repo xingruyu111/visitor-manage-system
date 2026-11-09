@@ -2,6 +2,8 @@ package com.visitor.org;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.RoleEnum;
+import com.alibaba.excel.EasyExcel;
+import com.visitor.domain.dto.StaffImportRow;
 import com.visitor.domain.entity.Department;
 import com.visitor.domain.entity.IntegrationConfig;
 import com.visitor.domain.entity.SchoolClass;
@@ -13,6 +15,7 @@ import com.visitor.server.mapper.DepartmentMapper;
 import com.visitor.server.mapper.IntegrationConfigMapper;
 import com.visitor.server.mapper.SchoolClassMapper;
 import com.visitor.server.mapper.StaffMapper;
+import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +24,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import java.io.ByteArrayOutputStream;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -56,6 +63,9 @@ class OrgModuleIntegrationTest {
     private StaffMapper staffMapper;
 
     @Autowired
+    private OrgMapper orgMapper;
+
+    @Autowired
     private DepartmentMapper departmentMapper;
 
     @Autowired
@@ -76,6 +86,7 @@ class OrgModuleIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        orgMapper.delete(null);
         staffMapper.delete(null);
         classMapper.delete(null);
         departmentMapper.delete(null);
@@ -313,6 +324,128 @@ class OrgModuleIntegrationTest {
         return user.getId();
     }
 
+    @Test
+    void staffExcelImportCreatesAccountsAndReportsErrors() throws Exception {
+        StaffImportRow ok = new StaffImportRow();
+        ok.setPersonNo("T-IMP-1");
+        ok.setName("导入老师");
+        ok.setPhone("13900007771");
+        ok.setPersonType("教职工");
+        StaffImportRow bad = new StaffImportRow();
+        bad.setPersonNo("T-IMP-2");
+        bad.setName("导入错误");
+        bad.setPhone("13900007772");
+        bad.setPersonType("不存在的类型");
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EasyExcel.write(out, StaffImportRow.class).sheet("人员").doWrite(List.of(ok, bad));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ByteArrayResource(out.toByteArray()) {
+            @Override
+            public String getFilename() {
+                return "staff.xlsx";
+            }
+        });
+        ResponseEntity<Map> response = rest.exchange("http://localhost:" + port + "/api/web/admin/staff/import",
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(((Number) data.get("total")).intValue()).isEqualTo(2);
+        assertThat(((Number) data.get("success")).intValue()).isEqualTo(1);
+        assertThat(((Number) data.get("failed")).intValue()).isEqualTo(1);
+        assertThat(userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getPersonNo, "T-IMP-1"))).isEqualTo(1L);
+        assertThat(userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getRole, RoleEnum.TEACHER))).isGreaterThanOrEqualTo(1L);
+    }
+    @Test
+    void orgTreeAndStaffBinding() {
+        Map<String, Object> college = data(post("/orgs?name=人工智能学院", adminToken, null));
+        Long collegeId = ((Number) college.get("id")).longValue();
+        Map<String, Object> grade = data(post("/orgs?name=24级&parentId=" + collegeId, adminToken, null));
+        Long gradeId = ((Number) grade.get("id")).longValue();
+        Map<String, Object> clazz = data(post("/orgs?name=24软件1&parentId=" + gradeId, adminToken, null));
+        Long classId = ((Number) clazz.get("id")).longValue();
+
+        java.util.List<?> tree = (java.util.List<?>) exchange("/orgs/tree", HttpMethod.GET, null, adminToken).get("data");
+        assertThat(tree).hasSize(1);
+
+        Map<String, Object> staff = data(post("/staff", adminToken,
+                Map.of("name", "组织老师", "personNo", "T-ORG-1", "phone", "13900009991",
+                        "personType", 1, "orgId", classId)));
+        assertThat(staff.get("orgName")).isEqualTo("24软件1");
+
+        Map<String, Object> blocked = exchange("/orgs/" + classId, HttpMethod.DELETE, null, adminToken);
+        assertThat(blocked.get("code")).isEqualTo(400);
+    }
+    @Test
+    void orgUpdateAndDeleteRules() {
+        Map<String, Object> root = data(post("/orgs?name=信息学院", adminToken, null));
+        Long rootId = ((Number) root.get("id")).longValue();
+        Map<String, Object> child = data(post("/orgs?name=计算机系&parentId=" + rootId, adminToken, null));
+        Long childId = ((Number) child.get("id")).longValue();
+        Map<String, Object> leaf = data(post("/orgs?name=软件教研室&parentId=" + childId, adminToken, null));
+        Long leafId = ((Number) leaf.get("id")).longValue();
+
+        Map<String, Object> renamed = data(put("/orgs/" + rootId + "?name=信息工程学院&sortOrder=2", adminToken, null));
+        assertThat(renamed.get("name")).isEqualTo("信息工程学院");
+
+        Map<String, Object> cycle = exchange("/orgs/" + rootId + "?parentId=" + leafId,
+                HttpMethod.PUT, null, adminToken);
+        assertThat(cycle.get("code")).isEqualTo(400);
+
+        Map<String, Object> hasChild = exchange("/orgs/" + rootId, HttpMethod.DELETE, null, adminToken);
+        assertThat(hasChild.get("code")).isEqualTo(400);
+
+        Map<String, Object> deleted = exchange("/orgs/" + leafId, HttpMethod.DELETE, null, adminToken);
+        assertThat(deleted.get("code")).isEqualTo(200);
+    }
+
+    @Test
+    void staffRejectsUnknownOrg() {
+        Map<String, Object> result = post("/staff", adminToken,
+                Map.of("name", "无组织老师", "personNo", "T-ORG-X", "phone", "13900009992",
+                        "personType", 1, "orgId", 999999));
+        assertThat(result.get("code")).isEqualTo(400);
+    }
+
+    @Test
+    void staffImportReportsUnknownDeptAndClass() throws Exception {
+        StaffImportRow deptBad = new StaffImportRow();
+        deptBad.setPersonNo("T-IMP-3");
+        deptBad.setName("部门错误");
+        deptBad.setPhone("13900007773");
+        deptBad.setPersonType("教职工");
+        deptBad.setDeptName("不存在的部门");
+        StaffImportRow classBad = new StaffImportRow();
+        classBad.setPersonNo("T-IMP-4");
+        classBad.setName("班级错误");
+        classBad.setPhone("13900007774");
+        classBad.setPersonType("学生");
+        classBad.setClassName("不存在的班级");
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EasyExcel.write(out, StaffImportRow.class).sheet("人员").doWrite(List.of(deptBad, classBad));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ByteArrayResource(out.toByteArray()) {
+            @Override
+            public String getFilename() {
+                return "staff.xlsx";
+            }
+        });
+        ResponseEntity<Map> response = rest.exchange("http://localhost:" + port + "/api/web/admin/staff/import",
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(((Number) data.get("failed")).intValue()).isEqualTo(2);
+    }
     private String tokenFor(String phone, RoleEnum role, Long schoolId) {
         User user = new User();
         user.setPhone(phone);

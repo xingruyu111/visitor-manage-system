@@ -117,6 +117,7 @@ CREATE TABLE vst_staff (
   name VARCHAR(64) NOT NULL,
   phone VARCHAR(20),
   person_no VARCHAR(64),
+  org_id BIGINT,
   person_type TINYINT NOT NULL DEFAULT 1,
   job_no VARCHAR(64),
   student_no VARCHAR(64),
@@ -398,4 +399,20 @@ CREATE TABLE vst_system_setting (
   updated_at DATETIME,
   PRIMARY KEY (id),
   CONSTRAINT uk_setting_key UNIQUE (setting_key)
+);
+DROP TABLE IF EXISTS vst_org;
+CREATE TABLE vst_org (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  parent_id BIGINT,
+  name VARCHAR(128) NOT NULL,
+  ancestors VARCHAR(512),
+  level INT NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  head_teacher_id BIGINT,
+  external_id VARCHAR(64),
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_org_external UNIQUE (external_id)
 );

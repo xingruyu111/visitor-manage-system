@@ -16,6 +16,7 @@ public class StaffSaveDTO {
     private String personNo;
     private Integer personType;
     private Long deptId;
+    private Long orgId;
     private Long classId;
     private String jobNo;
     private String studentNo;

@@ -156,6 +156,13 @@ class UserAdminIntegrationTest {
         assertThat(duplicate.get("code")).isEqualTo(400);
     }
 
+    @Test
+    void currentUserReturnsSwitchableRoles() {
+        Map<String, Object> me = data(exchange("/auth/me", HttpMethod.GET, null, systemToken));
+        assertThat(me.get("phone")).isEqualTo("13800004001");
+        assertThat((List<?>) me.get("roles")).hasSize(1);
+        assertThat(((Map<?, ?>) ((List<?>) me.get("roles")).get(0)).get("code")).isEqualTo(1);
+    }
     private String token(Long userId) {
         return jwtUtil.generate(userId, "user-" + userId, List.of(RoleEnum.SYSTEM_ADMIN),
                 RoleEnum.SYSTEM_ADMIN, null);

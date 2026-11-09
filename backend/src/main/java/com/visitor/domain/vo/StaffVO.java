@@ -7,6 +7,8 @@ public class StaffVO {
 
     private Long id;
     private Long schoolId;
+    private Long orgId;
+    private String orgName;
     private Long deptId;
     private String deptName;
     private Long classId;

@@ -106,7 +106,28 @@
     <el-container>
       <el-header class="header">
         <span class="title">{{ pageTitle }}</span>
-        <el-button link type="primary" @click="logout">退出登录</el-button>
+        <div class="user-box">
+          <span class="user-name">{{ me?.name || '' }}</span>
+          <el-dropdown v-if="roles.length > 1" @command="switchRole">
+            <span class="role-switch">
+              {{ currentRoleName }}<el-icon><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="item in roles"
+                  :key="item.code"
+                  :command="item.code"
+                  :disabled="item.code === me?.currentRole"
+                >
+                  {{ item.name }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <span v-else class="role-switch">{{ currentRoleName }}</span>
+          <el-button link type="primary" @click="logout">退出登录</el-button>
+        </div>
       </el-header>
       <el-main class="main">
         <router-view />
@@ -116,12 +137,50 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowDown } from '@element-plus/icons-vue'
+import { http } from '@/api/request'
 import { Odometer, Monitor, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, School, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
+
+interface RoleItem {
+  code: number
+  name: string
+}
+
+interface Me {
+  name?: string
+  currentRole?: number
+  roles: RoleItem[]
+}
+
+const me = ref<Me>()
+const roles = ref<RoleItem[]>([])
+
+async function loadMe() {
+  try {
+    const data = await http.get<Me>('/auth/me')
+    me.value = data
+    roles.value = data.roles ?? []
+  } catch {
+    roles.value = []
+  }
+}
+
+function switchRole(code: number) {
+  localStorage.setItem('roleCode', String(code))
+  window.location.reload()
+}
+
+const currentRoleName = computed(() => {
+  const current = roles.value.find((item) => item.code === me.value?.currentRole)
+  return current?.name ?? ''
+})
+
+onMounted(loadMe)
 
 const activeMenu = computed(() => route.path)
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '工作台')
@@ -205,6 +264,29 @@ function logout() {
   background: #ffffff;
   border-bottom: 1px solid #e8e8e8;
   padding: 0 24px;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-name {
+  font-size: 13px;
+  color: #606266;
+}
+
+.role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #0a0a0a;
+  cursor: pointer;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 4px 10px;
 }
 
 .title {

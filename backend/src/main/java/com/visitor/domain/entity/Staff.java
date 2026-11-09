@@ -20,6 +20,7 @@ public class Staff {
     private String name;
     private String phone;
     private String personNo;
+    private Long orgId;
     private PersonTypeEnum personType;
     private String jobNo;
     private String studentNo;

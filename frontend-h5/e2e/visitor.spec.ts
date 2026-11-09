@@ -30,8 +30,8 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.locator('.van-radio').first().click()
 
   const start = new Date()
-  start.setDate(start.getDate() + 1 + (Date.now() % 27))
-  start.setHours(9, 0, 0, 0)
+  start.setDate(start.getDate() + 1 + Math.floor(Math.random() * 60))
+  start.setHours(8 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60), 0, 0)
   const end = new Date(start.getTime() + 2 * 3600 * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
   const format = (date: Date) =>

@@ -33,6 +33,7 @@
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
         <el-button @click="openCreate">新增人员</el-button>
+        <el-button @click="openImport">导入人员</el-button>
       </el-form>
 
       <el-table v-loading="loading" :data="rows" border>
@@ -40,8 +41,7 @@
         <el-table-column prop="personNo" label="工号/学号" width="140" />
         <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column prop="personTypeDesc" label="类型" width="120" />
-        <el-table-column prop="deptName" label="部门" min-width="140" />
-        <el-table-column prop="className" label="班级" width="140" />
+        <el-table-column prop="orgName" label="部门/班级" min-width="200" />
         <el-table-column prop="position" label="职务" width="120" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
@@ -76,9 +76,9 @@
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="部门">
+        <el-form-item label="部门/班级">
           <el-tree-select
-            v-model="form.deptId"
+            v-model="form.orgId"
             :data="tree"
             :props="{ label: 'name', children: 'children' }"
             node-key="id"
@@ -92,6 +92,29 @@
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="importVisible" title="导入人员" width="560px">
+      <el-alert
+        type="info"
+        :closable="false"
+        title="模板列：工号/学号、姓名、手机号、人员类型、部门、班级、职务。导入后自动开通账号，默认密码 123456。"
+      />
+      <div class="import-row">
+        <input ref="fileInput" class="hidden-file" type="file" accept=".xlsx,.xls" @change="onFileChange" />
+        <el-button @click="fileInput?.click()">选择文件</el-button>
+        <span v-if="importFile" class="file-name">{{ importFile.name }}</span>
+      </div>
+      <div v-if="importResult" class="import-result">
+        共 {{ importResult.total }} 条，成功 {{ importResult.success }}，失败 {{ importResult.failed }}
+        <ul v-if="importResult.errors?.length">
+          <li v-for="item in importResult.errors" :key="item.row">第 {{ item.row }} 行：{{ item.message }}</li>
+        </ul>
+      </div>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="doImport">开始导入</el-button>
       </template>
     </el-dialog>
 
@@ -122,7 +145,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { http } from '@/api/request'
+import request, { http } from '@/api/request'
 
 interface Staff {
   id: number
@@ -131,6 +154,8 @@ interface Staff {
   phone?: string
   personType?: number
   personTypeDesc?: string
+  orgId?: number
+  orgName?: string
   deptId?: number
   deptName?: string
   className?: string
@@ -156,9 +181,18 @@ const page = ref(1)
 const size = ref(20)
 const keyword = ref('')
 const personType = ref<number>()
-const deptId = ref<number>()
 const loading = ref(false)
 const visible = ref(false)
+const importVisible = ref(false)
+const importing = ref(false)
+const importFile = ref<File>()
+const fileInput = ref<HTMLInputElement>()
+const importResult = ref<{
+  total: number
+  success: number
+  failed: number
+  errors?: Array<{ row: number; message: string }>
+}>()
 const deptVisible = ref(false)
 const currentDept = ref<{ id: number; name: string; parentId?: number } | null>(null)
 const deptForm = reactive({ id: undefined as number | undefined, name: '', parentId: undefined as number | undefined, sortOrder: 0 })
@@ -168,13 +202,13 @@ const form = reactive({
   personNo: '',
   phone: '',
   personType: 1,
-  deptId: undefined as number | undefined,
+  orgId: undefined as number | undefined,
   position: '',
 })
 
 async function loadTree() {
   try {
-    tree.value = await http.get('/web/admin/departments')
+    tree.value = await http.get('/web/admin/orgs/tree')
   } catch {
     tree.value = []
   }
@@ -189,7 +223,6 @@ async function load(target = page.value) {
       size: size.value,
       keyword: keyword.value || undefined,
       personType: personType.value,
-      deptId: deptId.value,
     })
     rows.value = data.records
     total.value = data.total
@@ -202,7 +235,6 @@ async function load(target = page.value) {
 
 function onDept(node: { id: number; name: string; parentId?: number }) {
   currentDept.value = node
-  deptId.value = node.id
   load(1)
 }
 
@@ -225,11 +257,14 @@ function openDeptEdit() {
 
 async function saveDept() {
   try {
-    const body = { name: deptForm.name, parentId: deptForm.parentId, sortOrder: deptForm.sortOrder }
+    const params = new URLSearchParams({ name: deptForm.name, sortOrder: String(deptForm.sortOrder) })
+    if (deptForm.parentId) {
+      params.set('parentId', String(deptForm.parentId))
+    }
     if (deptForm.id) {
-      await http.put(`/web/admin/departments/${deptForm.id}`, body)
+      await http.put(`/web/admin/orgs/${deptForm.id}?${params.toString()}`)
     } else {
-      await http.post('/web/admin/departments', body)
+      await http.post(`/web/admin/orgs?${params.toString()}`)
     }
     ElMessage.success('已保存')
     deptVisible.value = false
@@ -243,7 +278,7 @@ async function removeDept() {
   if (!currentDept.value) return
   try {
     await ElMessageBox.confirm(`确定删除部门「${currentDept.value.name}」？`, '提示', { type: 'warning' })
-    await http.delete(`/web/admin/departments/${currentDept.value.id}`)
+    await http.delete(`/web/admin/orgs/${currentDept.value.id}`)
     ElMessage.success('已删除')
     currentDept.value = null
     await loadTree()
@@ -258,7 +293,7 @@ function openCreate() {
   form.personNo = ''
   form.phone = ''
   form.personType = 1
-  form.deptId = deptId.value
+  form.orgId = currentDept.value?.id
   form.position = ''
   visible.value = true
 }
@@ -269,9 +304,38 @@ function openEdit(row: Staff) {
   form.personNo = row.personNo ?? ''
   form.phone = row.phone ?? ''
   form.personType = row.personType ?? 1
-  form.deptId = row.deptId
+  form.orgId = row.orgId
   form.position = row.position ?? ''
   visible.value = true
+}
+
+function openImport() {
+  importFile.value = undefined
+  importResult.value = undefined
+  importVisible.value = true
+  setTimeout(() => fileInput.value?.click(), 100)
+}
+
+function onFileChange(event: Event) {
+  const files = (event.target as HTMLInputElement).files
+  importFile.value = files && files.length > 0 ? files[0] : undefined
+  importResult.value = undefined
+}
+
+async function doImport() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    importResult.value = await request.post('/web/admin/staff/import', formData) as unknown as typeof importResult.value
+    ElMessage.success('导入完成')
+    await load(1)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '导入失败')
+  } finally {
+    importing.value = false
+  }
 }
 
 async function save() {
@@ -285,7 +349,7 @@ async function save() {
       personNo: form.personNo,
       phone: form.phone,
       personType: form.personType,
-      deptId: form.deptId,
+      orgId: form.orgId,
       position: form.position || undefined,
     }
     if (form.id) {
@@ -338,5 +402,33 @@ onMounted(async () => {
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
+}
+
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.hidden-file {
+  display: none;
+}
+
+.file-name {
+  color: #606266;
+  font-size: 13px;
+}
+
+.import-result {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #303133;
+}
+
+.import-result ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #f56c6c;
 }
 </style>
