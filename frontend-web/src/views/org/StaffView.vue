@@ -479,6 +479,7 @@ onMounted(async () => {
 .tree-title {
   font-weight: 600;
   white-space: nowrap;
+  margin-bottom: 8px;
 }
 
 .tree-actions {
