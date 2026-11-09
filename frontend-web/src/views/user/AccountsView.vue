@@ -89,7 +89,6 @@
           />
         </el-select>
         <el-button type="primary" :disabled="!newRole" @click="addRole">添加</el-button>
-        <el-button :disabled="!newRole" @click="setDefault">设为默认</el-button>
       </div>
       <template #footer>
         <el-button @click="roleVisible = false">关闭</el-button>
@@ -228,16 +227,6 @@ async function removeRole(item: RoleDetail) {
   }
 }
 
-async function setDefault() {
-  if (!current.value || !newRole.value) return
-  try {
-    await http.put(`/web/websuper/users/${current.value.id}/default-role?role=${newRole.value}`)
-    ElMessage.success('已设置默认角色')
-    await refreshCurrent()
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '设置失败')
-  }
-}
 
 async function refreshCurrent() {
   await load()
