@@ -61,7 +61,6 @@
         <el-form-item v-if="form.fieldType === 'SELECT'" label="选项">
           <el-input v-model="form.options" placeholder="逗号分隔，如 A,B,C" />
         </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="form.sortNo" :min="0" /></el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -112,7 +111,6 @@ const form = reactive({
   fieldType: 'TEXT',
   required: 0,
   options: '',
-  sortNo: 0,
   status: 1,
 })
 
@@ -138,7 +136,6 @@ function openCreate() {
   form.fieldType = 'TEXT'
   form.required = 0
   form.options = ''
-  form.sortNo = 0
   form.status = 1
   visible.value = true
 }
@@ -151,7 +148,6 @@ function openEdit(row: Field) {
   form.fieldType = row.fieldType
   form.required = row.required
   form.options = row.options ?? ''
-  form.sortNo = row.sortNo
   form.status = row.status
   visible.value = true
 }
@@ -165,7 +161,6 @@ async function save() {
       fieldType: form.fieldType,
       required: form.required,
       options: form.options || undefined,
-      sortNo: form.sortNo,
       status: form.status,
     }
     if (form.id) {

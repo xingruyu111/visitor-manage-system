@@ -132,7 +132,6 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="deptForm.sortOrder" :min="0" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="deptVisible = false">取消</el-button>
@@ -195,7 +194,7 @@ const importResult = ref<{
 }>()
 const deptVisible = ref(false)
 const currentDept = ref<{ id: number; name: string; parentId?: number } | null>(null)
-const deptForm = reactive({ id: undefined as number | undefined, name: '', parentId: undefined as number | undefined, sortOrder: 0 })
+const deptForm = reactive({ id: undefined as number | undefined, name: '', parentId: undefined as number | undefined })
 const form = reactive({
   id: undefined as number | undefined,
   name: '',
@@ -242,7 +241,6 @@ function openDeptCreate() {
   deptForm.id = undefined
   deptForm.name = ''
   deptForm.parentId = currentDept.value?.id
-  deptForm.sortOrder = 0
   deptVisible.value = true
 }
 
@@ -251,13 +249,12 @@ function openDeptEdit() {
   deptForm.id = currentDept.value.id
   deptForm.name = currentDept.value.name
   deptForm.parentId = currentDept.value.parentId
-  deptForm.sortOrder = 0
   deptVisible.value = true
 }
 
 async function saveDept() {
   try {
-    const params = new URLSearchParams({ name: deptForm.name, sortOrder: String(deptForm.sortOrder) })
+    const params = new URLSearchParams({ name: deptForm.name })
     if (deptForm.parentId) {
       params.set('parentId', String(deptForm.parentId))
     }
