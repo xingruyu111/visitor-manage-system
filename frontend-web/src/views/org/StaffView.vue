@@ -3,8 +3,8 @@
     <el-card shadow="never" class="tree-card">
       <template #header>
         <div class="tree-header">
-          <span>组织架构</span>
-          <div>
+          <div class="tree-title">组织架构</div>
+          <div class="tree-actions">
             <el-button link type="primary" @click="openDeptCreate">新增</el-button>
             <el-button link type="primary" @click="openOrgImport">导入</el-button>
             <el-button link type="primary" :disabled="!currentDept" @click="openDeptEdit">编辑</el-button>
@@ -471,8 +471,24 @@ onMounted(async () => {
 }
 .tree-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tree-title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tree-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.tree-actions :deep(.el-button) {
+  margin-left: 0;
 }
 .tree-card {
   width: 260px;
