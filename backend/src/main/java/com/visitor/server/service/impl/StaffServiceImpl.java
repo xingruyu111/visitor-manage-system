@@ -155,7 +155,12 @@ public class StaffServiceImpl implements StaffService {
                     .eq(User::getPhone, staff.getPhone()).last("LIMIT 1"));
             if (user != null && user.getPersonNo() != null
                     && !user.getPersonNo().equals(staff.getPersonNo())) {
-                throw new BizException(400, "手机号已绑定其他人员");
+                Staff previous = staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                        .eq(Staff::getPersonNo, user.getPersonNo()).last("LIMIT 1"));
+                if (previous == null || !Integer.valueOf(1).equals(previous.getIsDeleted())) {
+                    throw new BizException(400, "手机号已绑定其他人员");
+                }
+                user.setPersonNo(staff.getPersonNo());
             }
         }
         if (user == null) {
@@ -448,6 +453,7 @@ public class StaffServiceImpl implements StaffService {
         }
         Long count = staffMapper.selectCount(new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getSchoolId, schoolId)
+                .eq(Staff::getIsDeleted, 0)
                 .eq(Staff::getPhone, phone.trim())
                 .ne(excludeId != null, Staff::getId, excludeId));
         if (count != null && count > 0) {

@@ -185,6 +185,21 @@ class StaffAccountRestoreTest {
         assertThat(userMapper.selectById(user.getId()).getStatus()).isEqualTo(1);
         assertThat(staffService.page(1L, null, null, null, 1, 10).total()).isEqualTo(1);
     }
+    @Test
+    void phoneCanBeReusedAfterDelete() {
+        StaffVO first = staffService.create(1L, dto("T107", "13900004455", PersonTypeEnum.TEACHER));
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T107"));
+        staffService.delete(1L, first.getId());
+
+        StaffVO second = staffService.create(1L, dto("T108", "13900004455", PersonTypeEnum.STUDENT));
+
+        assertThat(second.getId()).isNotEqualTo(first.getId());
+        User rebound = userMapper.selectById(user.getId());
+        assertThat(rebound.getPersonNo()).isEqualTo("T108");
+        assertThat(rebound.getStatus()).isEqualTo(1);
+        assertThat(roles(user.getId())).anyMatch(role -> role.getRole() == RoleEnum.STUDENT
+                && "IDENTITY".equals(role.getSource()));
+    }
     private StaffSaveDTO dto(String personNo, String phone, PersonTypeEnum type) {
         StaffSaveDTO dto = new StaffSaveDTO();
         dto.setPersonNo(personNo);
