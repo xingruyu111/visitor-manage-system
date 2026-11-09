@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-029）
+-- 容器测试用 MySQL 结构（001-030）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -784,3 +784,7 @@ SET o.parent_id = p.id,
     o.level = t.lvl,
     o.ancestors = SUBSTRING_INDEX(t.path, ',', t.lvl - 1)
 WHERE t.parent_id IS NOT NULL;
+
+
+-- 人员软删除标记：删除后不在列表展示，账号停用；重新添加同 person_no 可恢复
+ALTER TABLE vst_staff ADD COLUMN is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '0正常 1已删除';

@@ -48,10 +48,12 @@
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '在职' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 1" link type="danger" @click="deactivate(row)">停用</el-button>
+            <el-button v-if="row.status === 1" link type="danger" @click="toggleStatus(row)">停用</el-button>
+            <el-button v-else link type="success" @click="toggleStatus(row)">启用</el-button>
+            <el-button link type="danger" @click="removeStaff(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -362,14 +364,34 @@ async function save() {
   }
 }
 
-async function deactivate(row: Staff) {
+async function toggleStatus(row: Staff) {
+  const next = row.status === 1 ? 0 : 1
   try {
-    await ElMessageBox.confirm(`确定停用 ${row.name}？其账号权限会同时回收。`, '提示', { type: 'warning' })
-    await http.delete(`/web/admin/staff/${row.id}`)
-    ElMessage.success('已停用')
+    if (next === 0) {
+      await ElMessageBox.confirm(`确定停用 ${row.name}？其账号权限会同时回收。`, '提示', { type: 'warning' })
+    }
+    await http.put(`/web/admin/staff/${row.id}/status?status=${next}`)
+    ElMessage.success(next === 1 ? '已启用' : '已停用')
     await load()
-  } catch {
-    // 取消
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e instanceof Error ? e.message : '操作失败')
+    }
+  }
+}
+
+async function removeStaff(row: Staff) {
+  try {
+    await ElMessageBox.confirm(`确定删除 ${row.name}？删除后不再显示，账号停用，历史记录保留。`, '删除人员', {
+      type: 'warning',
+    })
+    await http.delete(`/web/admin/staff/${row.id}`)
+    ElMessage.success('已删除')
+    await load()
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e instanceof Error ? e.message : '删除失败')
+    }
   }
 }
 

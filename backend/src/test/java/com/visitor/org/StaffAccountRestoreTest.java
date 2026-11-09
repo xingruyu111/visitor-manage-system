@@ -154,6 +154,37 @@ class StaffAccountRestoreTest {
                 .isInstanceOf(BizException.class)
                 .hasMessageContaining("人员类型决定");
     }
+    @Test
+    void enableRestoresAccountAfterDeactivate() {
+        StaffVO created = staffService.create(1L, dto("T105", "13900002222", PersonTypeEnum.TEACHER));
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T105"));
+
+        staffService.deactivate(1L, created.getId());
+        assertThat(userMapper.selectById(user.getId()).getStatus()).isZero();
+
+        staffService.updateStatus(1L, created.getId(), 1);
+        assertThat(staffMapper.selectById(created.getId()).getStatus()).isEqualTo(1);
+        assertThat(userMapper.selectById(user.getId()).getStatus()).isEqualTo(1);
+        assertThat(roles(user.getId())).allMatch(role -> role.getStatus() == 1);
+    }
+
+    @Test
+    void softDeleteHidesAndReAddRestores() {
+        StaffVO created = staffService.create(1L, dto("T106", "13900003344", PersonTypeEnum.TEACHER));
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T106"));
+
+        staffService.delete(1L, created.getId());
+        assertThat(staffMapper.selectById(created.getId()).getIsDeleted()).isEqualTo(1);
+        assertThat(userMapper.selectById(user.getId()).getStatus()).isZero();
+        assertThat(staffService.page(1L, null, null, null, 1, 10).total()).isZero();
+
+        StaffVO restored = staffService.create(1L, dto("T106", "13900003344", PersonTypeEnum.TEACHER));
+        assertThat(restored.getId()).isEqualTo(created.getId());
+        assertThat(staffMapper.selectById(created.getId()).getIsDeleted()).isZero();
+        assertThat(staffMapper.selectById(created.getId()).getStatus()).isEqualTo(1);
+        assertThat(userMapper.selectById(user.getId()).getStatus()).isEqualTo(1);
+        assertThat(staffService.page(1L, null, null, null, 1, 10).total()).isEqualTo(1);
+    }
     private StaffSaveDTO dto(String personNo, String phone, PersonTypeEnum type) {
         StaffSaveDTO dto = new StaffSaveDTO();
         dto.setPersonNo(personNo);

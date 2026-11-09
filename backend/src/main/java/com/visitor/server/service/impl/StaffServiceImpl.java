@@ -70,6 +70,7 @@ public class StaffServiceImpl implements StaffService {
 
         LambdaQueryWrapper<Staff> wrapper = new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getSchoolId, schoolId)
+                .eq(Staff::getIsDeleted, 0)
                 .eq(personType != null, Staff::getPersonType, PersonTypeEnum.of(personType))
                 .eq(deptId != null, Staff::getDeptId, deptId)
                 .and(keyword != null && !keyword.isBlank(), w -> w
@@ -108,6 +109,7 @@ public class StaffServiceImpl implements StaffService {
             }
             apply(staff, schoolId, dto);
             staff.setStatus(1);
+            staff.setIsDeleted(0);
             staff.setUpdatedAt(LocalDateTime.now());
             assertPhoneUnique(schoolId, dto.getPhone(), staff.getId());
             staffMapper.updateById(staff);
@@ -120,6 +122,7 @@ public class StaffServiceImpl implements StaffService {
         staff.setSchoolId(schoolId);
         staff.setSyncSource("LOCAL");
         staff.setStatus(dto.getStatus() == null ? 1 : dto.getStatus());
+        staff.setIsDeleted(0);
         staff.setCreatedAt(LocalDateTime.now());
         apply(staff, schoolId, dto);
         assertPersonNoUnique(schoolId, dto.getPersonNo(), null);
@@ -271,6 +274,54 @@ public class StaffServiceImpl implements StaffService {
     @Transactional(rollbackFor = Exception.class)
     public void deactivate(Long schoolId, Long id) {
         Staff staff = require(schoolId, id);
+        User user = assertNoPending(staff);
+        staff.setStatus(0);
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.updateById(staff);
+        if (user != null) {
+            disableAccount(user);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long schoolId, Long id) {
+        Staff staff = require(schoolId, id);
+        User user = assertNoPending(staff);
+        staff.setStatus(0);
+        staff.setIsDeleted(1);
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.updateById(staff);
+        if (user != null) {
+            disableAccount(user);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(Long schoolId, Long id, Integer status) {
+        Staff staff = require(schoolId, id);
+        if (status == null || (status != 0 && status != 1)) {
+            throw new BizException(400, "状态不合法");
+        }
+        if (status == 1) {
+            if (Integer.valueOf(1).equals(staff.getIsDeleted())) {
+                throw new BizException(400, "人员已删除，请重新添加");
+            }
+            staff.setStatus(1);
+            staff.setUpdatedAt(LocalDateTime.now());
+            staffMapper.updateById(staff);
+            User user = findLinkedUser(staff, staff.getPersonNo());
+            if (user != null) {
+                user.setStatus(1);
+                user.setUpdatedAt(LocalDateTime.now());
+                userMapper.updateById(user);
+                restoreRoles(user.getId());
+            } else {
+                ensureAccount(staff);
+            }
+            return;
+        }
         User user = assertNoPending(staff);
         staff.setStatus(0);
         staff.setUpdatedAt(LocalDateTime.now());

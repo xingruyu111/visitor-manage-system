@@ -27,6 +27,8 @@ public class Staff {
     private String position;
     private Long counselorId;
     private Integer status;
+    /** 0正常 1已删除 */
+    private Integer isDeleted;
     /** LOCAL / SYNC / IMPORT */
     private String syncSource;
     private String externalId;

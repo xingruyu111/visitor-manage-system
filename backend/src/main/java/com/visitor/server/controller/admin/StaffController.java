@@ -63,10 +63,18 @@ public class StaffController {
         return Result.success(staffService.update(SchoolScopes.resolve(schoolId), id, dto));
     }
 
-    @Operation(summary = "停用人员（离职/毕业，同时回收账号角色）")
+    @Operation(summary = "启用/停用人员")
+    @PutMapping("/{id}/status")
+    public Result<Void> status(@RequestParam(required = false) Long schoolId, @PathVariable Long id,
+                               @RequestParam Integer status) {
+        staffService.updateStatus(SchoolScopes.resolve(schoolId), id, status);
+        return Result.success();
+    }
+
+    @Operation(summary = "删除人员（软删，停用账号，不在列表展示）")
     @DeleteMapping("/{id}")
-    public Result<Void> deactivate(@RequestParam(required = false) Long schoolId, @PathVariable Long id) {
-        staffService.deactivate(SchoolScopes.resolve(schoolId), id);
+    public Result<Void> delete(@RequestParam(required = false) Long schoolId, @PathVariable Long id) {
+        staffService.delete(SchoolScopes.resolve(schoolId), id);
         return Result.success();
     }
 }

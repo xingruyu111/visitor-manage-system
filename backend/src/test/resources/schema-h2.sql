@@ -118,6 +118,7 @@ CREATE TABLE vst_staff (
   phone VARCHAR(20),
   person_no VARCHAR(64),
   org_id BIGINT,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
   person_type TINYINT NOT NULL DEFAULT 1,
   job_no VARCHAR(64),
   student_no VARCHAR(64),

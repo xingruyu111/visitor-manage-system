@@ -16,6 +16,10 @@ public interface StaffService {
 
     void deactivate(Long schoolId, Long id);
 
+    void delete(Long schoolId, Long id);
+
+    void updateStatus(Long schoolId, Long id, Integer status);
+
     /** 为已有人员补建/绑定账号（同步、存量修复用）。 */
     void ensureAccountForStaff(Long schoolId, Long staffId);
 }
