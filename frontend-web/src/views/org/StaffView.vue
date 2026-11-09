@@ -42,15 +42,15 @@
             />
           </el-form-item>
           <el-form-item label="类型">
-            <el-select v-model="personType" clearable placeholder="全部" style="width: 90px" @change="load(1)">
+            <el-select v-model="personType" clearable placeholder="全部" style="width: 140px" @change="load(1)">
               <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-form>
         <div class="toolbar-actions">
           <el-button type="primary" @click="load(1)">查询</el-button>
-          <el-button @click="openCreate">新增人员</el-button>
-          <el-button @click="openImport">导入人员</el-button>
+          <el-button @click="openCreate">新增</el-button>
+          <el-button @click="openImport">导入</el-button>
         </div>
       </div>
 
