@@ -18,6 +18,7 @@ public class UserRole {
     private RoleEnum role;
     private Long schoolId;
     private Integer isDefault;
+    private String source;
     private Integer status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

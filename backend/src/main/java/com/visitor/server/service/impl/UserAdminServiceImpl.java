@@ -6,11 +6,14 @@ import com.visitor.common.core.PageResult;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.UserCreateDTO;
+import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
+import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.service.UserAdminService;
+import com.visitor.workflow.ApprovalStatuses;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +28,19 @@ import java.util.Map;
 public class UserAdminServiceImpl implements UserAdminService {
 
     private static final String DEFAULT_PASSWORD = "123456";
+    private static final String SOURCE_IDENTITY = "IDENTITY";
+    private static final String SOURCE_MANUAL = "MANUAL";
 
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
+    private final ApprovalTaskMapper taskMapper;
     private final PasswordEncoder passwordEncoder;
 
     public UserAdminServiceImpl(UserMapper userMapper, UserRoleMapper userRoleMapper,
-                                PasswordEncoder passwordEncoder) {
+                                ApprovalTaskMapper taskMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
+        this.taskMapper = taskMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -57,8 +64,10 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
         Page<User> result = userMapper.selectPage(new Page<>(safePage, safeSize),
                 new LambdaQueryWrapper<User>()
-                        .like(keyword != null && !keyword.isBlank(), User::getName, keyword)
-                        .or(keyword != null && !keyword.isBlank(), w -> w.like(User::getPhone, keyword))
+                        .and(keyword != null && !keyword.isBlank(), w -> w
+                                .like(User::getName, keyword)
+                                .or().like(User::getPhone, keyword)
+                                .or().like(User::getPersonNo, keyword))
                         .in(userIds != null, User::getId, userIds)
                         .orderByDesc(User::getId));
         List<Map<String, Object>> records = new ArrayList<>();
@@ -94,6 +103,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         userRole.setRole(role);
         userRole.setSchoolId(1L);
         userRole.setIsDefault(1);
+        userRole.setSource(SOURCE_MANUAL);
         userRole.setStatus(1);
         userRole.setCreatedAt(LocalDateTime.now());
         userRole.setUpdatedAt(LocalDateTime.now());
@@ -108,43 +118,116 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (status == null || (status != 0 && status != 1)) {
             throw new BizException(400, "状态不合法");
         }
+        if (status == 0) {
+            assertNoPending(userId);
+        }
         user.setStatus(status);
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
-        for (UserRole role : userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId))) {
-            role.setStatus(status);
-            role.setUpdatedAt(LocalDateTime.now());
-            userRoleMapper.updateById(role);
-        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void assignRole(Long userId, Integer roleCode) {
-        requireUser(userId);
+    public void addRole(Long userId, Integer roleCode) {
+        User user = requireUser(userId);
         RoleEnum role = RoleEnum.of(roleCode);
         if (role == null || role == RoleEnum.SYSTEM_ADMIN) {
             throw new BizException(400, "不允许分配该角色");
         }
         UserRole existing = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId).last("LIMIT 1"));
-        if (existing == null) {
-            UserRole userRole = new UserRole();
-            userRole.setUserId(userId);
-            userRole.setRole(role);
-            userRole.setSchoolId(1L);
-            userRole.setIsDefault(1);
-            userRole.setStatus(1);
-            userRole.setCreatedAt(LocalDateTime.now());
-            userRole.setUpdatedAt(LocalDateTime.now());
-            userRoleMapper.insert(userRole);
+                .eq(UserRole::getUserId, user.getId())
+                .eq(UserRole::getRole, role)
+                .last("LIMIT 1"));
+        if (existing != null) {
+            existing.setStatus(1);
+            existing.setUpdatedAt(LocalDateTime.now());
+            userRoleMapper.updateById(existing);
             return;
         }
-        existing.setRole(role);
-        existing.setStatus(1);
-        existing.setUpdatedAt(LocalDateTime.now());
-        userRoleMapper.updateById(existing);
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRole(role);
+        userRole.setSchoolId(1L);
+        userRole.setIsDefault(0);
+        userRole.setSource(SOURCE_MANUAL);
+        userRole.setStatus(1);
+        userRole.setCreatedAt(LocalDateTime.now());
+        userRole.setUpdatedAt(LocalDateTime.now());
+        userRoleMapper.insert(userRole);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeRole(Long userId, Integer roleCode) {
+        requireUser(userId);
+        RoleEnum role = RoleEnum.of(roleCode);
+        if (role == null) {
+            throw new BizException(400, "角色不合法");
+        }
+        UserRole existing = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRole, role)
+                .last("LIMIT 1"));
+        if (existing == null) {
+            throw new BizException(404, "角色不存在");
+        }
+        if (SOURCE_IDENTITY.equals(existing.getSource())) {
+            throw new BizException(400, "该角色由人员类型决定，请修改人员类型或停用人员");
+        }
+        Long active = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getStatus, 1));
+        if (active != null && active <= 1) {
+            throw new BizException(400, "账号至少保留一个角色");
+        }
+        userRoleMapper.deleteById(existing.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setDefaultRole(Long userId, Integer roleCode) {
+        requireUser(userId);
+        RoleEnum role = RoleEnum.of(roleCode);
+        if (role == null) {
+            throw new BizException(400, "角色不合法");
+        }
+        UserRole target = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRole, role)
+                .eq(UserRole::getStatus, 1)
+                .last("LIMIT 1"));
+        if (target == null) {
+            throw new BizException(400, "账号没有该角色");
+        }
+        for (UserRole item : userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getIsDefault, 1))) {
+            item.setIsDefault(0);
+            item.setUpdatedAt(LocalDateTime.now());
+            userRoleMapper.updateById(item);
+        }
+        target.setIsDefault(1);
+        target.setUpdatedAt(LocalDateTime.now());
+        userRoleMapper.updateById(target);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePhone(Long userId, String phone) {
+        User user = requireUser(userId);
+        if (phone == null || phone.isBlank()) {
+            throw new BizException(400, "手机号不能为空");
+        }
+        String value = phone.trim();
+        Long exists = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, value)
+                .ne(User::getId, userId));
+        if (exists != null && exists > 0) {
+            throw new BizException(400, "手机号已存在");
+        }
+        user.setPhone(value);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
     }
 
     @Override
@@ -159,6 +242,15 @@ public class UserAdminServiceImpl implements UserAdminService {
         userMapper.updateById(user);
     }
 
+    private void assertNoPending(Long userId) {
+        Long pending = taskMapper.selectCount(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getAssigneeId, userId)
+                .eq(ApprovalTask::getStatus, ApprovalStatuses.PENDING));
+        if (pending != null && pending > 0) {
+            throw new BizException(400, "还有 " + pending + " 条待审批，请先转交");
+        }
+    }
+
     private User requireUser(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -168,14 +260,26 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private Map<String, Object> toView(User user) {
+        List<UserRole> roleRows = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, user.getId()));
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("id", user.getId());
         view.put("phone", user.getPhone());
+        view.put("personNo", user.getPersonNo());
         view.put("name", user.getName());
         view.put("status", user.getStatus());
-        view.put("roles", userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                        .eq(UserRole::getUserId, user.getId()))
-                .stream().map(item -> item.getRole().getCode()).toList());
+        view.put("roles", roleRows.stream()
+                .filter(item -> Integer.valueOf(1).equals(item.getStatus()))
+                .map(item -> item.getRole().getCode()).toList());
+        view.put("roleDetails", roleRows.stream().map(item -> {
+            Map<String, Object> role = new LinkedHashMap<>();
+            role.put("code", item.getRole().getCode());
+            role.put("name", item.getRole().getDescription());
+            role.put("source", item.getSource() == null ? SOURCE_MANUAL : item.getSource());
+            role.put("isDefault", item.getIsDefault());
+            role.put("status", item.getStatus());
+            return role;
+        }).toList());
         return view;
     }
 }

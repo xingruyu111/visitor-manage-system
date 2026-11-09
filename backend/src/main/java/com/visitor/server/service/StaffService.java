@@ -15,4 +15,7 @@ public interface StaffService {
     StaffVO update(Long schoolId, Long id, StaffSaveDTO dto);
 
     void deactivate(Long schoolId, Long id);
+
+    /** 为已有人员补建/绑定账号（同步、存量修复用）。 */
+    void ensureAccountForStaff(Long schoolId, Long staffId);
 }

@@ -7,6 +7,7 @@ import com.visitor.server.service.UserAdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,10 +52,31 @@ public class UserAdminController {
         return Result.success();
     }
 
-    @Operation(summary = "分配角色")
-    @PutMapping("/{id}/role")
-    public Result<Void> role(@PathVariable Long id, @RequestParam Integer role) {
-        userAdminService.assignRole(id, role);
+    @Operation(summary = "添加角色")
+    @PostMapping("/{id}/roles")
+    public Result<Void> addRole(@PathVariable Long id, @RequestParam Integer role) {
+        userAdminService.addRole(id, role);
+        return Result.success();
+    }
+
+    @Operation(summary = "移除角色")
+    @DeleteMapping("/{id}/roles/{role}")
+    public Result<Void> removeRole(@PathVariable Long id, @PathVariable Integer role) {
+        userAdminService.removeRole(id, role);
+        return Result.success();
+    }
+
+    @Operation(summary = "设置默认角色")
+    @PutMapping("/{id}/default-role")
+    public Result<Void> defaultRole(@PathVariable Long id, @RequestParam Integer role) {
+        userAdminService.setDefaultRole(id, role);
+        return Result.success();
+    }
+
+    @Operation(summary = "修改登录手机号")
+    @PutMapping("/{id}/phone")
+    public Result<Void> phone(@PathVariable Long id, @RequestParam String phone) {
+        userAdminService.updatePhone(id, phone);
         return Result.success();
     }
 

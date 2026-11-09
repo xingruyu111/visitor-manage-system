@@ -264,7 +264,7 @@ class ContainerizedIntegrationTest {
         Long deptId = ((Number) dept.get("id")).longValue();
 
         Map<String, Object> staff = data(post("/web/admin/staff", token,
-                Map.of("name", "张老师", "phone", "13900002001", "personType", 1, "deptId", deptId)));
+                Map.of("name", "张老师", "personNo", "T02001", "phone", "13900002001", "personType", 1, "deptId", deptId)));
 
         assertThat(staff.get("deptName")).isEqualTo("信息工程学院");
         Map<String, Object> page = data(get("/web/admin/staff?page=1&size=10", token));

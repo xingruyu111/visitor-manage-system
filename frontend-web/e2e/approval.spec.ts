@@ -14,7 +14,7 @@ test.beforeAll(async ({ request }) => {
   })
   const staff = await request.post('/api/web/admin/staff', {
     headers: adminAuth,
-    data: { name: 'E2E老师', phone: TEACHER.phone, personType: 1 },
+    data: { name: 'E2E老师', personNo: 'T-E2E-001', phone: TEACHER.phone, personType: 1 },
   })
   const staffBody = await staff.json()
   if (staffBody.code === 200) {

@@ -19,6 +19,7 @@ public class Staff {
     private Long classId;
     private String name;
     private String phone;
+    private String personNo;
     private PersonTypeEnum personType;
     private String jobNo;
     private String studentNo;

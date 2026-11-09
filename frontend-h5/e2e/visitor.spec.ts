@@ -9,7 +9,7 @@ test.beforeAll(async ({ request }) => {
   })
   await request.post('/api/web/admin/staff', {
     headers: { Authorization: `Bearer ${token}` },
-    data: { name: 'E2E老师', phone: '13911110001', personType: 1 },
+    data: { name: 'E2E老师', personNo: 'T-E2E-001', phone: '13911110001', personType: 1 },
   })
 })
 

@@ -13,6 +13,7 @@ public class StaffVO {
     private String className;
     private String name;
     private String phone;
+    private String personNo;
     private Integer personType;
     private String personTypeDesc;
     private String jobNo;

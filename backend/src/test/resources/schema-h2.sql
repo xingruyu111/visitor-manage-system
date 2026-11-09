@@ -45,6 +45,7 @@ DROP TABLE IF EXISTS vst_user;
 CREATE TABLE vst_user (
   id BIGINT NOT NULL AUTO_INCREMENT,
   phone VARCHAR(20) NOT NULL,
+  person_no   VARCHAR(64),
   name VARCHAR(64),
   password VARCHAR(100),
   id_card VARCHAR(32),
@@ -67,6 +68,7 @@ CREATE TABLE vst_user_role (
   role TINYINT NOT NULL,
   school_id BIGINT,
   is_default TINYINT NOT NULL DEFAULT 0,
+  source     VARCHAR(16) NOT NULL DEFAULT 'MANUAL',
   status TINYINT NOT NULL DEFAULT 1,
   created_at DATETIME,
   updated_at DATETIME,
@@ -114,6 +116,7 @@ CREATE TABLE vst_staff (
   class_id BIGINT,
   name VARCHAR(64) NOT NULL,
   phone VARCHAR(20),
+  person_no VARCHAR(64),
   person_type TINYINT NOT NULL DEFAULT 1,
   job_no VARCHAR(64),
   student_no VARCHAR(64),

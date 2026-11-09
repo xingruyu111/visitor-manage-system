@@ -106,7 +106,7 @@ class OrgModuleIntegrationTest {
 
         Long deptId = ((Number) dept.get("id")).longValue();
         Map<String, Object> staff = data(post("/staff", adminToken,
-                Map.of("name", "张老师", "phone", "13911110001", "personType", 1, "deptId", deptId)));
+                Map.of("name", "张老师", "personNo", "T1001", "phone", "13911110001", "personType", 1, "deptId", deptId)));
 
         assertThat(staff.get("deptName")).isEqualTo("信息工程学院");
 
@@ -123,6 +123,7 @@ class OrgModuleIntegrationTest {
         assertThat(departmentMapper.selectCount(null)).isEqualTo(2L);
         assertThat(staffMapper.selectCount(null)).isEqualTo(5L);
         assertThat(classMapper.selectCount(null)).isEqualTo(1L);
+        assertThat(userMapper.selectCount(new LambdaQueryWrapper<User>().isNotNull(User::getPersonNo))).isEqualTo(5L);
     }
 
     @Test
@@ -162,7 +163,7 @@ class OrgModuleIntegrationTest {
     void deactivateStaffRevokesRoles() {
         Long userId = createUserWithRole("13900001888", RoleEnum.CANTEEN);
         Map<String, Object> staff = data(post("/staff", adminToken,
-                Map.of("name", "食堂师傅", "phone", "13900001888", "personType", 4)));
+                Map.of("name", "食堂师傅", "personNo", "C1001", "phone", "13900001888", "personType", 4)));
         Long staffId = ((Number) staff.get("id")).longValue();
 
         assertThat(delete("/staff/" + staffId, adminToken).get("code")).isEqualTo(200);
@@ -174,7 +175,7 @@ class OrgModuleIntegrationTest {
 
     @Test
     void singleSchoolMeansAllAdminsSeeSameData() {
-        post("/staff", adminToken, Map.of("name", "本校老师", "phone", "13911110002", "personType", 1));
+        post("/staff", adminToken, Map.of("name", "本校老师", "personNo", "T1002", "phone", "13911110002", "personType", 1));
 
         Map<String, Object> otherPage = data(get("/staff?page=1&size=10", otherAdminToken));
 
@@ -232,7 +233,7 @@ class OrgModuleIntegrationTest {
     void cannotDeleteDepartmentWithStaff() {
         Map<String, Object> dept = data(post("/departments", adminToken, Map.of("name", "后勤处")));
         Long deptId = ((Number) dept.get("id")).longValue();
-        post("/staff", adminToken, Map.of("name", "后勤老师", "personType", 1, "deptId", deptId));
+        post("/staff", adminToken, Map.of("name", "后勤老师", "personNo", "T1005", "phone", "13911110006", "personType", 1, "deptId", deptId));
 
         Map<String, Object> body = delete("/departments/" + deptId, adminToken);
 
@@ -271,10 +272,10 @@ class OrgModuleIntegrationTest {
 
     @Test
     void staffPhoneMustBeUniqueWithinSchool() {
-        post("/staff", adminToken, Map.of("name", "张老师", "phone", "13911110003", "personType", 1));
+        post("/staff", adminToken, Map.of("name", "张老师", "personNo", "T1003", "phone", "13911110003", "personType", 1));
 
         Map<String, Object> duplicate = post("/staff", adminToken,
-                Map.of("name", "李老师", "phone", "13911110003", "personType", 1));
+                Map.of("name", "李老师", "personNo", "T1004", "phone", "13911110003", "personType", 1));
 
         assertThat(duplicate.get("code")).isEqualTo(400);
         assertThat(duplicate.get("message")).asString().contains("手机号已存在");
@@ -282,8 +283,8 @@ class OrgModuleIntegrationTest {
 
     @Test
     void staffCanBeFilteredByPersonType() {
-        post("/staff", adminToken, Map.of("name", "张老师", "phone", "13911110004", "personType", 1));
-        post("/staff", adminToken, Map.of("name", "学生甲", "phone", "13911110005", "personType", 2));
+        post("/staff", adminToken, Map.of("name", "张老师", "personNo", "T1006", "phone", "13911110004", "personType", 1));
+        post("/staff", adminToken, Map.of("name", "学生甲", "personNo", "S1001", "phone", "13911110005", "personType", 2));
 
         Map<String, Object> page = data(get("/staff?page=1&size=10&personType=2", adminToken));
 

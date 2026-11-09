@@ -2,9 +2,11 @@ package com.visitor.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.RoleEnum;
+import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
 import com.visitor.security.JwtUtil;
+import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +44,9 @@ class UserAdminIntegrationTest {
 
     @Autowired
     private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private ApprovalTaskMapper taskMapper;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -89,24 +94,66 @@ class UserAdminIntegrationTest {
     }
 
     @Test
-    void disableAssignRoleAndResetPassword() {
+    void addRemoveRoleDisableAndResetPassword() {
         Long userId = ((Number) data(exchange("/web/websuper/users", HttpMethod.POST,
                 Map.of("phone", "13900005003", "name", "王保安", "role", 3), systemToken)).get("id")).longValue();
+
+        exchange("/web/websuper/users/" + userId + "/roles?role=2", HttpMethod.POST, null, systemToken);
+        assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId))).hasSize(2);
+
+        exchange("/web/websuper/users/" + userId + "/roles/3", HttpMethod.DELETE, null, systemToken);
+        assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId))).hasSize(1);
 
         exchange("/web/websuper/users/" + userId + "/status?status=0", HttpMethod.PUT, null, systemToken);
         assertThat(userMapper.selectById(userId).getStatus()).isZero();
         assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isZero();
-
-        exchange("/web/websuper/users/" + userId + "/role?role=2", HttpMethod.PUT, null, systemToken);
-        assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId)).get(0).getRole()).isEqualTo(RoleEnum.SECURITY_ADMIN);
+                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isEqualTo(1);
 
         exchange("/web/websuper/users/" + userId + "/status?status=1", HttpMethod.PUT, null, systemToken);
         exchange("/web/websuper/users/" + userId + "/password?password=newpass123", HttpMethod.PUT, null, systemToken);
         Map<String, Object> login = exchange("/auth/login", HttpMethod.POST,
                 Map.of("phone", "13900005003", "password", "newpass123"), null);
         assertThat(login.get("code")).isEqualTo(200);
+    }
+
+    @Test
+    void disableWithPendingTaskIsRejected() {
+        Long userId = ((Number) data(exchange("/web/websuper/users", HttpMethod.POST,
+                Map.of("phone", "13900005004", "name", "李审批", "role", 5), systemToken)).get("id")).longValue();
+
+        ApprovalTask task = new ApprovalTask();
+        task.setInstanceId(1L);
+        task.setSeq(1);
+        task.setNodeCode("N1");
+        task.setAssigneeType("TARGET");
+        task.setAssigneeId(userId);
+        task.setStatus("PENDING");
+        task.setCreatedAt(LocalDateTime.now());
+        taskMapper.insert(task);
+
+        Map<String, Object> blocked = exchange("/web/websuper/users/" + userId + "/status?status=0",
+                HttpMethod.PUT, null, systemToken);
+        assertThat(blocked.get("code")).isEqualTo(400);
+
+        taskMapper.deleteById(task.getId());
+        exchange("/web/websuper/users/" + userId + "/status?status=0", HttpMethod.PUT, null, systemToken);
+        assertThat(userMapper.selectById(userId).getStatus()).isZero();
+    }
+
+    @Test
+    void accountPhoneCanBeChangedIndependently() {
+        Long userId = ((Number) data(exchange("/web/websuper/users", HttpMethod.POST,
+                Map.of("phone", "13900005005", "name", "赵老师", "role", 5), systemToken)).get("id")).longValue();
+
+        exchange("/web/websuper/users/" + userId + "/phone?phone=13900005006",
+                HttpMethod.PUT, null, systemToken);
+        assertThat(userMapper.selectById(userId).getPhone()).isEqualTo("13900005006");
+
+        Map<String, Object> duplicate = exchange("/web/websuper/users/" + userId + "/phone?phone=13800004001",
+                HttpMethod.PUT, null, systemToken);
+        assertThat(duplicate.get("code")).isEqualTo(400);
     }
 
     private String token(Long userId) {

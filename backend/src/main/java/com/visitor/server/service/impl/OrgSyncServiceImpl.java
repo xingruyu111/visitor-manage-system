@@ -15,6 +15,7 @@ import com.visitor.server.mapper.SchoolClassMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.service.StaffService;
 import com.visitor.server.service.OrgSyncService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,16 +38,19 @@ public class OrgSyncServiceImpl implements OrgSyncService {
     private final StaffMapper staffMapper;
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
+    private final StaffService staffService;
 
     public OrgSyncServiceImpl(IntegrationFactory integrationFactory, DepartmentMapper departmentMapper,
                               SchoolClassMapper classMapper, StaffMapper staffMapper,
-                              UserMapper userMapper, UserRoleMapper userRoleMapper) {
+                              UserMapper userMapper, UserRoleMapper userRoleMapper,
+                              StaffService staffService) {
         this.integrationFactory = integrationFactory;
         this.departmentMapper = departmentMapper;
         this.classMapper = classMapper;
         this.staffMapper = staffMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
+        this.staffService = staffService;
     }
 
     @Override
@@ -167,6 +171,7 @@ public class OrgSyncServiceImpl implements OrgSyncService {
                     fill(staff, record, personType, deptId, classId);
                     staffMapper.insert(staff);
                     existing.put(record.externalId(), staff);
+                    ensureAccount(schoolId, staff);
                     created++;
                 } else {
                     fill(staff, record, personType, deptId, classId);
@@ -174,6 +179,7 @@ public class OrgSyncServiceImpl implements OrgSyncService {
                     staff.setSyncSource("SYNC");
                     staff.setUpdatedAt(LocalDateTime.now());
                     staffMapper.updateById(staff);
+                    ensureAccount(schoolId, staff);
                     updated++;
                 }
                 seen.add(record.externalId());
@@ -215,6 +221,7 @@ public class OrgSyncServiceImpl implements OrgSyncService {
         staff.setName(record.name());
         staff.setPhone(record.phone());
         staff.setPersonType(personType);
+        staff.setPersonNo(firstNonBlank(record.jobNo(), record.studentNo(), record.externalId()));
         staff.setJobNo(record.jobNo());
         staff.setStudentNo(record.studentNo());
         staff.setDeptId(deptId);
@@ -231,6 +238,26 @@ public class OrgSyncServiceImpl implements OrgSyncService {
         schoolClass.setUpdatedAt(LocalDateTime.now());
         classMapper.insert(schoolClass);
         return schoolClass.getId();
+    }
+
+    private void ensureAccount(Long schoolId, Staff staff) {
+        if (staff.getPhone() == null || staff.getPhone().isBlank()) {
+            return;
+        }
+        try {
+            staffService.ensureAccountForStaff(schoolId, staff.getId());
+        } catch (Exception ignored) {
+            // 账号冲突不阻断人员同步，由管理员在账号管理中处理
+        }
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private void revokeRoles(String phone) {

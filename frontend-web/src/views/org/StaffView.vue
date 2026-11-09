@@ -37,6 +37,7 @@
 
       <el-table v-loading="loading" :data="rows" border>
         <el-table-column prop="name" label="姓名" width="120" />
+        <el-table-column prop="personNo" label="工号/学号" width="140" />
         <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column prop="personTypeDesc" label="类型" width="120" />
         <el-table-column prop="deptName" label="部门" min-width="140" />
@@ -68,7 +69,8 @@
     <el-dialog v-model="visible" :title="form.id ? '编辑人员' : '新增人员'" width="520px">
       <el-form label-width="90px">
         <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="手机号"><el-input v-model="form.phone" /></el-form-item>
+        <el-form-item label="工号/学号"><el-input v-model="form.personNo" placeholder="唯一，教职工填工号、学生填学号" /></el-form-item>
+        <el-form-item label="手机号"><el-input v-model="form.phone" placeholder="必填，用于开通账号" /></el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.personType" style="width: 100%">
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
@@ -85,8 +87,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="工号"><el-input v-model="form.jobNo" /></el-form-item>
-        <el-form-item label="职务"><el-input v-model="form.position" /></el-form-item>
+        <el-form-item label="职务"><el-input v-model="form.position" placeholder="备注，不参与审批" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
@@ -126,6 +127,7 @@ import { http } from '@/api/request'
 interface Staff {
   id: number
   name: string
+  personNo?: string
   phone?: string
   personType?: number
   personTypeDesc?: string
@@ -163,10 +165,10 @@ const deptForm = reactive({ id: undefined as number | undefined, name: '', paren
 const form = reactive({
   id: undefined as number | undefined,
   name: '',
+  personNo: '',
   phone: '',
   personType: 1,
   deptId: undefined as number | undefined,
-  jobNo: '',
   position: '',
 })
 
@@ -253,10 +255,10 @@ async function removeDept() {
 function openCreate() {
   form.id = undefined
   form.name = ''
+  form.personNo = ''
   form.phone = ''
   form.personType = 1
   form.deptId = deptId.value
-  form.jobNo = ''
   form.position = ''
   visible.value = true
 }
@@ -264,22 +266,26 @@ function openCreate() {
 function openEdit(row: Staff) {
   form.id = row.id
   form.name = row.name
+  form.personNo = row.personNo ?? ''
   form.phone = row.phone ?? ''
   form.personType = row.personType ?? 1
   form.deptId = row.deptId
-  form.jobNo = row.jobNo ?? ''
   form.position = row.position ?? ''
   visible.value = true
 }
 
 async function save() {
+  if (!form.name || !form.personNo || !form.phone) {
+    ElMessage.warning('姓名、工号/学号、手机号必填')
+    return
+  }
   try {
     const body = {
       name: form.name,
-      phone: form.phone || undefined,
+      personNo: form.personNo,
+      phone: form.phone,
       personType: form.personType,
       deptId: form.deptId,
-      jobNo: form.jobNo || undefined,
       position: form.position || undefined,
     }
     if (form.id) {

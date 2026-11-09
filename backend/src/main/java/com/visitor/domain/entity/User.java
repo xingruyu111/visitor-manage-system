@@ -14,6 +14,7 @@ public class User {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String phone;
+    private String personNo;
     private String name;
     /** BCrypt 散列 */
     private String password;

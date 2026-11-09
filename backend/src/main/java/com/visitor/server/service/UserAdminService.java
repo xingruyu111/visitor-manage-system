@@ -13,7 +13,13 @@ public interface UserAdminService {
 
     void updateStatus(Long userId, Integer status);
 
-    void assignRole(Long userId, Integer role);
+    void addRole(Long userId, Integer role);
+
+    void removeRole(Long userId, Integer role);
+
+    void setDefaultRole(Long userId, Integer role);
+
+    void updatePhone(Long userId, String phone);
 
     void resetPassword(Long userId, String password);
 }

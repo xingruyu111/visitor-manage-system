@@ -17,7 +17,8 @@ public enum RoleEnum {
     MERCHANT(7, "校内商户"),
     CANTEEN(8, "食堂人员"),
     ALUMNI(9, "校友"),
-    DEPT_OPERATOR(11, "二级学院/机关部处经办人");
+    DEPT_OPERATOR(11, "二级学院/机关部处经办人"),
+    COUNSELOR(12, "辅导员");
 
     @EnumValue
     private final int code;
