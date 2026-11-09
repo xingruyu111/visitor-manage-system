@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="rows" border>
+      <el-table v-loading="loading" :data="rows" border class="staff-table">
         <el-table-column prop="name" label="姓名" width="100" />
         <el-table-column prop="personNo" label="工号/学号" width="130" />
         <el-table-column prop="phone" label="手机号" width="125" />
@@ -422,8 +422,11 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
+.staff-table {
+  margin-top: 12px;
+}
+
 .toolbar {
-  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
