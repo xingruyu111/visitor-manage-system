@@ -174,11 +174,13 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (SOURCE_IDENTITY.equals(existing.getSource())) {
             throw new BizException(400, "该角色由人员类型决定，请修改人员类型或停用人员");
         }
-        Long active = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId)
-                .eq(UserRole::getStatus, 1));
-        if (active != null && active <= 1) {
-            throw new BizException(400, "账号至少保留一个角色");
+        if (Integer.valueOf(1).equals(existing.getStatus())) {
+            Long active = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                    .eq(UserRole::getUserId, userId)
+                    .eq(UserRole::getStatus, 1));
+            if (active != null && active <= 1) {
+                throw new BizException(400, "账号至少保留一个启用角色");
+            }
         }
         userRoleMapper.deleteById(existing.getId());
     }

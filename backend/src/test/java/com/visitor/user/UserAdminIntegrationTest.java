@@ -163,6 +163,24 @@ class UserAdminIntegrationTest {
         assertThat((List<?>) me.get("roles")).hasSize(1);
         assertThat(((Map<?, ?>) ((List<?>) me.get("roles")).get(0)).get("code")).isEqualTo(1);
     }
+    @Test
+    void inactiveRoleCanBeRemovedEvenWithSingleActiveRole() {
+        Long userId = ((Number) data(exchange("/web/websuper/users", HttpMethod.POST,
+                Map.of("phone", "13900005007", "name", "角色停用", "role", 3), systemToken)).get("id")).longValue();
+        exchange("/web/websuper/users/" + userId + "/roles?role=5", HttpMethod.POST, null, systemToken);
+
+        UserRole teacher = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRole, RoleEnum.TEACHER));
+        teacher.setStatus(0);
+        userRoleMapper.updateById(teacher);
+
+        Map<String, Object> removed = exchange("/web/websuper/users/" + userId + "/roles/5",
+                HttpMethod.DELETE, null, systemToken);
+        assertThat(removed.get("code")).isEqualTo(200);
+        assertThat(userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId))).isEqualTo(1L);
+    }
     private String token(Long userId) {
         return jwtUtil.generate(userId, "user-" + userId, List.of(RoleEnum.SYSTEM_ADMIN),
                 RoleEnum.SYSTEM_ADMIN, null);
