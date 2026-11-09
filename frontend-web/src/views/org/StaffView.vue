@@ -43,16 +43,10 @@
         <el-table-column prop="personTypeDesc" label="类型" width="120" />
         <el-table-column prop="orgName" label="部门/班级" min-width="200" />
         <el-table-column prop="position" label="职务" width="120" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '在职' : '停用' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="210" fixed="right">
+        <el-table-column label="操作" width="170" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 1" link type="danger" @click="toggleStatus(row)">停用</el-button>
-            <el-button v-else link type="success" @click="toggleStatus(row)">启用</el-button>
+            <el-button v-if="row.status === 0" link type="success" @click="toggleStatus(row)">启用</el-button>
             <el-button link type="danger" @click="removeStaff(row)">删除</el-button>
           </template>
         </el-table-column>
