@@ -6,11 +6,13 @@ import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.StaffSaveDTO;
 import com.visitor.domain.entity.ApprovalTask;
+import com.visitor.domain.entity.Org;
 import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
 import com.visitor.domain.vo.StaffVO;
 import com.visitor.server.mapper.ApprovalTaskMapper;
+import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
@@ -51,9 +53,13 @@ class StaffAccountRestoreTest {
     @Autowired
     private ApprovalTaskMapper taskMapper;
 
+    @Autowired
+    private OrgMapper orgMapper;
+
     @BeforeEach
     void setUp() {
         taskMapper.delete(null);
+        orgMapper.delete(null);
         staffMapper.delete(null);
         userRoleMapper.delete(null);
         userMapper.delete(null);
@@ -199,6 +205,29 @@ class StaffAccountRestoreTest {
         assertThat(rebound.getStatus()).isEqualTo(1);
         assertThat(roles(user.getId())).anyMatch(role -> role.getRole() == RoleEnum.STUDENT
                 && "IDENTITY".equals(role.getSource()));
+    }
+    @Test
+    void clearingPositionAndOrgIsPersisted() {
+        Org org = new Org();
+        org.setName("清空测试学院");
+        org.setLevel(1);
+        org.setStatus(1);
+        org.setCreatedAt(LocalDateTime.now());
+        org.setUpdatedAt(LocalDateTime.now());
+        orgMapper.insert(org);
+
+        StaffSaveDTO create = dto("T109", "13900006677", PersonTypeEnum.TEACHER);
+        create.setPosition("老师");
+        create.setOrgId(org.getId());
+        StaffVO created = staffService.create(1L, create);
+        assertThat(created.getOrgName()).isEqualTo("清空测试学院");
+
+        StaffSaveDTO update = dto("T109", "13900006677", PersonTypeEnum.TEACHER);
+        staffService.update(1L, created.getId(), update);
+
+        Staff saved = staffMapper.selectById(created.getId());
+        assertThat(saved.getPosition()).isNull();
+        assertThat(saved.getOrgId()).isNull();
     }
     private StaffSaveDTO dto(String personNo, String phone, PersonTypeEnum type) {
         StaffSaveDTO dto = new StaffSaveDTO();

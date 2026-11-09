@@ -392,6 +392,9 @@ public class StaffServiceImpl implements StaffService {
             throw new BizException(400, "人员类型不合法");
         }
         staff.setPersonType(personType);
+        staff.setOrgId(null);
+        staff.setDeptId(null);
+        staff.setClassId(null);
         if (dto.getOrgId() != null) {
             Org org = orgMapper.selectById(dto.getOrgId());
             if (org == null) {
@@ -403,8 +406,10 @@ public class StaffServiceImpl implements StaffService {
             } else if (org.getExternalId() != null && org.getExternalId().startsWith("CLASS:")) {
                 staff.setClassId(Long.valueOf(org.getExternalId().substring(6)));
             }
+        } else {
+            staff.setDeptId(validateDepartment(schoolId, dto.getDeptId()));
+            staff.setClassId(validateClass(schoolId, dto.getClassId()));
         }
-        staff.setDeptId(validateDepartment(schoolId, dto.getDeptId()));
         staff.setClassId(validateClass(schoolId, dto.getClassId()));
         staff.setJobNo(trimToNull(dto.getJobNo()) == null ? staff.getPersonNo() : trimToNull(dto.getJobNo()));
         staff.setStudentNo(trimToNull(dto.getStudentNo()));
