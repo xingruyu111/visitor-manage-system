@@ -26,7 +26,7 @@
       <div class="toolbar">
         <el-form inline class="filter-form">
           <el-form-item label="关键字">
-            <el-input v-model="keyword" placeholder="姓名/手机/工号" clearable style="width: 140px" @keyup.enter="load(1)" />
+            <el-input v-model="keyword" placeholder="姓名/手机/工号" clearable style="width: 150px" @keyup.enter="load(1)" />
           </el-form-item>
           <el-form-item label="部门/班级">
             <el-tree-select
@@ -37,12 +37,12 @@
               check-strictly
               clearable
               placeholder="全部"
-              style="width: 140px"
+              style="width: 150px"
               @change="load(1)"
             />
           </el-form-item>
           <el-form-item label="类型">
-            <el-select v-model="personType" clearable placeholder="全部" style="width: 140px" @change="load(1)">
+            <el-select v-model="personType" clearable placeholder="全部" style="width: 150px" @change="load(1)">
               <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
@@ -431,7 +431,7 @@ onMounted(async () => {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
+  gap: 8px 8px;
 }
 
 .filter-form {
@@ -440,7 +440,11 @@ onMounted(async () => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  gap: 8px 8px;
+}
+
+.filter-form :deep(.el-form-item__label) {
+  padding-right: 8px;
 }
 
 .filter-form :deep(.el-form-item) {
