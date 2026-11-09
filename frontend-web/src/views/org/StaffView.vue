@@ -423,6 +423,7 @@ onMounted(async () => {
 }
 
 .toolbar {
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
