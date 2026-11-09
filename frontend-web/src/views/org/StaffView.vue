@@ -17,6 +17,7 @@
         node-key="id"
         highlight-current
         default-expand-all
+        :expand-on-click-node="false"
         @node-click="onDept"
       />
     </el-card>
@@ -25,6 +26,19 @@
       <el-form inline>
         <el-form-item label="关键字">
           <el-input v-model="keyword" placeholder="姓名/手机号/工号" clearable style="width: 200px" @keyup.enter="load(1)" />
+        </el-form-item>
+        <el-form-item label="部门/班级">
+          <el-tree-select
+            v-model="filterOrgId"
+            :data="tree"
+            :props="{ label: 'name', children: 'children' }"
+            node-key="id"
+            check-strictly
+            clearable
+            placeholder="全部"
+            style="width: 190px"
+            @change="load(1)"
+          />
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="personType" clearable placeholder="全部" style="width: 160px" @change="load(1)">
@@ -175,6 +189,7 @@ const page = ref(1)
 const size = ref(20)
 const keyword = ref('')
 const personType = ref<number>()
+const filterOrgId = ref<number>()
 const loading = ref(false)
 const visible = ref(false)
 const importVisible = ref(false)
@@ -217,6 +232,7 @@ async function load(target = page.value) {
       size: size.value,
       keyword: keyword.value || undefined,
       personType: personType.value,
+      orgId: filterOrgId.value,
     })
     rows.value = data.records
     total.value = data.total
@@ -229,6 +245,7 @@ async function load(target = page.value) {
 
 function onDept(node: { id: number; name: string; parentId?: number }) {
   currentDept.value = node
+  filterOrgId.value = node.id
   load(1)
 }
 

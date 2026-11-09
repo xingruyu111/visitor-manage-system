@@ -182,14 +182,14 @@ class StaffAccountRestoreTest {
         staffService.delete(1L, created.getId());
         assertThat(staffMapper.selectById(created.getId()).getIsDeleted()).isEqualTo(1);
         assertThat(userMapper.selectById(user.getId()).getStatus()).isZero();
-        assertThat(staffService.page(1L, null, null, null, 1, 10).total()).isZero();
+        assertThat(staffService.page(1L, null, null, null, null, 1, 10).total()).isZero();
 
         StaffVO restored = staffService.create(1L, dto("T106", "13900003344", PersonTypeEnum.TEACHER));
         assertThat(restored.getId()).isEqualTo(created.getId());
         assertThat(staffMapper.selectById(created.getId()).getIsDeleted()).isZero();
         assertThat(staffMapper.selectById(created.getId()).getStatus()).isEqualTo(1);
         assertThat(userMapper.selectById(user.getId()).getStatus()).isEqualTo(1);
-        assertThat(staffService.page(1L, null, null, null, 1, 10).total()).isEqualTo(1);
+        assertThat(staffService.page(1L, null, null, null, null, 1, 10).total()).isEqualTo(1);
     }
     @Test
     void phoneCanBeReusedAfterDelete() {

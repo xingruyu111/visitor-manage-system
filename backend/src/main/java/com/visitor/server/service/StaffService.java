@@ -6,7 +6,7 @@ import com.visitor.domain.vo.StaffVO;
 
 public interface StaffService {
 
-    PageResult<StaffVO> page(Long schoolId, String keyword, Integer personType, Long deptId, int page, int size);
+    PageResult<StaffVO> page(Long schoolId, String keyword, Integer personType, Long deptId, Long orgId, int page, int size);
 
     StaffVO get(Long schoolId, Long id);
 

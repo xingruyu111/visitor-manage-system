@@ -379,6 +379,11 @@ class OrgModuleIntegrationTest {
                         "personType", 1, "orgId", classId)));
         assertThat(staff.get("orgName")).isEqualTo("24软件1");
 
+        Map<String, Object> byGrade = data(get("/staff?orgId=" + gradeId + "&page=1&size=10", adminToken));
+        assertThat(((Number) byGrade.get("total")).intValue()).isEqualTo(1);
+        Map<String, Object> byCollege = data(get("/staff?orgId=" + collegeId + "&page=1&size=10", adminToken));
+        assertThat(((Number) byCollege.get("total")).intValue()).isEqualTo(1);
+
         Map<String, Object> blocked = exchange("/orgs/" + classId, HttpMethod.DELETE, null, adminToken);
         assertThat(blocked.get("code")).isEqualTo(400);
     }

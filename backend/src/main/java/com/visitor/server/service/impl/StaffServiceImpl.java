@@ -64,15 +64,20 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     public PageResult<StaffVO> page(Long schoolId, String keyword, Integer personType,
-                                    Long deptId, int page, int size) {
+                                    Long deptId, Long orgId, int page, int size) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 100);
+        java.util.List<Long> orgIds = orgId == null ? null : descendantOrgIds(orgId);
+        if (orgIds != null && orgIds.isEmpty()) {
+            return PageResult.of(0, safePage, safeSize, List.of());
+        }
 
         LambdaQueryWrapper<Staff> wrapper = new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getSchoolId, schoolId)
                 .eq(Staff::getIsDeleted, 0)
                 .eq(personType != null, Staff::getPersonType, PersonTypeEnum.of(personType))
                 .eq(deptId != null, Staff::getDeptId, deptId)
+                .in(orgIds != null, Staff::getOrgId, orgIds)
                 .and(keyword != null && !keyword.isBlank(), w -> w
                         .like(Staff::getName, keyword)
                         .or().like(Staff::getPhone, keyword)
@@ -437,6 +442,27 @@ public class StaffServiceImpl implements StaffService {
             throw new BizException(400, "班级不存在");
         }
         return classId;
+    }
+
+    private java.util.List<Long> descendantOrgIds(Long rootId) {
+        java.util.List<Long> ids = new java.util.ArrayList<>();
+        for (Org org : orgMapper.selectList(null)) {
+            if (org.getId().equals(rootId)) {
+                ids.add(org.getId());
+                continue;
+            }
+            String ancestors = org.getAncestors();
+            if (ancestors == null || ancestors.isBlank()) {
+                continue;
+            }
+            for (String part : ancestors.split(",")) {
+                if (part.equals(String.valueOf(rootId))) {
+                    ids.add(org.getId());
+                    break;
+                }
+            }
+        }
+        return ids;
     }
 
     private void assertPersonNoUnique(Long schoolId, String personNo, Long excludeId) {

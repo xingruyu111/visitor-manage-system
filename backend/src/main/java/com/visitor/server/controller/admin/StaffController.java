@@ -36,10 +36,11 @@ public class StaffController {
                                             @RequestParam(required = false) String keyword,
                                             @RequestParam(required = false) Integer personType,
                                             @RequestParam(required = false) Long deptId,
+                                            @RequestParam(required = false) Long orgId,
                                             @RequestParam(defaultValue = "1") int page,
                                             @RequestParam(defaultValue = "20") int size) {
         return Result.success(staffService.page(SchoolScopes.resolve(schoolId), keyword,
-                personType, deptId, page, size));
+                personType, deptId, orgId, page, size));
     }
 
     @Operation(summary = "人员详情")
