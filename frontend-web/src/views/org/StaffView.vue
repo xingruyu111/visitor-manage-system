@@ -23,32 +23,36 @@
     </el-card>
 
     <el-card shadow="never" class="table-card">
-      <el-form inline>
-        <el-form-item label="关键字">
-          <el-input v-model="keyword" placeholder="姓名/手机号/工号" clearable style="width: 200px" @keyup.enter="load(1)" />
-        </el-form-item>
-        <el-form-item label="部门/班级">
-          <el-tree-select
-            v-model="filterOrgId"
-            :data="tree"
-            :props="{ label: 'name', children: 'children' }"
-            node-key="id"
-            check-strictly
-            clearable
-            placeholder="全部"
-            style="width: 190px"
-            @change="load(1)"
-          />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="personType" clearable placeholder="全部" style="width: 160px" @change="load(1)">
-            <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-button type="primary" @click="load(1)">查询</el-button>
-        <el-button @click="openCreate">新增人员</el-button>
-        <el-button @click="openImport">导入人员</el-button>
-      </el-form>
+      <div class="toolbar">
+        <el-form inline class="filter-form">
+          <el-form-item label="关键字">
+            <el-input v-model="keyword" placeholder="姓名/手机/工号" clearable style="width: 120px" @keyup.enter="load(1)" />
+          </el-form-item>
+          <el-form-item label="部门/班级">
+            <el-tree-select
+              v-model="filterOrgId"
+              :data="tree"
+              :props="{ label: 'name', children: 'children' }"
+              node-key="id"
+              check-strictly
+              clearable
+              placeholder="全部"
+              style="width: 120px"
+              @change="load(1)"
+            />
+          </el-form-item>
+          <el-form-item label="类型">
+            <el-select v-model="personType" clearable placeholder="全部" style="width: 100px" @change="load(1)">
+              <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="toolbar-actions">
+          <el-button type="primary" @click="load(1)">查询</el-button>
+          <el-button @click="openCreate">新增人员</el-button>
+          <el-button @click="openImport">导入人员</el-button>
+        </div>
+      </div>
 
       <el-table v-loading="loading" :data="rows" border>
         <el-table-column prop="name" label="姓名" width="100" />
@@ -416,6 +420,33 @@ onMounted(async () => {
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.filter-form {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.filter-form :deep(.el-form-item) {
+  margin: 0;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .import-row {
