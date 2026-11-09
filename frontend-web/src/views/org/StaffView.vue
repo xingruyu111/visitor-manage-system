@@ -26,7 +26,7 @@
       <div class="toolbar">
         <el-form inline class="filter-form">
           <el-form-item label="关键字">
-            <el-input v-model="keyword" placeholder="姓名/手机/工号" clearable style="width: 120px" @keyup.enter="load(1)" />
+            <el-input v-model="keyword" placeholder="姓名/手机号/工号" clearable style="width: 160px" @keyup.enter="load(1)" />
           </el-form-item>
           <el-form-item label="部门/班级">
             <el-tree-select
@@ -37,12 +37,12 @@
               check-strictly
               clearable
               placeholder="全部"
-              style="width: 120px"
+              style="width: 110px"
               @change="load(1)"
             />
           </el-form-item>
           <el-form-item label="类型">
-            <el-select v-model="personType" clearable placeholder="全部" style="width: 100px" @change="load(1)">
+            <el-select v-model="personType" clearable placeholder="全部" style="width: 90px" @change="load(1)">
               <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
