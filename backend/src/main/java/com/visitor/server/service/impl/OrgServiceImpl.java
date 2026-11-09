@@ -115,6 +115,95 @@ public class OrgServiceImpl implements OrgService {
         orgMapper.deleteById(id);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public java.util.Map<String, Object> importRows(java.util.List<com.visitor.domain.dto.OrgImportRow> rows) {
+        java.util.List<Org> all = orgMapper.selectList(null);
+        java.util.Map<Long, Org> byId = new java.util.HashMap<>();
+        for (Org org : all) {
+            byId.put(org.getId(), org);
+        }
+        java.util.Map<Long, String> paths = new java.util.HashMap<>();
+        java.util.Map<String, Org> byPath = new java.util.HashMap<>();
+        for (Org org : all) {
+            byPath.put(computePath(org, byId, paths), org);
+        }
+
+        int created = 0;
+        int skipped = 0;
+        java.util.List<java.util.Map<String, Object>> errors = new java.util.ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            com.visitor.domain.dto.OrgImportRow row = rows.get(i);
+            int excelRow = i + 2;
+            try {
+                String name = row.getName() == null ? "" : row.getName().trim();
+                if (name.isEmpty()) {
+                    throw new BizException(400, "组织名称不能为空");
+                }
+                String parentPath = row.getParentPath() == null ? "" : row.getParentPath().trim()
+                        .replace('\\', '/');
+                while (parentPath.startsWith("/")) {
+                    parentPath = parentPath.substring(1);
+                }
+                while (parentPath.endsWith("/")) {
+                    parentPath = parentPath.substring(0, parentPath.length() - 1);
+                }
+                Org parent = null;
+                if (!parentPath.isEmpty()) {
+                    parent = byPath.get(parentPath);
+                    if (parent == null) {
+                        throw new BizException(400, "上级组织不存在：" + parentPath);
+                    }
+                }
+                String path = parentPath.isEmpty() ? name : parentPath + "/" + name;
+                if (byPath.containsKey(path)) {
+                    skipped++;
+                    continue;
+                }
+                Long sameName = orgMapper.selectCount(new LambdaQueryWrapper<Org>()
+                        .eq(parent == null, Org::getParentId, null)
+                        .eq(parent != null, Org::getParentId, parent == null ? null : parent.getId())
+                        .eq(Org::getName, name));
+                if (sameName != null && sameName > 0) {
+                    skipped++;
+                    continue;
+                }
+                Org org = create(parent == null ? null : parent.getId(), name, 0);
+                byPath.put(path, org);
+                created++;
+            } catch (Exception e) {
+                java.util.Map<String, Object> error = new java.util.LinkedHashMap<>();
+                error.put("row", excelRow);
+                error.put("name", row.getName());
+                error.put("message", e instanceof BizException ? e.getMessage() : "导入失败");
+                errors.add(error);
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("total", rows.size());
+        result.put("created", created);
+        result.put("skipped", skipped);
+        result.put("failed", errors.size());
+        result.put("errors", errors);
+        return result;
+    }
+
+    private String computePath(Org org, java.util.Map<Long, Org> byId, java.util.Map<Long, String> paths) {
+        String cached = paths.get(org.getId());
+        if (cached != null) {
+            return cached;
+        }
+        String path;
+        if (org.getParentId() == null) {
+            path = org.getName();
+        } else {
+            Org parent = byId.get(org.getParentId());
+            path = (parent == null ? "" : computePath(parent, byId, paths) + "/") + org.getName();
+        }
+        paths.put(org.getId(), path);
+        return path;
+    }
+
     private Org require(Long id) {
         Org org = orgMapper.selectById(id);
         if (org == null) {

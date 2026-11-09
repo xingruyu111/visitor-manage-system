@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.RoleEnum;
 import com.alibaba.excel.EasyExcel;
 import com.visitor.domain.dto.StaffImportRow;
+import com.visitor.domain.dto.OrgImportRow;
 import com.visitor.domain.entity.Department;
 import com.visitor.domain.entity.IntegrationConfig;
 import com.visitor.domain.entity.SchoolClass;
@@ -450,6 +451,46 @@ class OrgModuleIntegrationTest {
                 HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
         Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
         assertThat(((Number) data.get("failed")).intValue()).isEqualTo(2);
+    }
+    @Test
+    void orgExcelImportCreatesHierarchyAndSkipsDuplicates() throws Exception {
+        OrgImportRow college = new OrgImportRow();
+        college.setName("导入学院");
+        OrgImportRow grade = new OrgImportRow();
+        grade.setName("24级");
+        grade.setParentPath("导入学院");
+        OrgImportRow clazz = new OrgImportRow();
+        clazz.setName("24软件1");
+        clazz.setParentPath("导入学院/24级");
+        OrgImportRow bad = new OrgImportRow();
+        bad.setName("错误班级");
+        bad.setParentPath("不存在学院");
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EasyExcel.write(out, OrgImportRow.class).sheet("组织").doWrite(List.of(college, grade, clazz, bad));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ByteArrayResource(out.toByteArray()) {
+            @Override
+            public String getFilename() {
+                return "org.xlsx";
+            }
+        });
+        ResponseEntity<Map> response = rest.exchange("http://localhost:" + port + "/api/web/admin/orgs/import",
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(((Number) data.get("created")).intValue()).isEqualTo(3);
+        assertThat(((Number) data.get("failed")).intValue()).isEqualTo(1);
+        assertThat(orgMapper.selectCount(null)).isEqualTo(3L);
+
+        ResponseEntity<Map> again = rest.exchange("http://localhost:" + port + "/api/web/admin/orgs/import",
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+        Map<String, Object> second = (Map<String, Object>) again.getBody().get("data");
+        assertThat(((Number) second.get("created")).intValue()).isZero();
+        assertThat(((Number) second.get("skipped")).intValue()).isEqualTo(3);
     }
     private String tokenFor(String phone, RoleEnum role, Long schoolId) {
         User user = new User();

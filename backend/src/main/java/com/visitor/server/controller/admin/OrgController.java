@@ -2,6 +2,9 @@ package com.visitor.server.controller.admin;
 
 import com.visitor.common.core.Result;
 import com.visitor.domain.entity.Org;
+import com.visitor.domain.dto.OrgImportRow;
+import com.alibaba.excel.EasyExcel;
+import com.visitor.common.exception.BizException;
 import com.visitor.server.service.OrgService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -56,5 +60,20 @@ public class OrgController {
     public Result<Void> delete(@PathVariable Long id) {
         orgService.delete(id);
         return Result.success();
+    }
+
+    @Operation(summary = "Excel 批量导入组织")
+    @PostMapping("/import")
+    public Result<Map<String, Object>> importOrgs(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BizException(400, "请选择 Excel 文件");
+        }
+        List<OrgImportRow> rows;
+        try {
+            rows = EasyExcel.read(file.getInputStream()).head(OrgImportRow.class).sheet().doReadSync();
+        } catch (Exception e) {
+            throw new BizException(400, "Excel 解析失败，请使用模板格式");
+        }
+        return Result.success(orgService.importRows(rows));
     }
 }

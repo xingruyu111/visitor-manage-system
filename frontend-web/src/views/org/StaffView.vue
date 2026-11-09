@@ -6,6 +6,7 @@
           <span>组织架构</span>
           <div>
             <el-button link type="primary" @click="openDeptCreate">新增</el-button>
+            <el-button link type="primary" @click="openOrgImport">导入</el-button>
             <el-button link type="primary" :disabled="!currentDept" @click="openDeptEdit">编辑</el-button>
             <el-button link type="danger" :disabled="!currentDept" @click="removeDept">删除</el-button>
           </div>
@@ -131,6 +132,29 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="orgImportVisible" title="导入组织架构" width="560px">
+      <el-alert
+        type="info"
+        :closable="false"
+        title="模板列：组织名称、上级组织（路径，如 人工智能学院/24级；留空为根节点）。重复节点会自动跳过。"
+      />
+      <div class="import-row">
+        <input ref="orgFileInput" class="hidden-file" type="file" accept=".xlsx,.xls" @change="onOrgFileChange" />
+        <el-button @click="orgFileInput?.click()">选择文件</el-button>
+        <span v-if="orgImportFile" class="file-name">{{ orgImportFile.name }}</span>
+      </div>
+      <div v-if="orgImportResult" class="import-result">
+        共 {{ orgImportResult.total }} 条，新增 {{ orgImportResult.created }}，跳过 {{ orgImportResult.skipped }}，失败 {{ orgImportResult.failed }}
+        <ul v-if="orgImportResult.errors?.length">
+          <li v-for="item in orgImportResult.errors" :key="item.row">第 {{ item.row }} 行：{{ item.message }}</li>
+        </ul>
+      </div>
+      <template #footer>
+        <el-button @click="orgImportVisible = false">取消</el-button>
+        <el-button type="primary" :loading="orgImporting" :disabled="!orgImportFile" @click="doOrgImport">开始导入</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="deptVisible" :title="deptForm.id ? '编辑部门' : '新增部门'" width="420px">
       <el-form label-width="90px">
         <el-form-item label="名称"><el-input v-model="deptForm.name" /></el-form-item>
@@ -203,6 +227,17 @@ const fileInput = ref<HTMLInputElement>()
 const importResult = ref<{
   total: number
   success: number
+  failed: number
+  errors?: Array<{ row: number; message: string }>
+}>()
+const orgImportVisible = ref(false)
+const orgImporting = ref(false)
+const orgImportFile = ref<File>()
+const orgFileInput = ref<HTMLInputElement>()
+const orgImportResult = ref<{
+  total: number
+  created: number
+  skipped: number
   failed: number
   errors?: Array<{ row: number; message: string }>
 }>()
@@ -348,6 +383,35 @@ async function doImport() {
     ElMessage.error(e instanceof Error ? e.message : '导入失败')
   } finally {
     importing.value = false
+  }
+}
+
+function openOrgImport() {
+  orgImportFile.value = undefined
+  orgImportResult.value = undefined
+  orgImportVisible.value = true
+  setTimeout(() => orgFileInput.value?.click(), 100)
+}
+
+function onOrgFileChange(event: Event) {
+  const files = (event.target as HTMLInputElement).files
+  orgImportFile.value = files && files.length > 0 ? files[0] : undefined
+  orgImportResult.value = undefined
+}
+
+async function doOrgImport() {
+  if (!orgImportFile.value) return
+  orgImporting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', orgImportFile.value)
+    orgImportResult.value = await request.post('/web/admin/orgs/import', formData) as unknown as typeof orgImportResult.value
+    ElMessage.success('导入完成')
+    await loadTree()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '导入失败')
+  } finally {
+    orgImporting.value = false
   }
 }
 

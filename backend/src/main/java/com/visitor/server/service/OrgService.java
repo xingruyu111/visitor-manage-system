@@ -14,4 +14,6 @@ public interface OrgService {
     Org update(Long id, Long parentId, String name, Integer sortOrder);
 
     void delete(Long id);
+
+    java.util.Map<String, Object> importRows(java.util.List<com.visitor.domain.dto.OrgImportRow> rows);
 }
