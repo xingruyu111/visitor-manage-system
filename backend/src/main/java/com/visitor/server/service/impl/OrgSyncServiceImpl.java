@@ -268,11 +268,8 @@ public class OrgSyncServiceImpl implements OrgSyncService {
         if (user == null) {
             return;
         }
-        UserRole disable = new UserRole();
-        disable.setStatus(0);
-        disable.setUpdatedAt(LocalDateTime.now());
-        userRoleMapper.update(disable, new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, user.getId())
-                .eq(UserRole::getStatus, 1));
+        user.setStatus(0);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
     }
 }

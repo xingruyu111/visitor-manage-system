@@ -1,4 +1,4 @@
--- 容器测试用 MySQL 结构（001-030）
+-- 容器测试用 MySQL 结构（001-031）
 
 -- ============================================================
 -- M1 集成适配层：配置表与调用日志表（MySQL 8）
@@ -788,3 +788,7 @@ WHERE t.parent_id IS NOT NULL;
 
 -- 人员软删除标记：删除后不在列表展示，账号停用；重新添加同 person_no 可恢复
 ALTER TABLE vst_staff ADD COLUMN is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '0正常 1已删除';
+
+
+-- 角色只有分配/移除，不再使用停用状态；能否登录由账号状态控制
+UPDATE vst_user_role SET status = 1;

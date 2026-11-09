@@ -110,7 +110,7 @@ class StaffAccountRestoreTest {
         staffService.deactivate(1L, created.getId());
         assertThat(staffMapper.selectById(created.getId()).getStatus()).isZero();
         assertThat(userMapper.selectById(user.getId()).getStatus()).isZero();
-        assertThat(roles(user.getId())).allMatch(role -> role.getStatus() == 0);
+        assertThat(roles(user.getId())).allMatch(role -> role.getStatus() == 1);
 
         StaffVO restored = staffService.create(1L, dto("T101", "13900006666", PersonTypeEnum.TEACHER));
         assertThat(restored.getId()).isEqualTo(created.getId());

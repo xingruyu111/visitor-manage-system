@@ -167,8 +167,9 @@ class OrgModuleIntegrationTest {
 
         assertThat(result.get("deactivated")).isEqualTo(1);
         assertThat(staffMapper.selectById(legacy.getId()).getStatus()).isZero();
+        assertThat(userMapper.selectById(userId).getStatus()).isZero();
         assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isZero();
+                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isEqualTo(1);
     }
 
     @Test
@@ -181,8 +182,9 @@ class OrgModuleIntegrationTest {
         assertThat(delete("/staff/" + staffId, adminToken).get("code")).isEqualTo(200);
 
         assertThat(staffMapper.selectById(staffId).getStatus()).isZero();
+        assertThat(userMapper.selectById(userId).getStatus()).isZero();
         assertThat(userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isZero();
+                .eq(UserRole::getUserId, userId)).get(0).getStatus()).isEqualTo(1);
     }
 
     @Test

@@ -29,7 +29,7 @@
               class="role-tag"
               effect="plain"
             >
-              {{ item.name }}<span v-if="item.isDefault === 1">（默认）</span><span v-if="item.status === 0">（停用）</span>
+              {{ item.name }}<span v-if="item.isDefault === 1">（默认）</span>
             </el-tag>
           </template>
         </el-table-column>
@@ -74,7 +74,7 @@
         :disable-transitions="true"
         @close="removeRole(item)"
       >
-        {{ item.name }}<span v-if="item.isDefault === 1">（默认）</span><span v-if="item.status === 0">（停用）</span>
+        {{ item.name }}<span v-if="item.isDefault === 1">（默认）</span>
       </el-tag>
       <p v-if="current?.roleDetails?.some((item) => item.source === 'IDENTITY')" class="hint">
         灰色为人员类型生成的身份角色，不可删除；如需变更请修改人员类型或停用人员。

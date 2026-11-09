@@ -374,12 +374,6 @@ public class StaffServiceImpl implements StaffService {
         user.setStatus(0);
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
-        UserRole disable = new UserRole();
-        disable.setStatus(0);
-        disable.setUpdatedAt(LocalDateTime.now());
-        userRoleMapper.update(disable, new LambdaQueryWrapper<UserRole>()
-                .eq(UserRole::getUserId, user.getId())
-                .eq(UserRole::getStatus, 1));
     }
 
     private void apply(Staff staff, Long schoolId, StaffSaveDTO dto) {
