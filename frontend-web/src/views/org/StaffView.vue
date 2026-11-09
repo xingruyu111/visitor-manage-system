@@ -46,7 +46,6 @@
         <el-table-column label="操作" width="170" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 0" link type="success" @click="toggleStatus(row)">启用</el-button>
             <el-button link type="danger" @click="removeStaff(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -358,21 +357,6 @@ async function save() {
   }
 }
 
-async function toggleStatus(row: Staff) {
-  const next = row.status === 1 ? 0 : 1
-  try {
-    if (next === 0) {
-      await ElMessageBox.confirm(`确定停用 ${row.name}？其账号权限会同时回收。`, '提示', { type: 'warning' })
-    }
-    await http.put(`/web/admin/staff/${row.id}/status?status=${next}`)
-    ElMessage.success(next === 1 ? '已启用' : '已停用')
-    await load()
-  } catch (e) {
-    if (e !== 'cancel') {
-      ElMessage.error(e instanceof Error ? e.message : '操作失败')
-    }
-  }
-}
 
 async function removeStaff(row: Staff) {
   try {
