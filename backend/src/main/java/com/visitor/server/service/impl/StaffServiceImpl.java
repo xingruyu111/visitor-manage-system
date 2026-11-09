@@ -24,6 +24,7 @@ import com.visitor.server.service.StaffService;
 import com.visitor.workflow.ApprovalStatuses;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
