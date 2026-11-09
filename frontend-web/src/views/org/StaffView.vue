@@ -484,7 +484,9 @@ onMounted(async () => {
 .tree-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 10px;
+  justify-content: center;
+  width: 100%;
+  gap: 2px 12px;
 }
 
 .tree-actions :deep(.el-button) {
