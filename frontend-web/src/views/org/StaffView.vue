@@ -28,7 +28,7 @@
           <el-form-item label="关键字">
             <el-input v-model="keyword" placeholder="姓名/手机/工号" clearable style="width: 150px" @keyup.enter="load(1)" />
           </el-form-item>
-          <el-form-item label="部门/班级">
+          <el-form-item label="部门/班级" class="org-filter">
             <el-tree-select
               v-model="filterOrgId"
               :data="tree"
@@ -37,7 +37,7 @@
               check-strictly
               clearable
               placeholder="全部"
-              style="width: 150px"
+              style="width: 100%"
               @change="load(1)"
             />
           </el-form-item>
@@ -46,9 +46,9 @@
               <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
+          <el-button type="primary" @click="load(1)">查询</el-button>
         </el-form>
         <div class="toolbar-actions">
-          <el-button type="primary" @click="load(1)">查询</el-button>
           <el-button @click="openCreate">新增</el-button>
           <el-button @click="openImport">导入</el-button>
         </div>
@@ -89,7 +89,7 @@
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="部门/班级">
+        <el-form-item label="部门/班级" class="org-filter">
           <el-tree-select
             v-model="form.orgId"
             :data="tree"
@@ -450,6 +450,16 @@ onMounted(async () => {
 .filter-form :deep(.el-form-item) {
   margin: 0;
 }
+
+.org-filter {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.org-filter :deep(.el-form-item__content) {
+  flex: 1;
+}
+
 
 .toolbar-actions {
   display: flex;
