@@ -48,6 +48,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     public PageResult<Map<String, Object>> page(String keyword, Integer role, int page, int size) {
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 100);
+        if (role != null && RoleEnum.of(role) == RoleEnum.SYSTEM_ADMIN) {
+            return PageResult.of(0, safePage, safeSize, List.of());
+        }
         List<Long> userIds = null;
         if (role != null) {
             RoleEnum roleEnum = RoleEnum.of(role);
@@ -62,6 +65,9 @@ public class UserAdminServiceImpl implements UserAdminService {
                 return PageResult.of(0, safePage, safeSize, List.of());
             }
         }
+        List<Long> superAdminIds = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                        .eq(UserRole::getRole, RoleEnum.SYSTEM_ADMIN))
+                .stream().map(UserRole::getUserId).toList();
         Page<User> result = userMapper.selectPage(new Page<>(safePage, safeSize),
                 new LambdaQueryWrapper<User>()
                         .and(keyword != null && !keyword.isBlank(), w -> w
@@ -69,6 +75,7 @@ public class UserAdminServiceImpl implements UserAdminService {
                                 .or().like(User::getPhone, keyword)
                                 .or().like(User::getPersonNo, keyword))
                         .in(userIds != null, User::getId, userIds)
+                        .notIn(!superAdminIds.isEmpty(), User::getId, superAdminIds)
                         .orderByDesc(User::getId));
         List<Map<String, Object>> records = new ArrayList<>();
         for (User user : result.getRecords()) {
@@ -119,6 +126,7 @@ public class UserAdminServiceImpl implements UserAdminService {
             throw new BizException(400, "状态不合法");
         }
         if (status == 0) {
+            assertNotSuperAdmin(userId);
             assertNoPending(userId);
         }
         user.setStatus(status);
@@ -163,6 +171,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         RoleEnum role = RoleEnum.of(roleCode);
         if (role == null) {
             throw new BizException(400, "角色不合法");
+        }
+        if (role == RoleEnum.SYSTEM_ADMIN) {
+            throw new BizException(400, "系统管理员角色不允许移除");
         }
         UserRole existing = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, userId)
@@ -239,6 +250,15 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setPassword(passwordEncoder.encode(password));
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
+    }
+
+    private void assertNotSuperAdmin(Long userId) {
+        Long count = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRole, RoleEnum.SYSTEM_ADMIN));
+        if (count != null && count > 0) {
+            throw new BizException(400, "系统管理员账号不允许停用");
+        }
     }
 
     private void assertNoPending(Long userId) {

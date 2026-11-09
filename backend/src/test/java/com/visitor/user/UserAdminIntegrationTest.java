@@ -181,6 +181,19 @@ class UserAdminIntegrationTest {
         assertThat(userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, userId))).isEqualTo(1L);
     }
+    @Test
+    void superAdminIsHiddenAndCannotBeDisabled() {
+        User superAdmin = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, "13800004001"));
+        Map<String, Object> page = data(exchange("/web/websuper/users?keyword=13800004001",
+                HttpMethod.GET, null, systemToken));
+        assertThat(((Number) page.get("total")).intValue()).isZero();
+
+        Map<String, Object> blocked = exchange("/web/websuper/users/" + superAdmin.getId() + "/status?status=0",
+                HttpMethod.PUT, null, systemToken);
+        assertThat(blocked.get("code")).isEqualTo(400);
+        assertThat(userMapper.selectById(superAdmin.getId()).getStatus()).isEqualTo(1);
+    }
     private String token(Long userId) {
         return jwtUtil.generate(userId, "user-" + userId, List.of(RoleEnum.SYSTEM_ADMIN),
                 RoleEnum.SYSTEM_ADMIN, null);
