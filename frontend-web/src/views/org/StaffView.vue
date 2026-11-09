@@ -37,13 +37,13 @@
       </el-form>
 
       <el-table v-loading="loading" :data="rows" border>
-        <el-table-column prop="name" label="姓名" width="120" />
-        <el-table-column prop="personNo" label="工号/学号" width="140" />
-        <el-table-column prop="phone" label="手机号" width="140" />
-        <el-table-column prop="personTypeDesc" label="类型" width="120" />
-        <el-table-column prop="orgName" label="部门/班级" min-width="200" />
-        <el-table-column prop="position" label="职务" width="120" />
-        <el-table-column label="操作" width="170" fixed="right">
+        <el-table-column prop="name" label="姓名" width="100" />
+        <el-table-column prop="personNo" label="工号/学号" width="130" />
+        <el-table-column prop="phone" label="手机号" width="125" />
+        <el-table-column prop="personTypeDesc" label="类型" width="100" />
+        <el-table-column prop="orgName" label="部门/班级" min-width="160" />
+        <el-table-column prop="position" label="职务" width="100" />
+        <el-table-column label="操作" width="110" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="removeStaff(row)">删除</el-button>
