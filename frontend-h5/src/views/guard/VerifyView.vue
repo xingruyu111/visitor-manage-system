@@ -1,27 +1,31 @@
 <template>
   <div class="page">
-    <van-nav-bar title="门卫核验" left-arrow @click-left="$router.back()" />
+    <van-nav-bar :title="title" left-arrow @click-left="$router.back()">
+      <template v-if="mode" #right>
+        <span class="nav-link" @click="switchMode">{{ mode === 'verify' ? '车主查询' : '扫码核验' }}</span>
+      </template>
+    </van-nav-bar>
 
-    <van-cell-group inset title="扫码核验">
+    <van-cell-group v-if="showVerify" inset title="扫码核验">
       <van-field v-model="token" label="通行码" placeholder="粘贴或扫描通行码" />
       <div class="actions">
         <van-button block type="primary" :loading="verifying" @click="verify">核验</van-button>
       </div>
     </van-cell-group>
 
-    <van-cell-group v-if="result" inset title="核验结果">
+    <van-cell-group v-if="showVerify && result" inset title="核验结果">
       <van-cell title="方向" :value="result.direction === 'IN' ? '入校' : '离校'" />
       <van-cell title="访客" :value="result.visitorName" />
     </van-cell-group>
 
-    <van-cell-group inset title="车主查询">
+    <van-cell-group v-if="showQuery" inset title="车主查询">
       <van-field v-model="plate" label="车牌号" placeholder="输入车牌查询预约" />
       <div class="actions">
         <van-button block plain type="primary" :loading="querying" @click="query">查询</van-button>
       </div>
     </van-cell-group>
 
-    <van-cell-group v-if="records.length" inset title="查询结果">
+    <van-cell-group v-if="showQuery && records.length" inset title="查询结果">
       <van-cell
         v-for="item in records"
         :key="item.id"
@@ -33,7 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
 
@@ -50,12 +55,27 @@ interface RecordItem {
   leaveTime: string
 }
 
+const route = useRoute()
+const router = useRouter()
+const mode = computed(() => (typeof route.query.mode === 'string' ? route.query.mode : ''))
+const showVerify = computed(() => mode.value !== 'query')
+const showQuery = computed(() => mode.value !== 'verify')
+const title = computed(() => {
+  if (mode.value === 'query') return '车主查询'
+  if (mode.value === 'verify') return '扫码核验'
+  return '门卫核验'
+})
+
 const token = ref('')
 const plate = ref('')
 const result = ref<VerifyResult | null>(null)
 const records = ref<RecordItem[]>([])
 const verifying = ref(false)
 const querying = ref(false)
+
+function switchMode() {
+  router.replace({ path: '/g/verify', query: { mode: mode.value === 'verify' ? 'query' : 'verify' } })
+}
 
 async function verify() {
   if (!token.value) {
@@ -100,5 +120,9 @@ async function query() {
 }
 .actions {
   padding: 12px 16px;
+}
+.nav-link {
+  color: #1989fa;
+  font-size: 14px;
 }
 </style>

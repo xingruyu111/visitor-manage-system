@@ -145,7 +145,10 @@ const groups = computed<MenuGroup[]>(() => {
     GUARD: {
       key: 'GUARD',
       title: '门卫',
-      entries: [{ title: '扫码核验 / 车主查询', to: '/g/verify' }],
+      entries: [
+        { title: '扫码核验', to: '/g/verify?mode=verify' },
+        { title: '车主查询', to: '/g/verify?mode=query' },
+      ],
     },
     DEPT: {
       key: 'DEPT',
