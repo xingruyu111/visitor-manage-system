@@ -24,10 +24,10 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.getByText('预约申请').click()
   await expect(page).toHaveURL(/\/v\/apply/)
 
-  await page.getByPlaceholder('输入姓名或手机号搜索').fill('E2E')
+  await page.getByPlaceholder('输入完整姓名或手机号').fill('E2E老师')
   await page.getByRole('button', { name: '搜索' }).click()
   await expect(page.getByText('E2E老师').first()).toBeVisible()
-  await page.locator('.van-radio').first().click()
+  await page.getByText('E2E老师').first().click()
 
   const start = new Date()
   start.setDate(start.getDate() + 1 + Math.floor(Math.random() * 60))
@@ -35,8 +35,8 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   const end = new Date(start.getTime() + 2 * 3600 * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
   const format = (date: Date) =>
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00`
-  const timeInputs = page.locator('input[placeholder="yyyy-MM-dd HH:mm:ss"]')
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  const timeInputs = page.locator('input[type="datetime-local"]')
   await timeInputs.nth(0).fill(format(start))
   await timeInputs.nth(1).fill(format(end))
 

@@ -400,13 +400,16 @@ public class VisitorServiceImpl implements VisitorService {
 
     @Override
     public java.util.List<Staff> queryTargets(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return java.util.List.of();
+        }
+        String value = keyword.trim();
         return staffMapper.selectList(new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getStatus, 1)
-                .and(keyword != null && !keyword.isBlank(), w -> w
-                        .like(Staff::getName, keyword)
-                        .or().like(Staff::getPhone, keyword))
+                .eq(Staff::getIsDeleted, 0)
+                .and(w -> w.eq(Staff::getName, value).or().eq(Staff::getPhone, value))
                 .orderByAsc(Staff::getId)
-                .last("LIMIT 20"));
+                .last("LIMIT 10"));
     }
 
     @Override

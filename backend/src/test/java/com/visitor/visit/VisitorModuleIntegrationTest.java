@@ -673,7 +673,7 @@ class VisitorModuleIntegrationTest {
     }
     @Test
     void visitorCanSearchTargets() {
-        List<?> targets = (List<?>) exchange("/web/visitor/targets?keyword=张",
+        List<?> targets = (List<?>) exchange("/web/visitor/targets?keyword=张老师",
                 HttpMethod.GET, null, visitorToken).get("data");
 
         assertThat(targets).hasSize(1);

@@ -8,33 +8,56 @@
       :text="checkMessage"
     />
 
-    <van-cell-group inset title="选择被访人">
-      <van-field v-model="keyword" placeholder="输入姓名或手机号搜索" @keyup.enter="search">
-        <template #button>
-          <van-button size="small" type="primary" @click="search">搜索</van-button>
-        </template>
-      </van-field>
-      <van-radio-group v-model="targetId">
-        <van-cell v-for="item in targets" :key="item.id" :title="item.name" :label="item.phone">
-          <template #right-icon>
-            <van-radio :name="item.id" />
+    <van-cell-group inset class="target-group" title="选择被访人">
+      <div class="target-search">
+        <van-field
+          v-model="keyword"
+          placeholder="输入完整姓名或手机号"
+          @keyup.enter="search"
+        >
+          <template #button>
+            <van-button size="small" type="primary" @click="search">搜索</van-button>
           </template>
-        </van-cell>
-      </van-radio-group>
+        </van-field>
+        <div v-if="showTargets" class="target-dropdown">
+          <van-cell
+            v-for="item in targets"
+            :key="item.id"
+            :title="item.name"
+            :label="item.phone"
+            clickable
+            @click="selectTarget(item)"
+          />
+          <van-empty v-if="targets.length === 0" description="未找到匹配人员" image-size="60" />
+        </div>
+      </div>
+      <van-cell
+        v-if="selectedTarget"
+        title="已选被访人"
+        :label="`${selectedTarget.name} ${selectedTarget.phone || ''}`"
+      />
     </van-cell-group>
 
     <van-cell-group inset title="访客类型">
-      <van-radio-group v-model="visitorType" direction="horizontal" @change="loadFields">
-        <van-radio name="NORMAL">普通</van-radio>
-        <van-radio name="ALUMNI">校友</van-radio>
-        <van-radio name="PARENT">家长</van-radio>
-        <van-radio name="CONSTRUCTION">施工合作</van-radio>
-      </van-radio-group>
+      <van-field
+        v-if="isAlumni"
+        label="访客类型"
+        :model-value="visitorTypeLabel"
+        readonly
+      />
+      <van-field
+        v-else
+        label="访客类型"
+        :model-value="visitorTypeLabel"
+        readonly
+        is-link
+        @click="showTypePicker = true"
+      />
     </van-cell-group>
 
     <van-cell-group inset title="到访信息">
-      <van-field v-model="expectedTime" label="到访时间" placeholder="yyyy-MM-dd HH:mm:ss" />
-      <van-field v-model="leaveTime" label="离校时间" placeholder="yyyy-MM-dd HH:mm:ss" />
+      <van-field v-model="expectedTime" type="datetime-local" label="到访时间" />
+      <van-field v-model="leaveTime" type="datetime-local" label="离校时间" />
       <van-field v-model="purpose" label="事由" placeholder="请输入来访事由" />
       <van-field label="通行方式">
         <template #input>
@@ -46,7 +69,12 @@
         </template>
       </van-field>
       <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" placeholder="机动车必填" />
-      <van-field v-model="headTeacherNo" label="班主任工号" placeholder="附属学生预约必填" />
+      <van-field
+        v-if="isAffiliatedStudent"
+        v-model="headTeacherNo"
+        label="班主任工号"
+        placeholder="附属学生预约必填"
+      />
     </van-cell-group>
 
     <van-cell-group v-if="fields.length" inset title="补充信息">
@@ -62,12 +90,20 @@
     <div class="actions">
       <van-button round block type="primary" :loading="submitting" @click="submit">提交申请</van-button>
     </div>
+
+    <van-popup v-model:show="showTypePicker" position="bottom">
+      <van-picker
+        :columns="visitorTypeOptions"
+        @confirm="onTypeConfirm"
+        @cancel="showTypePicker = false"
+      />
+    </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
 
@@ -81,14 +117,32 @@ interface Staff {
   id: number
   name: string
   phone?: string
+  personType?: number
+}
+
+interface Profile {
+  currentRole: number
+  personType?: number
+  roles?: Array<{ code: number }>
+}
+
+interface PickerConfirm {
+  selectedOptions: Array<{ text: string; value: string }>
+}
+
+const VISITOR_TYPES: Record<string, string> = {
+  NORMAL: '普通',
+  PARENT: '家长',
+  CONSTRUCTION: '施工合作',
+  ALUMNI: '校友',
 }
 
 const router = useRouter()
-const route = useRoute()
-const VISITOR_TYPES = ['NORMAL', 'ALUMNI', 'PARENT', 'CONSTRUCTION']
 const keyword = ref('')
 const targets = ref<Staff[]>([])
 const targetId = ref<number | null>(null)
+const selectedTarget = ref<Staff>()
+const showTargets = ref(false)
 const expectedTime = ref('')
 const leaveTime = ref('')
 const purpose = ref('')
@@ -101,27 +155,90 @@ const visitorType = ref('NORMAL')
 const fields = ref<FormField[]>([])
 const extra = reactive<Record<string, string>>({})
 const submitting = ref(false)
+const profile = ref<Profile>()
+const showTypePicker = ref(false)
 
-function defaultTime(offsetHours: number) {
+const isAlumni = computed(() => {
+  const current = profile.value
+  if (!current) return false
+  return current.personType === 7 || current.roles?.some((role) => role.code === 9) === true
+})
+
+const isAffiliatedStudent = computed(() => selectedTarget.value?.personType === 6)
+
+const visitorTypeOptions = computed(() => {
+  const codes = isAlumni.value ? ['ALUMNI'] : ['NORMAL', 'PARENT', 'CONSTRUCTION']
+  return codes.map((code) => ({ text: VISITOR_TYPES[code], value: code }))
+})
+
+const visitorTypeLabel = computed(() => VISITOR_TYPES[visitorType.value] ?? '普通')
+
+function localTime(offsetHours: number) {
   const date = new Date(Date.now() + offsetHours * 3600 * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:00`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function backendTime(value: string) {
+  if (!value) return ''
+  const normalized = value.replace('T', ' ')
+  return normalized.length === 16 ? `${normalized}:00` : normalized
+}
+
+async function loadProfile() {
+  try {
+    profile.value = await http.get<Profile>('/auth/me')
+    if (isAlumni.value) {
+      visitorType.value = 'ALUMNI'
+    } else if (!['NORMAL', 'PARENT', 'CONSTRUCTION'].includes(visitorType.value)) {
+      visitorType.value = 'NORMAL'
+    }
+    await loadFields()
+  } catch {
+    // 获取身份失败时按普通访客处理
+  }
 }
 
 async function search() {
+  if (!keyword.value.trim()) {
+    showToast('请输入完整姓名或手机号')
+    return
+  }
   try {
-    targets.value = await http.get<Staff[]>('/web/visitor/targets', { keyword: keyword.value || undefined })
+    targets.value = await http.get<Staff[]>('/web/visitor/targets', {
+      keyword: keyword.value.trim(),
+    })
+    targetId.value = null
+    selectedTarget.value = undefined
+    showTargets.value = true
     if (targets.value.length === 0) {
-      showToast('未找到被访人')
+      showToast('未找到匹配人员')
     }
   } catch (e) {
     showToast(e instanceof Error ? e.message : '搜索失败')
   }
 }
 
+function selectTarget(target: Staff) {
+  targetId.value = target.id
+  selectedTarget.value = target
+  showTargets.value = false
+  if (target.personType !== 6) {
+    headTeacherNo.value = ''
+  }
+}
+
+function onTypeConfirm({ selectedOptions }: PickerConfirm) {
+  visitorType.value = selectedOptions[0]?.value ?? 'NORMAL'
+  showTypePicker.value = false
+  loadFields()
+}
+
 async function loadFields() {
   try {
-    fields.value = await http.get<FormField[]>('/web/visitor/form-fields', { visitorType: visitorType.value })
+    fields.value = await http.get<FormField[]>('/web/visitor/form-fields', {
+      visitorType: visitorType.value,
+    })
   } catch {
     fields.value = []
   }
@@ -146,30 +263,35 @@ async function submit() {
     return
   }
   if (!targetId.value) {
-    showToast('请选择被访人')
+    showToast('请先搜索并选择被访人')
+    return
+  }
+  if (!expectedTime.value || !leaveTime.value) {
+    showToast('请选择到访时间和离校时间')
     return
   }
   if (passMode.value === 'CAR' && !plate.value) {
     showToast('机动车通行请填写车牌号')
     return
   }
+  if (isAffiliatedStudent.value && !headTeacherNo.value) {
+    showToast('附属学生预约请填写班主任工号')
+    return
+  }
   submitting.value = true
   try {
     await http.post('/web/visitor/records', {
       targetId: targetId.value,
-      expectedTime: expectedTime.value,
-      leaveTime: leaveTime.value,
-      visitPurpose: purpose.value,
-      plateNumber: plate.value || undefined,
-      passMode: passMode.value,
-      headTeacherNo: headTeacherNo.value || undefined,
       visitorType: visitorType.value,
-      extra: Object.fromEntries(
-        Object.entries(extra).filter(([, value]) => value !== undefined && value !== ''),
-      ),
+      expectedTime: backendTime(expectedTime.value),
+      leaveTime: backendTime(leaveTime.value),
+      visitPurpose: purpose.value,
+      passMode: passMode.value,
+      plateNumber: plate.value || undefined,
+      headTeacherNo: isAffiliatedStudent.value ? headTeacherNo.value : undefined,
+      extra,
     })
-    showToast('提交成功，等待审批')
-    router.replace('/v/records')
+    router.push('/v/records')
   } catch (e) {
     showToast(e instanceof Error ? e.message : '提交失败')
   } finally {
@@ -178,14 +300,9 @@ async function submit() {
 }
 
 onMounted(() => {
-  const type = typeof route.query.type === 'string' ? route.query.type : ''
-  if (VISITOR_TYPES.includes(type)) {
-    visitorType.value = type
-  }
-  expectedTime.value = defaultTime(1)
-  leaveTime.value = defaultTime(3)
-  search()
-  loadFields()
+  expectedTime.value = localTime(1)
+  leaveTime.value = localTime(3)
+  loadProfile()
   loadPreCheck()
 })
 </script>
@@ -195,6 +312,26 @@ onMounted(() => {
   min-height: 100vh;
   background: #f7f8fa;
   padding-bottom: 24px;
+}
+.target-group {
+  overflow: visible;
+}
+
+.target-search {
+  position: relative;
+  overflow: visible;
+}
+.target-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 32, 64, 0.16);
+  max-height: 300px;
+  overflow-y: auto;
 }
 .actions {
   margin: 24px 16px;
