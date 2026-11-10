@@ -34,7 +34,7 @@
       </template>
 
       <div class="actions">
-        <van-button block plain type="primary" @click="$router.push('/login')">切换账号登录</van-button>
+        <van-button block plain type="primary" @click="logout">退出登录</van-button>
       </div>
     </div>
   </div>
@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
+import { useRouter } from 'vue-router'
 import { http } from '@/api/request'
 
 interface RoleItem {
@@ -63,6 +64,7 @@ interface Profile {
 
 type MenuKind = 'VISITOR' | 'APPROVER' | 'NONE'
 
+const router = useRouter()
 const profile = ref<Profile>()
 const loaded = ref(false)
 
@@ -96,6 +98,16 @@ const heroDesc = computed(() => {
   if (menu.value === 'NONE') return '当前身份没有配置 H5 入口，请使用 Web 管理端。'
   return '选择被访人、填写到访时间，提交后由被访人审批，通过后生成通行码。'
 })
+
+async function logout() {
+  try {
+    await http.post('/auth/logout')
+  } catch {
+    // 令牌已失效也继续清理本地状态
+  }
+  localStorage.removeItem('visitor_token')
+  await router.replace('/login')
+}
 
 async function loadProfile() {
   try {
