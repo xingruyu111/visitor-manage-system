@@ -29,13 +29,6 @@
           <van-cell title="历史审批" is-link to="/a/tasks?history=1" />
         </van-cell-group>
 
-        <van-cell-group v-else-if="menu === 'GUARD'" inset title="门卫">
-          <van-cell title="扫码核验 / 车主查询" is-link to="/g/verify" />
-        </van-cell-group>
-
-        <van-cell-group v-else-if="menu === 'DEPT'" inset title="部门经办人">
-          <van-cell title="批量预约" is-link to="/d/batch" />
-        </van-cell-group>
 
         <van-empty v-else description="当前身份暂无 H5 功能，请使用 Web 管理端" />
       </template>
@@ -68,7 +61,7 @@ interface Profile {
   roles: RoleItem[]
 }
 
-type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'DEPT' | 'NONE'
+type MenuKind = 'VISITOR' | 'APPROVER' | 'NONE'
 
 const profile = ref<Profile>()
 const loaded = ref(false)
@@ -86,26 +79,20 @@ const menu = computed<MenuKind>(() => {
   const current = profile.value
   if (!current) return 'NONE'
   if (current.personType === 6) return 'NONE'
-  if (current.currentRole === 3) return 'GUARD'
-  if (current.currentRole === 11) return 'DEPT'
-  if ([5, 6, 7, 8, 12].includes(current.currentRole)) return 'APPROVER'
+  if ([5, 6, 7, 8].includes(current.currentRole)) return 'APPROVER'
   if (current.currentRole === 9 || current.personType === 7) return 'VISITOR'
-  if ([1, 2].includes(current.currentRole)) return 'NONE'
-  return 'VISITOR'
+  if (current.currentRole === 4) return 'VISITOR'
+  return 'NONE'
 })
 
 const heroTitle = computed(() => {
   if (menu.value === 'APPROVER') return '待我审批'
-  if (menu.value === 'GUARD') return '门卫核验'
-  if (menu.value === 'DEPT') return '部门批量预约'
   if (menu.value === 'NONE') return '暂无 H5 功能'
   return isAlumni.value ? '校友预约' : '访客预约'
 })
 
 const heroDesc = computed(() => {
   if (menu.value === 'APPROVER') return '处理拜访预约的待办，填写审批意见并查看历史记录。'
-  if (menu.value === 'GUARD') return '核验通行码，或按车牌查询有效预约。'
-  if (menu.value === 'DEPT') return '批量录入访客信息并提交审批。'
   if (menu.value === 'NONE') return '当前身份没有配置 H5 入口，请使用 Web 管理端。'
   return '选择被访人、填写到访时间，提交后由被访人审批，通过后生成通行码。'
 })
