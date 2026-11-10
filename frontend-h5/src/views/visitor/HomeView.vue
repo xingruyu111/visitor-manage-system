@@ -15,22 +15,17 @@
       <van-loading v-if="!loaded" class="loading" />
 
       <template v-else>
-        <van-cell-group v-if="menu === 'VISITOR'" inset title="访客">
+        <van-cell-group v-for="group in groups" :key="group.key" inset :title="group.title" class="group">
           <van-cell
-            :title="isAlumni ? '校友预约' : '预约申请'"
+            v-for="entry in group.entries"
+            :key="entry.to"
+            :title="entry.title"
             is-link
-            :to="isAlumni ? '/v/apply?type=ALUMNI' : '/v/apply?type=NORMAL'"
+            :to="entry.to"
           />
-          <van-cell title="我的预约" is-link to="/v/records" />
         </van-cell-group>
 
-        <van-cell-group v-else-if="menu === 'APPROVER'" inset title="审批">
-          <van-cell title="我的待办" is-link to="/a/tasks" />
-          <van-cell title="历史审批" is-link to="/a/history" />
-        </van-cell-group>
-
-
-        <van-empty v-else description="当前身份暂无 H5 功能，请使用 Web 管理端" />
+        <van-empty v-if="groups.length === 0" description="当前身份暂无 H5 功能，请使用 Web 管理端" />
       </template>
 
       <div class="actions">
@@ -62,13 +57,41 @@ interface Profile {
   roles: RoleItem[]
 }
 
-type MenuKind = 'VISITOR' | 'APPROVER' | 'NONE'
+type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'DEPT' | 'NONE'
+
+interface Entry {
+  title: string
+  to: string
+}
+
+interface MenuGroup {
+  key: Exclude<MenuKind, 'NONE'>
+  title: string
+  entries: Entry[]
+}
+
+const ROLE_KIND: Record<number, MenuKind> = {
+  3: 'GUARD',
+  4: 'VISITOR',
+  5: 'APPROVER',
+  6: 'APPROVER',
+  7: 'APPROVER',
+  8: 'APPROVER',
+  9: 'VISITOR',
+  11: 'DEPT',
+  12: 'APPROVER',
+}
 
 const router = useRouter()
 const profile = ref<Profile>()
 const loaded = ref(false)
 
-const isAlumni = computed(() => profile.value?.personType === 7 || profile.value?.currentRole === 9)
+const isAlumni = computed(() => {
+  const current = profile.value
+  if (!current) return false
+  return current.personType === 7 || current.roles?.some((role) => role.code === 9) === true
+})
+
 const roleLabel = computed(() => {
   if (!profile.value) return '加载中'
   if (profile.value.personTypeDesc) return profile.value.personTypeDesc
@@ -77,25 +100,83 @@ const roleLabel = computed(() => {
     || '访客身份'
 })
 
-const menu = computed<MenuKind>(() => {
+const menuKinds = computed<Exclude<MenuKind, 'NONE'>[]>(() => {
   const current = profile.value
-  if (!current) return 'NONE'
-  if (current.personType === 6) return 'NONE'
-  if ([5, 6, 7, 8, 12].includes(current.currentRole)) return 'APPROVER'
-  if (current.currentRole === 9 || current.personType === 7) return 'VISITOR'
-  if (current.currentRole === 4) return 'VISITOR'
-  return 'NONE'
+  if (!current) return []
+
+  const kinds: Exclude<MenuKind, 'NONE'>[] = []
+  const add = (kind: MenuKind) => {
+    if (kind !== 'NONE' && !kinds.includes(kind)) {
+      kinds.push(kind)
+    }
+  }
+
+  // 主角色：附属学生不生成基础入口，只保留附加角色入口
+  if (current.personType !== 6 && ![1, 2].includes(current.currentRole)) {
+    add(ROLE_KIND[current.currentRole] ?? 'NONE')
+  }
+
+  // 附加角色：跳过主角色本身，避免重复；附属学生的主角色 STUDENT 也不会生成审批入口
+  for (const role of current.roles ?? []) {
+    if (role.code === current.currentRole) continue
+    add(ROLE_KIND[role.code] ?? 'NONE')
+  }
+  return kinds
+})
+
+const groups = computed<MenuGroup[]>(() => {
+  const visitorEntries: Entry[] = [
+    {
+      title: isAlumni.value ? '校友预约' : '预约申请',
+      to: isAlumni.value ? '/v/apply?type=ALUMNI' : '/v/apply?type=NORMAL',
+    },
+    { title: '我的预约', to: '/v/records' },
+  ]
+
+  const definitions: Record<Exclude<MenuKind, 'NONE'>, MenuGroup> = {
+    APPROVER: {
+      key: 'APPROVER',
+      title: '审批',
+      entries: [
+        { title: '我的待办', to: '/a/tasks' },
+        { title: '历史审批', to: '/a/history' },
+      ],
+    },
+    GUARD: {
+      key: 'GUARD',
+      title: '门卫',
+      entries: [{ title: '扫码核验 / 车主查询', to: '/g/verify' }],
+    },
+    DEPT: {
+      key: 'DEPT',
+      title: '部门经办人',
+      entries: [{ title: '批量预约', to: '/d/batch' }],
+    },
+    VISITOR: {
+      key: 'VISITOR',
+      title: '访客',
+      entries: visitorEntries,
+    },
+  }
+
+  return menuKinds.value.map((kind) => definitions[kind])
 })
 
 const heroTitle = computed(() => {
-  if (menu.value === 'APPROVER') return '待我审批'
-  if (menu.value === 'NONE') return '暂无 H5 功能'
+  const first = groups.value[0]?.key
+  if (!first) return '暂无 H5 功能'
+  if (first === 'APPROVER') return '待我审批'
+  if (first === 'GUARD') return '门卫核验'
+  if (first === 'DEPT') return '部门批量预约'
   return isAlumni.value ? '校友预约' : '访客预约'
 })
 
 const heroDesc = computed(() => {
-  if (menu.value === 'APPROVER') return '处理拜访预约的待办，填写审批意见并查看历史记录。'
-  if (menu.value === 'NONE') return '当前身份没有配置 H5 入口，请使用 Web 管理端。'
+  const first = groups.value[0]?.key
+  if (!first) return '当前身份没有配置 H5 入口，请使用 Web 管理端。'
+  if (first === 'APPROVER') return '处理拜访预约的待办，填写审批意见并查看历史记录。'
+  if (first === 'GUARD') return '核验通行码，或按车牌查询有效预约。'
+  if (first === 'DEPT') return '批量录入访客信息并提交审批。'
   return '选择被访人、填写到访时间，提交后由被访人审批，通过后生成通行码。'
 })
 
@@ -162,6 +243,9 @@ onMounted(loadProfile)
   display: flex;
   justify-content: center;
   padding: 40px 0;
+}
+.group {
+  margin-top: 12px;
 }
 .actions {
   margin: 24px 16px;
