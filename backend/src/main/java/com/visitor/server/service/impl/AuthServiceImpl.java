@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.User;
+import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.UserRole;
+import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.domain.vo.LoginVO;
 import com.visitor.domain.vo.RoleVO;
 import com.visitor.domain.vo.UserInfoVO;
@@ -14,6 +16,7 @@ import com.visitor.security.JwtUtil;
 import com.visitor.security.LoginAttemptService;
 import com.visitor.security.TokenBlacklist;
 import com.visitor.security.UserContext;
+import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.service.AuthService;
@@ -41,11 +44,12 @@ public class AuthServiceImpl implements AuthService {
     private final TokenBlacklist tokenBlacklist;
     private final IntegrationFactory integrationFactory;
     private final LoginAttemptService loginAttemptService;
+    private final StaffMapper staffMapper;
 
     public AuthServiceImpl(UserMapper userMapper, UserRoleMapper userRoleMapper,
                            PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
                            TokenBlacklist tokenBlacklist, IntegrationFactory integrationFactory,
-                           LoginAttemptService loginAttemptService) {
+                           LoginAttemptService loginAttemptService, StaffMapper staffMapper) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.passwordEncoder = passwordEncoder;
@@ -53,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
         this.tokenBlacklist = tokenBlacklist;
         this.integrationFactory = integrationFactory;
         this.loginAttemptService = loginAttemptService;
+        this.staffMapper = staffMapper;
     }
 
     @Override
@@ -83,6 +88,33 @@ public class AuthServiceImpl implements AuthService {
 
         loginAttemptService.clear(phone);
         return buildLoginVO(user, roles, current, token);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public LoginVO loginOrRegisterVisitor(String phone, String password, String ip) {
+        User existing = findByPhone(phone);
+        if (existing != null) {
+            return login(phone, password, ip);
+        }
+        User visitor = new User();
+        visitor.setPhone(phone);
+        visitor.setName("访客" + phone.substring(Math.max(0, phone.length() - 4)));
+        visitor.setPassword(passwordEncoder.encode(password));
+        visitor.setStatus(1);
+        visitor.setCreatedAt(LocalDateTime.now());
+        visitor.setUpdatedAt(LocalDateTime.now());
+        userMapper.insert(visitor);
+
+        List<UserRole> roles = List.of(createRole(visitor.getId(), RoleEnum.VISITOR));
+        UserRole current = pickDefault(roles);
+        String token = jwtUtil.generate(visitor.getId(), visitor.getName(),
+                roles.stream().map(UserRole::getRole).toList(), current.getRole(), current.getSchoolId());
+        visitor.setLastLoginTime(LocalDateTime.now());
+        visitor.setLastLoginIp(ip);
+        userMapper.updateById(visitor);
+        log.info("H5 自动创建访客账号: phone={}", phone);
+        return buildLoginVO(visitor, roles, current, token);
     }
 
     @Override
@@ -134,7 +166,29 @@ public class AuthServiceImpl implements AuthService {
         RoleEnum contextRole = UserContext.getRole();
         vo.setCurrentRole(contextRole != null ? contextRole.getCode() : current.getRole().getCode());
         vo.setSchoolId(UserContext.getSchoolId() != null ? UserContext.getSchoolId() : current.getSchoolId());
+        Staff staff = findStaff(user);
+        if (staff != null && staff.getPersonType() != null) {
+            PersonTypeEnum personType = staff.getPersonType();
+            vo.setPersonType(personType.getCode());
+            vo.setPersonTypeDesc(personType.getDescription());
+        }
         return vo;
+    }
+
+    private Staff findStaff(User user) {
+        if (user.getPersonNo() != null && !user.getPersonNo().isBlank()) {
+            Staff byNo = staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                    .eq(Staff::getPersonNo, user.getPersonNo())
+                    .eq(Staff::getIsDeleted, 0)
+                    .last("LIMIT 1"));
+            if (byNo != null) {
+                return byNo;
+            }
+        }
+        return staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                .eq(Staff::getPhone, user.getPhone())
+                .eq(Staff::getIsDeleted, 0)
+                .last("LIMIT 1"));
     }
 
     @Override

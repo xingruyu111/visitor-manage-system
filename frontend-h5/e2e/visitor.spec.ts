@@ -16,7 +16,7 @@ test.beforeAll(async ({ request }) => {
 test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.goto('/login')
 
-  await page.getByPlaceholder('请输入手机号').fill('13911110001')
+  await page.getByPlaceholder('请输入手机号').fill('13900008888')
   await page.getByPlaceholder('请输入密码').fill('123456')
   await page.getByRole('button', { name: '账号登录' }).click()
 

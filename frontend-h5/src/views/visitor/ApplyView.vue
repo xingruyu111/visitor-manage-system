@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
 
@@ -84,6 +84,8 @@ interface Staff {
 }
 
 const router = useRouter()
+const route = useRoute()
+const VISITOR_TYPES = ['NORMAL', 'ALUMNI', 'PARENT', 'CONSTRUCTION']
 const keyword = ref('')
 const targets = ref<Staff[]>([])
 const targetId = ref<number | null>(null)
@@ -176,6 +178,10 @@ async function submit() {
 }
 
 onMounted(() => {
+  const type = typeof route.query.type === 'string' ? route.query.type : ''
+  if (VISITOR_TYPES.includes(type)) {
+    visitorType.value = type
+  }
   expectedTime.value = defaultTime(1)
   leaveTime.value = defaultTime(3)
   search()

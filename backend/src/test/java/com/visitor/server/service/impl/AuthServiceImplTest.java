@@ -10,6 +10,7 @@ import com.visitor.integration.sso.IdentityProvider;
 import com.visitor.security.JwtUtil;
 import com.visitor.security.LoginAttemptService;
 import com.visitor.security.TokenBlacklist;
+import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +42,10 @@ class AuthServiceImplTest {
     private final TokenBlacklist tokenBlacklist = mock(TokenBlacklist.class);
     private final IntegrationFactory integrationFactory = mock(IntegrationFactory.class);
     private final LoginAttemptService loginAttemptService = mock(LoginAttemptService.class);
+    private final StaffMapper staffMapper = mock(StaffMapper.class);
 
     private final AuthServiceImpl service = new AuthServiceImpl(userMapper, userRoleMapper,
-            passwordEncoder, jwtUtil, tokenBlacklist, integrationFactory, loginAttemptService);
+            passwordEncoder, jwtUtil, tokenBlacklist, integrationFactory, loginAttemptService, staffMapper);
 
     @BeforeEach
     void setUp() {

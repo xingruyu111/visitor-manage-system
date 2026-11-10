@@ -62,6 +62,22 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "H5 登录：未注册手机号自动创建访客账号")
+    @PostMapping("/visitor-login")
+    public Result<LoginVO> visitorLogin(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
+        ipBlacklistService.assertAllowed(clientIp(request));
+        captchaService.validate(dto.getCaptchaId(), dto.getCaptchaCode());
+        ipBanService.assertAllowed();
+        try {
+            LoginVO loginVO = authService.loginOrRegisterVisitor(dto.getPhone(), dto.getPassword(), clientIp(request));
+            ipBanService.clear();
+            return Result.success(loginVO);
+        } catch (BizException e) {
+            ipBanService.recordFailure();
+            throw e;
+        }
+    }
+
     @Operation(summary = "退出登录（令牌加入黑名单）")
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {

@@ -39,7 +39,7 @@
       </div>
     </van-form>
 
-    <p class="tip">首次使用微信登录会自动创建访客账号并绑定手机号。</p>
+    <p class="tip">手机号未注册时将自动创建普通访客账号；微信登录会自动绑定手机号。</p>
     <p class="foot">智慧校园访客管理 · H5</p>
   </div>
 </template>
@@ -100,7 +100,7 @@ async function accountLogin() {
   }
   loading.value = true
   try {
-    const data = await http.post<LoginResult>('/auth/login', {
+    const data = await http.post<LoginResult>('/auth/visitor-login', {
       phone: phone.value,
       password: password.value,
       captchaId: captchaEnabled.value ? captchaId.value : undefined,

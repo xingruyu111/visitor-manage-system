@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
 
@@ -56,6 +57,7 @@ interface HistoryItem {
   actedAt: string
 }
 
+const route = useRoute()
 const tasks = ref<Task[]>([])
 const history = ref<HistoryItem[]>([])
 const loaded = ref(false)
@@ -93,7 +95,12 @@ async function handle(task: Task, approve: boolean) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  if (route.query.history === '1') {
+    openHistory()
+  }
+})
 </script>
 
 <style scoped>

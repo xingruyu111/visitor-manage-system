@@ -1,13 +1,17 @@
 package com.visitor.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.domain.entity.IntegrationConfig;
+import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
 import com.visitor.server.mapper.IntegrationConfigMapper;
+import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +56,12 @@ class AuthControllerIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private StaffMapper staffMapper;
+
+    @Autowired
+    private AuthService authService;
 
     private Long superUserId;
     private Long adminUserId;
@@ -270,6 +280,43 @@ class AuthControllerIntegrationTest {
     }
 
     @SuppressWarnings("unchecked")
+    @Test
+    void visitorLoginCreatesVisitorAccountForUnknownPhone() {
+        Map<String, Object> body = Map.of("phone", "13700009999", "password", "pass1234");
+        ResponseEntity<Map> response = rest.postForEntity(url("/auth/visitor-login"), body, Map.class);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("currentRole")).isEqualTo(4);
+        assertThat(data.get("roles")).asList().hasSize(1);
+
+        User created = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, "13700009999"));
+        assertThat(created).isNotNull();
+        UserRole role = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, created.getId()));
+        assertThat(role.getRole()).isEqualTo(RoleEnum.VISITOR);
+    }
+
+    @Test
+    void meReturnsPersonTypeForLinkedStaff() {
+        Long userId = createUser("13700000014", "附属学生", 1, RoleEnum.STUDENT, null);
+        Staff staff = new Staff();
+        staff.setSchoolId(1L);
+        staff.setSyncSource("LOCAL");
+        staff.setName("附属学生");
+        staff.setPhone("13700000014");
+        staff.setPersonNo("AFF-001");
+        staff.setPersonType(PersonTypeEnum.AFFILIATED_STUDENT);
+        staff.setStatus(1);
+        staff.setIsDeleted(0);
+        staff.setCreatedAt(LocalDateTime.now());
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(staff);
+        userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId).set(User::getPersonNo, "AFF-001"));
+
+        assertThat(authService.me(userId).getPersonType()).isEqualTo(6);
+        assertThat(authService.me(userId).getPersonTypeDesc()).isEqualTo("附属学校学生");
+    }
     private Map<String, Object> data(Map<String, Object> body) {
         return (Map<String, Object>) body.get("data");
     }
