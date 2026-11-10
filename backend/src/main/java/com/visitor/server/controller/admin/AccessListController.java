@@ -61,6 +61,14 @@ public class AccessListController {
         return Result.success(accessCheckService.update(SchoolScopes.resolve(schoolId), id, body));
     }
 
+    @Operation(summary = "启用/停用名单")
+    @PutMapping("/{id}/status")
+    public Result<AccessList> status(@RequestParam(required = false) Long schoolId,
+                                     @PathVariable Long id,
+                                     @RequestParam Integer status) {
+        return Result.success(accessCheckService.updateStatus(SchoolScopes.resolve(schoolId), id, status));
+    }
+
     @Operation(summary = "人工提前解除")
     @PostMapping("/{id}/release")
     public Result<AccessList> release(@RequestParam(required = false) Long schoolId,

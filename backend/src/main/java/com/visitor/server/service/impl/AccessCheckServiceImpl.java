@@ -138,6 +138,20 @@ public class AccessCheckServiceImpl implements AccessCheckService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public AccessList updateStatus(Long schoolId, Long id, Integer status) {
+        if (status == null || (status != 0 && status != 1)) {
+            throw new BizException(400, "状态不合法");
+        }
+        AccessList entity = require(schoolId, id);
+        entity.setStatus(status);
+        entity.setUpdatedAt(LocalDateTime.now());
+        mapper.updateById(entity);
+        auditLogService.record("ACCESS_LIST_STATUS", "ACCESS_LIST", id, "名单状态：" + status);
+        return entity;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public AccessList release(Long schoolId, Long id, String reason) {
         AccessList entity = require(schoolId, id);
         entity.setStatus(0);

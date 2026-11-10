@@ -42,9 +42,12 @@
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '生效中' : '已失效' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.status === 1" link type="warning" @click="release(row)">解除</el-button>
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button :type="row.status === 1 ? 'warning' : 'success'" link @click="toggleStatus(row)">
+              {{ row.status === 1 ? '停用' : '启用' }}
+            </el-button>
             <el-button link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -60,7 +63,7 @@
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新增名单" width="480px">
+    <el-dialog v-model="visible" :title="editingId ? '编辑名单' : '新增名单'" width="480px">
       <el-form label-width="90px">
         <el-form-item label="名单类型">
           <el-radio-group v-model="form.listType">
@@ -88,7 +91,7 @@
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" @click="create">确定</el-button>
+        <el-button type="primary" @click="save">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -122,6 +125,7 @@ const targetType = ref<string>()
 const loading = ref(false)
 const uploading = ref(false)
 const visible = ref(false)
+const editingId = ref<number>()
 const form = reactive({
   listType: 1,
   targetType: 'PERSON',
@@ -152,6 +156,7 @@ async function load(target = page.value) {
 }
 
 function openCreate() {
+  editingId.value = undefined
   form.listType = Number(activeTab.value)
   form.targetType = 'PERSON'
   form.targetValue = ''
@@ -161,34 +166,51 @@ function openCreate() {
   visible.value = true
 }
 
-async function create() {
+function openEdit(row: Row) {
+  editingId.value = row.id
+  form.listType = row.listType
+  form.targetType = row.targetType
+  form.targetValue = row.targetValue
+  form.effectiveFrom = row.effectiveFrom || ''
+  form.effectiveTo = row.effectiveTo || ''
+  form.reason = row.reason || ''
+  visible.value = true
+}
+
+async function save() {
   try {
-    await http.post('/web/admin/access-list', {
+    const body = {
       listType: form.listType,
       targetType: form.targetType,
       targetValue: form.targetValue,
       effectiveFrom: form.effectiveFrom || undefined,
       effectiveTo: form.effectiveTo || undefined,
       reason: form.reason || undefined,
-    })
-    ElMessage.success('已新增')
+    }
+    if (editingId.value) {
+      await http.put(`/web/admin/access-list/${editingId.value}`, body)
+    } else {
+      await http.post('/web/admin/access-list', body)
+    }
+    ElMessage.success(editingId.value ? '已保存' : '已新增')
     visible.value = false
     await load(1)
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '新增失败')
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
   }
 }
 
-async function release(row: Row) {
+async function toggleStatus(row: Row) {
   try {
-    const { value } = await ElMessageBox.prompt('请输入解除原因', '提前解除', { inputPlaceholder: '如：家长申诉' })
-    await http.post(`/web/admin/access-list/${row.id}/release?reason=${encodeURIComponent(value || '')}`)
-    ElMessage.success('已解除')
+    const next = row.status === 1 ? 0 : 1
+    await http.put(`/web/admin/access-list/${row.id}/status?status=${next}`)
+    ElMessage.success(next === 1 ? '已启用' : '已停用')
     await load()
-  } catch {
-    // 取消
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '操作失败')
   }
 }
+
 
 async function remove(row: Row) {
   try {

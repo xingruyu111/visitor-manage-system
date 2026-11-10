@@ -22,6 +22,8 @@ public interface AccessCheckService {
 
     AccessList release(Long schoolId, Long id, String reason);
 
+    AccessList updateStatus(Long schoolId, Long id, Integer status);
+
     Map<String, Object> importRows(Long schoolId, List<AccessListImportRow> rows);
 
     int expireOverdue();
