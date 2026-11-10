@@ -1,6 +1,8 @@
 package com.visitor.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -19,10 +21,15 @@ public class AccessList {
     /** PERSON / PLATE_MOTOR / PLATE_EBIKE */
     private String targetType;
     private String targetValue;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String personName;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String plateNumber;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private LocalDateTime effectiveFrom;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private LocalDateTime effectiveTo;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String reason;
     private String source;
     private Integer status;
