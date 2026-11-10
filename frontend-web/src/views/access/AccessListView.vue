@@ -6,7 +6,7 @@
         <el-tab-pane label="白名单" name="2" />
       </el-tabs>
 
-      <el-form inline>
+      <el-form inline class="access-toolbar">
         <el-form-item label="关键字">
           <el-input v-model="keyword" placeholder="手机号/车牌/姓名" clearable style="width: 200px" @keyup.enter="load(1)" />
         </el-form-item>
@@ -258,6 +258,26 @@ onMounted(() => load(1))
 }
 .upload {
   display: inline-block;
-  margin-left: 12px;
+  margin-left: 0;
+}
+
+.access-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.access-toolbar :deep(.el-form-item) {
+  margin: 0;
+}
+
+.access-toolbar :deep(.el-button) {
+  margin-left: 0;
+}
+
+.access-toolbar .upload {
+  display: flex;
+  margin: 0;
 }
 </style>
