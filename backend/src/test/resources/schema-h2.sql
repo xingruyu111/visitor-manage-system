@@ -417,3 +417,16 @@ CREATE TABLE vst_org (
   PRIMARY KEY (id),
   CONSTRAINT uk_org_external UNIQUE (external_id)
 );
+
+DROP TABLE IF EXISTS vst_counselor_org;
+CREATE TABLE vst_counselor_org (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL DEFAULT 1,
+  counselor_staff_id BIGINT NOT NULL,
+  org_id BIGINT NOT NULL,
+  created_by BIGINT,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_counselor_org UNIQUE (school_id, org_id)
+);

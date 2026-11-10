@@ -142,6 +142,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (role == null || role == RoleEnum.SYSTEM_ADMIN) {
             throw new BizException(400, "不允许分配该角色");
         }
+        if (role == RoleEnum.COUNSELOR) {
+            throw new BizException(400, "辅导员角色只能通过辅导员管理授予");
+        }
         UserRole existing = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, user.getId())
                 .eq(UserRole::getRole, role)
@@ -174,6 +177,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
         if (role == RoleEnum.SYSTEM_ADMIN) {
             throw new BizException(400, "系统管理员角色不允许移除");
+        }
+        if (role == RoleEnum.COUNSELOR) {
+            throw new BizException(400, "辅导员角色只能通过辅导员管理移除");
         }
         UserRole existing = userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, userId)

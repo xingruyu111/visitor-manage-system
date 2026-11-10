@@ -70,12 +70,15 @@
         :key="item.code"
         :type="item.source === 'IDENTITY' ? 'info' : 'primary'"
         class="role-tag"
-        closable
+        :closable="item.source !== 'IDENTITY' && item.code !== 12"
         :disable-transitions="true"
         @close="removeRole(item)"
       >
         {{ item.name }}<span v-if="item.isDefault === 1">（默认）</span>
       </el-tag>
+      <p v-if="current?.roleDetails?.some((item) => item.code === 12)" class="hint">
+        辅导员角色由“人员管理 → 辅导员管理”授予和移除，不能在此手工删除。
+      </p>
       <p v-if="current?.roleDetails?.some((item) => item.source === 'IDENTITY')" class="hint">
         灰色为人员类型生成的身份角色，不可删除；如需变更请修改人员类型或停用人员。
       </p>

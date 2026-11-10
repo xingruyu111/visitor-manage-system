@@ -124,13 +124,13 @@ class StaffAccountRestoreTest {
     void typeChangeReplacesPrimaryRoleButKeepsExtraRole() {
         StaffVO created = staffService.create(1L, dto("T102", "13900005555", PersonTypeEnum.STUDENT));
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T102"));
-        userAdminService.addRole(user.getId(), RoleEnum.COUNSELOR.getCode());
+        userAdminService.addRole(user.getId(), RoleEnum.GUARD.getCode());
 
         staffService.update(1L, created.getId(), dto("T102", "13900005555", PersonTypeEnum.TEACHER));
 
         List<UserRole> roles = roles(user.getId());
         assertThat(roles).extracting(UserRole::getRole)
-                .containsExactlyInAnyOrder(RoleEnum.TEACHER, RoleEnum.COUNSELOR);
+                .containsExactlyInAnyOrder(RoleEnum.TEACHER, RoleEnum.GUARD);
         UserRole primary = roles.stream().filter(role -> "IDENTITY".equals(role.getSource())).findFirst().orElseThrow();
         assertThat(primary.getRole()).isEqualTo(RoleEnum.TEACHER);
         assertThat(primary.getIsDefault()).isEqualTo(1);

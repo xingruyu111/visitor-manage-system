@@ -25,7 +25,7 @@ public class RoleController {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("code", role.getCode());
             item.put("name", role.getDescription());
-            item.put("assignable", role != RoleEnum.SYSTEM_ADMIN && role != RoleEnum.VISITOR);
+            item.put("assignable", role != RoleEnum.SYSTEM_ADMIN && role != RoleEnum.VISITOR && role != RoleEnum.COUNSELOR);
             return item;
         }).toList();
         return Result.success(result);

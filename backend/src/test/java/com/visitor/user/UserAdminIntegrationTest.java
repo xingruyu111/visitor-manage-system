@@ -194,6 +194,15 @@ class UserAdminIntegrationTest {
         assertThat(blocked.get("code")).isEqualTo(400);
         assertThat(userMapper.selectById(superAdmin.getId()).getStatus()).isEqualTo(1);
     }
+    @Test
+    void counselorRoleCannotBeAssignedManually() {
+        Long userId = ((Number) data(exchange("/web/websuper/users", HttpMethod.POST,
+                Map.of("phone", "13900005008", "name", "手工辅导员", "role", 5), systemToken)).get("id")).longValue();
+        Map<String, Object> blocked = exchange("/web/websuper/users/" + userId + "/roles?role=12",
+                HttpMethod.POST, null, systemToken);
+        assertThat(blocked.get("code")).isEqualTo(400);
+        assertThat(blocked.get("message")).asString().contains("辅导员管理");
+    }
     private String token(Long userId) {
         return jwtUtil.generate(userId, "user-" + userId, List.of(RoleEnum.SYSTEM_ADMIN),
                 RoleEnum.SYSTEM_ADMIN, null);

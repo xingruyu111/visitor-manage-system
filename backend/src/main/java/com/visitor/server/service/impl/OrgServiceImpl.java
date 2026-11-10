@@ -2,8 +2,10 @@ package com.visitor.server.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.exception.BizException;
+import com.visitor.domain.entity.CounselorOrg;
 import com.visitor.domain.entity.Org;
 import com.visitor.domain.entity.Staff;
+import com.visitor.server.mapper.CounselorOrgMapper;
 import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.service.OrgService;
@@ -22,10 +24,12 @@ public class OrgServiceImpl implements OrgService {
 
     private final OrgMapper orgMapper;
     private final StaffMapper staffMapper;
+    private final CounselorOrgMapper counselorOrgMapper;
 
-    public OrgServiceImpl(OrgMapper orgMapper, StaffMapper staffMapper) {
+    public OrgServiceImpl(OrgMapper orgMapper, StaffMapper staffMapper, CounselorOrgMapper counselorOrgMapper) {
         this.orgMapper = orgMapper;
         this.staffMapper = staffMapper;
+        this.counselorOrgMapper = counselorOrgMapper;
     }
 
     @Override
@@ -111,6 +115,11 @@ public class OrgServiceImpl implements OrgService {
         Long staff = staffMapper.selectCount(new LambdaQueryWrapper<Staff>().eq(Staff::getOrgId, id));
         if (staff != null && staff > 0) {
             throw new BizException(400, "该节点下还有人员，不能删除");
+        }
+        Long counselors = counselorOrgMapper.selectCount(new LambdaQueryWrapper<CounselorOrg>()
+                .eq(CounselorOrg::getOrgId, id));
+        if (counselors != null && counselors > 0) {
+            throw new BizException(400, "该组织已配置辅导员，请先移除");
         }
         orgMapper.deleteById(id);
     }

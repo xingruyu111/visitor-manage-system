@@ -50,6 +50,7 @@
           <el-button type="primary" @click="load(1)">查询</el-button>
         </el-form>
         <div class="toolbar-actions">
+          <el-button @click="openCounselorDrawer">辅导员管理</el-button>
           <el-button @click="openCreate">新增</el-button>
           <el-button @click="openImport">导入</el-button>
         </div>
@@ -175,6 +176,88 @@
         <el-button type="primary" @click="saveDept">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-drawer v-model="counselorDrawer" title="辅导员管理" size="840px">
+      <div class="counselor-toolbar">
+        <el-input
+          v-model="counselorKeyword"
+          placeholder="辅导员姓名/工号/组织"
+          clearable
+          style="width: 240px"
+          @keyup.enter="loadCounselors(1)"
+        />
+        <el-button @click="loadCounselors(1)">查询</el-button>
+        <el-button type="primary" @click="openCounselorCreate">新增辅导员</el-button>
+      </div>
+      <el-table v-loading="counselorLoading" :data="counselorRows" border class="counselor-table">
+        <el-table-column prop="counselorName" label="辅导员" width="90" />
+        <el-table-column prop="counselorPersonNo" label="工号" width="100" />
+        <el-table-column prop="counselorPhone" label="手机号" width="120" />
+        <el-table-column prop="orgName" label="负责组织" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="studentCount" label="覆盖学生" width="80" />
+        <el-table-column prop="createdAt" label="创建时间" width="160" />
+        <el-table-column label="操作" width="70">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="removeCounselor(row)">移除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        class="pager"
+        layout="total, prev, pager, next"
+        :total="counselorTotal"
+        :page-size="counselorSize"
+        :current-page="counselorPage"
+        @current-change="loadCounselors"
+      />
+    </el-drawer>
+
+    <el-dialog v-model="counselorFormVisible" title="新增辅导员" width="520px">
+      <el-form label-width="90px">
+        <el-form-item label="辅导员">
+          <el-select
+            v-model="counselorForm.counselorStaffId"
+            filterable
+            remote
+            :remote-method="searchCandidates"
+            :loading="candidateLoading"
+            placeholder="搜索教职工姓名/工号/手机号"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in counselorCandidates"
+              :key="item.id"
+              :label="`${item.name}（${item.personNo || item.phone}）`"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="负责组织">
+          <el-tree-select
+            v-model="counselorForm.orgId"
+            :data="tree"
+            :props="{ label: 'name', children: 'children' }"
+            node-key="id"
+            check-strictly
+            default-expand-all
+            clearable
+            placeholder="选择组织，含所有下级"
+            style="width: 100%"
+            @change="previewCounselorOrg"
+          />
+        </el-form-item>
+        <el-alert
+          v-if="counselorPreview"
+          type="info"
+          :closable="false"
+          :title="`该组织下共 ${counselorPreview.studentCount} 名学生、${counselorPreview.staffCount} 名人员`"
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="counselorFormVisible = false">取消</el-button>
+        <el-button type="primary" :loading="counselorSaving" @click="saveCounselor">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -200,6 +283,22 @@ interface Staff {
   status: number
 }
 
+interface CounselorRow {
+  id: number
+  counselorName: string
+  counselorPersonNo?: string
+  counselorPhone?: string
+  orgName?: string
+  studentCount: number
+  createdAt?: string
+}
+
+interface Candidate {
+  id: number
+  name: string
+  personNo?: string
+  phone?: string
+}
 const TYPES = [
   { value: 1, label: '教职工' },
   { value: 2, label: '学生' },
@@ -215,6 +314,19 @@ const rows = ref<Staff[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
+const counselorDrawer = ref(false)
+const counselorLoading = ref(false)
+const counselorRows = ref<CounselorRow[]>([])
+const counselorTotal = ref(0)
+const counselorPage = ref(1)
+const counselorSize = 10
+const counselorKeyword = ref('')
+const counselorFormVisible = ref(false)
+const counselorSaving = ref(false)
+const counselorCandidates = ref<Candidate[]>([])
+const candidateLoading = ref(false)
+const counselorForm = reactive({ counselorStaffId: undefined as number | undefined, orgId: undefined as number | undefined })
+const counselorPreview = ref<{ studentCount: number; staffCount: number }>()
 const keyword = ref('')
 const personType = ref<number>()
 const filterOrgId = ref<number>()
@@ -443,6 +555,99 @@ async function save() {
 }
 
 
+function openCounselorDrawer() {
+  counselorDrawer.value = true
+  loadCounselors(1)
+}
+
+async function loadCounselors(target = counselorPage.value) {
+  counselorPage.value = target
+  counselorLoading.value = true
+  try {
+    const data = await http.get<{ total: number; records: CounselorRow[] }>('/web/admin/counselors', {
+      keyword: counselorKeyword.value || undefined,
+      page: target,
+      size: counselorSize,
+    })
+    counselorRows.value = data.records
+    counselorTotal.value = data.total
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '加载辅导员失败')
+  } finally {
+    counselorLoading.value = false
+  }
+}
+
+async function searchCandidates(query: string) {
+  candidateLoading.value = true
+  try {
+    counselorCandidates.value = await http.get<Candidate[]>('/web/admin/counselors/candidates', {
+      keyword: query || undefined,
+    })
+  } catch {
+    counselorCandidates.value = []
+  } finally {
+    candidateLoading.value = false
+  }
+}
+
+function openCounselorCreate() {
+  counselorForm.counselorStaffId = undefined
+  counselorForm.orgId = undefined
+  counselorPreview.value = undefined
+  counselorCandidates.value = []
+  counselorFormVisible.value = true
+  searchCandidates('')
+}
+
+async function previewCounselorOrg(orgId?: number) {
+  counselorPreview.value = undefined
+  if (!orgId) return
+  try {
+    counselorPreview.value = await http.get<{ studentCount: number; staffCount: number }>(
+      '/web/admin/counselors/preview',
+      { orgId },
+    )
+  } catch {
+    counselorPreview.value = undefined
+  }
+}
+
+async function saveCounselor() {
+  if (!counselorForm.counselorStaffId || !counselorForm.orgId) {
+    ElMessage.warning('请选择辅导员和负责组织')
+    return
+  }
+  counselorSaving.value = true
+  try {
+    await http.post('/web/admin/counselors', {
+      counselorStaffId: counselorForm.counselorStaffId,
+      orgId: counselorForm.orgId,
+    })
+    ElMessage.success('已新增辅导员')
+    counselorFormVisible.value = false
+    await loadCounselors(1)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    counselorSaving.value = false
+  }
+}
+
+async function removeCounselor(row: CounselorRow) {
+  try {
+    await ElMessageBox.confirm(`确定移除 ${row.counselorName} 对 ${row.orgName} 的辅导员关联？`, '移除辅导员', {
+      type: 'warning',
+    })
+    await http.delete(`/web/admin/counselors/${row.id}`)
+    ElMessage.success('已移除')
+    await loadCounselors()
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e instanceof Error ? e.message : '移除失败')
+    }
+  }
+}
 async function removeStaff(row: Staff) {
   try {
     await ElMessageBox.confirm(`确定删除 ${row.name}？删除后不再显示，账号停用，历史记录保留。`, '删除人员', {
