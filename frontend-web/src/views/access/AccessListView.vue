@@ -34,8 +34,6 @@
           <template #default="{ row }">{{ TYPE[row.targetType] ?? row.targetType }}</template>
         </el-table-column>
         <el-table-column prop="targetValue" label="手机号/车牌" min-width="150" />
-        <el-table-column prop="personName" label="姓名" width="120" />
-        <el-table-column prop="plateNumber" label="车牌" width="120" />
         <el-table-column prop="effectiveFrom" label="生效时间" width="170" />
         <el-table-column prop="effectiveTo" label="失效时间" width="170" />
         <el-table-column prop="reason" label="原因" min-width="150" show-overflow-tooltip />
