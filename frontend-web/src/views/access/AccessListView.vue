@@ -29,7 +29,7 @@
         </el-upload>
       </el-form>
 
-      <el-table v-loading="loading" :data="rows" border>
+      <el-table v-loading="loading" :data="rows" border class="access-table">
         <el-table-column label="对象" width="110">
           <template #default="{ row }">{{ TYPE[row.targetType] ?? row.targetType }}</template>
         </el-table-column>
@@ -259,6 +259,10 @@ onMounted(() => load(1))
 .upload {
   display: inline-block;
   margin-left: 0;
+}
+
+.access-table {
+  margin-top: 12px;
 }
 
 .access-toolbar {
