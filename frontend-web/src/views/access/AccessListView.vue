@@ -7,15 +7,15 @@
       </el-tabs>
 
       <el-form inline>
+        <el-form-item label="关键字">
+          <el-input v-model="keyword" placeholder="手机号/车牌/姓名" clearable style="width: 200px" @keyup.enter="load(1)" />
+        </el-form-item>
         <el-form-item label="对象">
           <el-select v-model="targetType" clearable placeholder="全部" style="width: 150px" @change="load(1)">
             <el-option label="人员" value="PERSON" />
             <el-option label="机动车" value="PLATE_MOTOR" />
             <el-option label="电动自行车" value="PLATE_EBIKE" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="关键字">
-          <el-input v-model="keyword" placeholder="手机号/车牌/姓名" clearable style="width: 200px" @keyup.enter="load(1)" />
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
         <el-button @click="openCreate">新增</el-button>
