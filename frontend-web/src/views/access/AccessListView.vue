@@ -78,8 +78,9 @@
         <el-form-item label="手机号/车牌">
           <el-input v-model="form.targetValue" placeholder="人员填手机号，车辆填车牌" />
         </el-form-item>
-        <el-form-item label="姓名"><el-input v-model="form.personName" /></el-form-item>
-        <el-form-item label="车牌"><el-input v-model="form.plateNumber" /></el-form-item>
+        <el-form-item label="生效时间">
+          <el-date-picker v-model="form.effectiveFrom" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
+        </el-form-item>
         <el-form-item label="失效时间">
           <el-date-picker v-model="form.effectiveTo" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
         </el-form-item>
@@ -103,8 +104,7 @@ interface Row {
   listType: number
   targetType: string
   targetValue: string
-  personName?: string
-  plateNumber?: string
+  effectiveFrom?: string
   effectiveTo?: string
   reason?: string
   status: number
@@ -126,8 +126,7 @@ const form = reactive({
   listType: 1,
   targetType: 'PERSON',
   targetValue: '',
-  personName: '',
-  plateNumber: '',
+  effectiveFrom: '',
   effectiveTo: '',
   reason: '',
 })
@@ -156,8 +155,7 @@ function openCreate() {
   form.listType = Number(activeTab.value)
   form.targetType = 'PERSON'
   form.targetValue = ''
-  form.personName = ''
-  form.plateNumber = ''
+  form.effectiveFrom = ''
   form.effectiveTo = ''
   form.reason = ''
   visible.value = true
@@ -169,8 +167,7 @@ async function create() {
       listType: form.listType,
       targetType: form.targetType,
       targetValue: form.targetValue,
-      personName: form.personName || undefined,
-      plateNumber: form.plateNumber || undefined,
+      effectiveFrom: form.effectiveFrom || undefined,
       effectiveTo: form.effectiveTo || undefined,
       reason: form.reason || undefined,
     })
