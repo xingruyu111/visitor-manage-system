@@ -29,6 +29,12 @@ const router = createRouter({
       meta: { title: '我的审批' },
     },
     {
+      path: '/a/history',
+      name: 'ApproverHistory',
+      component: () => import('@/views/approver/HistoryView.vue'),
+      meta: { title: '历史审批' },
+    },
+    {
       path: '/g/verify',
       name: 'GuardVerify',
       component: () => import('@/views/guard/VerifyView.vue'),

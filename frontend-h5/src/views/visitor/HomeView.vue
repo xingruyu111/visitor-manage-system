@@ -26,7 +26,7 @@
 
         <van-cell-group v-else-if="menu === 'APPROVER'" inset title="审批">
           <van-cell title="我的待办" is-link to="/a/tasks" />
-          <van-cell title="历史审批" is-link to="/a/tasks?history=1" />
+          <van-cell title="历史审批" is-link to="/a/history" />
         </van-cell-group>
 
 
