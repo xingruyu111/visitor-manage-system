@@ -8,6 +8,7 @@
 
     <div class="content">
       <div class="hero">
+        <span class="hero-kicker">{{ heroKicker }}</span>
         <h2>{{ heroTitle }}</h2>
         <p>{{ heroDesc }}</p>
       </div>
@@ -22,7 +23,11 @@
             :title="entry.title"
             is-link
             :to="entry.to"
-          />
+          >
+            <template #icon>
+              <span class="entry-icon"><van-icon :name="entry.icon" /></span>
+            </template>
+          </van-cell>
         </van-cell-group>
 
         <van-empty v-if="groups.length === 0" description="当前身份暂无 H5 功能，请使用 Web 管理端" />
@@ -62,6 +67,7 @@ type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'DEPT' | 'NONE'
 interface Entry {
   title: string
   to: string
+  icon: string
 }
 
 interface MenuGroup {
@@ -129,8 +135,9 @@ const groups = computed<MenuGroup[]>(() => {
     {
       title: isAlumni.value ? '校友预约' : '预约申请',
       to: isAlumni.value ? '/v/apply?type=ALUMNI' : '/v/apply?type=NORMAL',
+      icon: 'edit',
     },
-    { title: '我的预约', to: '/v/records' },
+    { title: '我的预约', to: '/v/records', icon: 'records-o' },
   ]
 
   const definitions: Record<Exclude<MenuKind, 'NONE'>, MenuGroup> = {
@@ -138,22 +145,22 @@ const groups = computed<MenuGroup[]>(() => {
       key: 'APPROVER',
       title: '审批',
       entries: [
-        { title: '我的待办', to: '/a/tasks' },
-        { title: '历史审批', to: '/a/history' },
+        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o' },
+        { title: '历史审批', to: '/a/history', icon: 'clock-o' },
       ],
     },
     GUARD: {
       key: 'GUARD',
       title: '门卫',
       entries: [
-        { title: '扫码核验', to: '/g/verify?mode=verify' },
-        { title: '车主查询', to: '/g/verify?mode=query' },
+        { title: '扫码核验', to: '/g/verify?mode=verify', icon: 'scan' },
+        { title: '车主查询', to: '/g/verify?mode=query', icon: 'search' },
       ],
     },
     DEPT: {
       key: 'DEPT',
       title: '部门经办人',
-      entries: [{ title: '批量预约', to: '/d/batch' }],
+      entries: [{ title: '批量预约', to: '/d/batch', icon: 'orders-o' }],
     },
     VISITOR: {
       key: 'VISITOR',
@@ -165,8 +172,16 @@ const groups = computed<MenuGroup[]>(() => {
   return menuKinds.value.map((kind) => definitions[kind])
 })
 
-const heroTitle = computed(() => {
+const heroKicker = computed(() => {
   const first = groups.value[0]?.key
+  if (!first) return '智慧校园'
+  if (first === 'APPROVER') return '审批工作台'
+  if (first === 'GUARD') return '门卫工作台'
+  if (first === 'DEPT') return '部门工作台'
+  return isAlumni.value ? '校友通道' : '访客服务'
+})
+
+const heroTitle = computed(() => {  const first = groups.value[0]?.key
   if (!first) return '暂无 H5 功能'
   if (first === 'APPROVER') return '待我审批'
   if (first === 'GUARD') return '门卫核验'
@@ -209,26 +224,26 @@ onMounted(loadProfile)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
+  background: transparent;
 }
 .content {
-  padding: 16px 0 24px;
+  padding: 14px 0 28px;
 }
 .hero {
-  padding: 22px 20px;
-  margin: 0 16px 4px;
-  border-radius: 16px;
+  padding: 24px 20px;
+  margin: 4px 16px 0;
+  border-radius: 20px;
 }
 .hero h2 {
   margin: 0 0 8px;
-  font-size: 22px;
+  font-size: 24px;
   color: #fff;
 }
 .hero p {
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 .role-chip {
   display: inline-block;
@@ -236,11 +251,12 @@ onMounted(loadProfile)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(22, 119, 255, 0.1);
-  color: #1677ff;
+  background: #eaf2ff;
+  color: #14508f;
   font-size: 12px;
+  font-weight: 500;
 }
 .loading {
   display: flex;
@@ -248,9 +264,29 @@ onMounted(loadProfile)
   padding: 40px 0;
 }
 .group {
-  margin-top: 12px;
+  margin-top: 14px;
+}
+.group :deep(.van-cell) {
+  align-items: center;
+}
+.entry-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 12px;
+  border-radius: 10px;
+  background: #edf4ff;
+  color: #1677ff;
+  font-size: 18px;
 }
 .actions {
-  margin: 24px 16px;
+  margin: 26px 16px 10px;
+}
+.actions :deep(.van-button) {
+  border-color: #dbe8f8;
+  background: rgba(255, 255, 255, 0.8);
+  color: #4a6585;
 }
 </style>

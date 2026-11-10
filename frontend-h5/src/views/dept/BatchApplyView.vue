@@ -12,7 +12,13 @@
       />
     </van-cell-group>
 
-    <p class="hint">提交后进入保卫处审批，审批通过后自动签发通行凭证。</p>
+    <div class="hint-card">
+      <van-icon name="info-o" class="hint-icon" />
+      <div>
+        <strong>批量预约说明</strong>
+        <p>每行一条访客信息，提交后进入保卫处审批，通过后自动签发通行凭证。</p>
+      </div>
+    </div>
 
     <div class="actions">
       <van-button block type="primary" :loading="submitting" @click="submit">提交审批</van-button>
@@ -62,15 +68,44 @@ async function submit() {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
-  padding: 12px 0 24px;
+  background: transparent;
+  padding: 12px 0 96px;
 }
-.hint {
-  margin: 12px 16px;
-  color: #969799;
-  font-size: 12px;
+.hint-card {
+  display: flex;
+  gap: 10px;
+  margin: 12px 16px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2ecf9;
+  color: #4a5f7a;
+  font-size: 13px;
+  line-height: 1.6;
+  box-shadow: 0 4px 14px rgba(16, 42, 80, 0.04);
+}
+.hint-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #1677ff;
+  font-size: 17px;
+}
+.hint-card strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #10233f;
+  font-size: 14px;
+}
+.hint-card p {
+  margin: 0;
+  color: #61738c;
 }
 .actions {
-  margin: 24px 16px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(242, 247, 253, 0), #f2f7fd 38%);
 }
 </style>

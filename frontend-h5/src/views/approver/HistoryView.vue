@@ -2,18 +2,22 @@
   <div class="page">
     <van-nav-bar title="历史审批" left-arrow @click-left="$router.back()" />
 
-    <van-empty v-if="loaded && history.length === 0" description="暂无历史审批" />
+    <van-loading v-if="!loaded" class="loading" />
 
-    <van-cell-group v-for="item in history" :key="item.taskId" inset class="card">
-      <van-cell :title="item.nodeName" :label="item.actedAt">
-        <template #value>
-          <van-tag :type="item.decision === 'APPROVED' ? 'success' : 'danger'">
+    <van-empty v-else-if="history.length === 0" description="暂无历史审批" />
+
+    <div v-else class="list">
+      <div v-for="item in history" :key="item.taskId" class="history-card">
+        <div class="history-top">
+          <span class="node">{{ item.nodeName }}</span>
+          <van-tag :type="item.decision === 'APPROVED' ? 'success' : 'danger'" round>
             {{ item.decision === 'APPROVED' ? '通过' : '驳回' }}
           </van-tag>
-        </template>
-      </van-cell>
-      <van-cell v-if="item.comment" :title="item.comment" />
-    </van-cell-group>
+        </div>
+        <div class="time">{{ item.actedAt }}</div>
+        <div v-if="item.comment" class="comment">{{ item.comment }}</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -53,10 +57,50 @@ onMounted(load)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
-  padding-bottom: 24px;
+  background: transparent;
+  padding-bottom: 28px;
 }
-.card {
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.history-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 236, 249, 0.9);
+  box-shadow: 0 6px 20px rgba(16, 42, 80, 0.06);
+}
+.history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.node {
+  font-size: 16px;
+  font-weight: 600;
+  color: #10233f;
+}
+.time {
+  margin-top: 8px;
+  color: #61738c;
+  font-size: 13px;
+}
+.comment {
   margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5f8fd;
+  color: #4a5f7a;
+  font-size: 13px;
+  line-height: 1.6;
 }
 </style>

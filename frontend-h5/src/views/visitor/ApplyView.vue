@@ -56,8 +56,22 @@
     </van-cell-group>
 
     <van-cell-group inset title="到访信息">
-      <van-field v-model="expectedTime" type="datetime-local" label="到访时间" />
-      <van-field v-model="leaveTime" type="datetime-local" label="离校时间" />
+      <van-field
+        readonly
+        clickable
+        label="到访时间"
+        :model-value="displayTime(expectedTime)"
+        placeholder="选择到访时间"
+        @click="openTimePicker('expectedTime')"
+      />
+      <van-field
+        readonly
+        clickable
+        label="离校时间"
+        :model-value="displayTime(leaveTime)"
+        placeholder="选择离校时间"
+        @click="openTimePicker('leaveTime')"
+      />
       <van-field v-model="purpose" label="事由" placeholder="请输入来访事由" />
       <van-field label="通行方式">
         <template #input>
@@ -97,6 +111,29 @@
         @confirm="onTypeConfirm"
         @cancel="showTypePicker = false"
       />
+    </van-popup>
+
+    <van-popup v-model:show="timePickerVisible" position="bottom" round>
+      <div class="time-picker">
+        <div class="time-picker-head">
+          <button class="time-cancel" @click="timePickerVisible = false">取消</button>
+          <strong>{{ timeTitle }}</strong>
+          <button class="time-confirm" @click="confirmTime">确定</button>
+        </div>
+        <van-tabs v-model:active="timeTab" shrink>
+          <van-tab title="日期">
+            <van-date-picker
+              v-model="dateValues"
+              :min-date="minDate"
+              :max-date="maxDate"
+              :show-toolbar="false"
+            />
+          </van-tab>
+          <van-tab title="时间">
+            <van-time-picker v-model="timeValues" :show-toolbar="false" />
+          </van-tab>
+        </van-tabs>
+      </div>
     </van-popup>
   </div>
 </template>
@@ -157,6 +194,14 @@ const extra = reactive<Record<string, string>>({})
 const submitting = ref(false)
 const profile = ref<Profile>()
 const showTypePicker = ref(false)
+const timePickerVisible = ref(false)
+const timeTarget = ref<'expectedTime' | 'leaveTime'>('expectedTime')
+const timeTab = ref(0)
+const dateValues = ref<string[]>([])
+const timeValues = ref<string[]>([])
+const minDate = new Date()
+const maxDate = new Date(Date.now() + 365 * 24 * 3600 * 1000)
+const timeTitle = computed(() => (timeTarget.value === 'expectedTime' ? '选择到访时间' : '选择离校时间'))
 
 const isAlumni = computed(() => {
   const current = profile.value
@@ -183,6 +228,49 @@ function backendTime(value: string) {
   if (!value) return ''
   const normalized = value.replace('T', ' ')
   return normalized.length === 16 ? `${normalized}:00` : normalized
+}
+
+function displayTime(value: string) {
+  return value ? value.replace('T', ' ') : ''
+}
+
+function openTimePicker(target: 'expectedTime' | 'leaveTime') {
+  timeTarget.value = target
+  const raw = target === 'expectedTime' ? expectedTime.value : leaveTime.value
+  const date = raw ? new Date(raw) : new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  dateValues.value = [String(date.getFullYear()), pad(date.getMonth() + 1), pad(date.getDate())]
+  timeValues.value = [pad(date.getHours()), pad(date.getMinutes())]
+  timeTab.value = 0
+  timePickerVisible.value = true
+}
+
+function confirmTime() {
+  const date = dateValues.value.join('-')
+  const time = timeValues.value.join(':')
+  const value = `${date}T${time}`
+  const picked = new Date(value)
+  if (Number.isNaN(picked.getTime())) {
+    showToast('时间格式不正确')
+    return
+  }
+  if (picked.getTime() < Date.now() - 60 * 1000) {
+    showToast('不能选择过去的时间')
+    return
+  }
+  if (timeTarget.value === 'expectedTime') {
+    expectedTime.value = value
+    if (leaveTime.value && leaveTime.value <= value) {
+      leaveTime.value = localTime(3)
+    }
+  } else {
+    if (expectedTime.value && value <= expectedTime.value) {
+      showToast('离校时间需晚于到访时间')
+      return
+    }
+    leaveTime.value = value
+  }
+  timePickerVisible.value = false
 }
 
 async function loadProfile() {
@@ -310,8 +398,8 @@ onMounted(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
-  padding-bottom: 24px;
+  background: transparent;
+  padding-bottom: 96px;
 }
 .target-group {
   overflow: visible;
@@ -334,6 +422,47 @@ onMounted(() => {
   overflow-y: auto;
 }
 .actions {
-  margin: 24px 16px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(242, 247, 253, 0), #f2f7fd 38%);
+}
+.time-picker {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.time-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef3fa;
+}
+.time-picker-head strong {
+  font-size: 16px;
+  color: #10233f;
+}
+.time-cancel,
+.time-confirm {
+  border: 0;
+  background: transparent;
+  padding: 6px 2px;
+  font-size: 15px;
+}
+.time-cancel {
+  color: #61738c;
+}
+.time-confirm {
+  color: #1677ff;
+  font-weight: 600;
+}
+.time-picker :deep(.van-tabs__wrap) {
+  padding: 4px 0;
+}
+.time-picker :deep(.van-picker__columns) {
+  min-height: 220px;
 }
 </style>

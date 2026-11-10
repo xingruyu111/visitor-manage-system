@@ -2,28 +2,37 @@
   <div class="page">
     <van-nav-bar title="我的预约" left-arrow @click-left="$router.back()" />
 
-    <van-empty v-if="loaded && records.length === 0" description="暂无预约" />
+    <van-loading v-if="!loaded" class="loading" />
 
-    <van-cell-group v-for="item in records" :key="item.id" inset class="card">
-      <van-cell :title="item.targetName || '访客'" :label="`${item.expectedTime} ~ ${item.leaveTime}`">
-        <template #value>
-          <van-tag :type="TAG[item.status] ?? 'default'">{{ STATUS[item.status] ?? item.status }}</van-tag>
-        </template>
-      </van-cell>
-      <van-cell :title="item.visitPurpose || '无备注'" :label="item.plateNumber || ''">
-        <template #right-icon>
+    <van-empty v-else-if="records.length === 0" description="暂无预约记录" />
+
+    <div v-else class="list">
+      <div v-for="item in records" :key="item.id" class="record-card">
+        <div class="record-head">
+          <div class="record-title">
+            <span class="name">{{ item.targetName || '访客' }}</span>
+            <span class="time">{{ item.expectedTime }} ~ {{ item.leaveTime }}</span>
+          </div>
+          <van-tag :type="TAG[item.status] ?? 'default'" round>{{ STATUS[item.status] ?? item.status }}</van-tag>
+        </div>
+        <div class="record-meta">
+          <span>{{ item.visitPurpose || '无备注' }}</span>
+          <span v-if="item.plateNumber" class="plate">{{ item.plateNumber }}</span>
+        </div>
+        <div class="record-actions">
           <van-button
             v-if="item.status === 1 || item.status === 3 || item.status === 4"
-            size="mini"
+            size="small"
+            round
             type="primary"
             @click="showPass(item)"
           >
             通行码
           </van-button>
-          <van-button size="mini" plain type="primary" @click="showApproval(item)">审批意见</van-button>
-        </template>
-      </van-cell>
-    </van-cell-group>
+          <van-button size="small" round plain type="primary" @click="showApproval(item)">审批意见</van-button>
+        </div>
+      </div>
+    </div>
 
     <van-dialog v-model:show="approvalVisible" title="审批意见" confirm-button-text="关闭">
       <div class="pass" v-if="approval">
@@ -123,11 +132,71 @@ onMounted(load)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
-  padding-bottom: 24px;
+  background: transparent;
+  padding-bottom: 28px;
 }
-.card {
-  margin-top: 12px;
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.record-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 236, 249, 0.9);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(16, 42, 80, 0.06);
+}
+.record-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.record-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.record-title .name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #10233f;
+}
+.record-title .time {
+  font-size: 12px;
+  color: #61738c;
+}
+.record-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  color: #4a5f7a;
+  font-size: 13px;
+}
+.record-meta .plate {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f6fd;
+  color: #31577f;
+  font-size: 12px;
+}
+.record-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eff4fb;
 }
 .qr {
   display: block;
@@ -144,7 +213,7 @@ onMounted(load)
 }
 .meta {
   font-size: 12px;
-  color: #969799;
+  color: #7b8ba1;
   margin-top: 8px;
 }
 </style>

@@ -115,14 +115,18 @@ async function query() {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f7f8fa;
-  padding-bottom: 24px;
+  background: transparent;
+  padding-bottom: 32px;
 }
 .actions {
-  padding: 12px 16px;
+  padding: 12px 16px 4px;
+}
+.van-cell-group--inset {
+  margin-top: 12px;
 }
 .nav-link {
-  color: #1989fa;
+  color: #14508f;
   font-size: 14px;
+  font-weight: 500;
 }
 </style>
