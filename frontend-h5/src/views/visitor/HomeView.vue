@@ -81,7 +81,7 @@ const menu = computed<MenuKind>(() => {
   const current = profile.value
   if (!current) return 'NONE'
   if (current.personType === 6) return 'NONE'
-  if ([5, 6, 7, 8].includes(current.currentRole)) return 'APPROVER'
+  if ([5, 6, 7, 8, 12].includes(current.currentRole)) return 'APPROVER'
   if (current.currentRole === 9 || current.personType === 7) return 'VISITOR'
   if (current.currentRole === 4) return 'VISITOR'
   return 'NONE'
