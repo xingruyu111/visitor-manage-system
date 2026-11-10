@@ -7,12 +7,6 @@
     </van-nav-bar>
 
     <div class="content">
-      <div class="hero">
-        <span class="hero-kicker">{{ heroKicker }}</span>
-        <h2>{{ heroTitle }}</h2>
-        <p>{{ heroDesc }}</p>
-      </div>
-
       <van-loading v-if="!loaded" class="loading" />
 
       <template v-else>
@@ -172,31 +166,8 @@ const groups = computed<MenuGroup[]>(() => {
   return menuKinds.value.map((kind) => definitions[kind])
 })
 
-const heroKicker = computed(() => {
-  const first = groups.value[0]?.key
-  if (!first) return '智慧校园'
-  if (first === 'APPROVER') return '审批工作台'
-  if (first === 'GUARD') return '门卫工作台'
-  if (first === 'DEPT') return '部门工作台'
-  return isAlumni.value ? '校友通道' : '访客服务'
-})
 
-const heroTitle = computed(() => {  const first = groups.value[0]?.key
-  if (!first) return '暂无 H5 功能'
-  if (first === 'APPROVER') return '待我审批'
-  if (first === 'GUARD') return '门卫核验'
-  if (first === 'DEPT') return '部门批量预约'
-  return isAlumni.value ? '校友预约' : '访客预约'
-})
 
-const heroDesc = computed(() => {
-  const first = groups.value[0]?.key
-  if (!first) return '当前身份没有配置 H5 入口，请使用 Web 管理端。'
-  if (first === 'APPROVER') return '处理拜访预约的待办，填写审批意见并查看历史记录。'
-  if (first === 'GUARD') return '核验通行码，或按车牌查询有效预约。'
-  if (first === 'DEPT') return '批量录入访客信息并提交审批。'
-  return '选择被访人、填写到访时间，提交后由被访人审批，通过后生成通行码。'
-})
 
 async function logout() {
   try {
@@ -227,23 +198,7 @@ onMounted(loadProfile)
   background: transparent;
 }
 .content {
-  padding: 14px 0 28px;
-}
-.hero {
-  padding: 24px 20px;
-  margin: 4px 16px 0;
-  border-radius: 20px;
-}
-.hero h2 {
-  margin: 0 0 8px;
-  font-size: 24px;
-  color: #fff;
-}
-.hero p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
-  line-height: 1.65;
+  padding: 8px 0 28px;
 }
 .role-chip {
   display: inline-block;
