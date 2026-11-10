@@ -42,6 +42,10 @@
           <el-icon><UserFilled /></el-icon>
           <span>人员管理</span>
         </el-menu-item>
+        <el-menu-item index="/counselors">
+          <el-icon><Avatar /></el-icon>
+          <span>辅导员管理</span>
+        </el-menu-item>
         <el-menu-item index="/approval-flows">
           <el-icon><Share /></el-icon>
           <span>审批流程</span>
@@ -137,7 +141,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { http } from '@/api/request'
-import { Odometer, Monitor, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
+import { Odometer, Monitor, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, Avatar, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
