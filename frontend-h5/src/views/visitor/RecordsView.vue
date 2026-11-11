@@ -166,6 +166,7 @@ async function openDetailById(id: number) {
     detailLabels.value = await loadFieldLabels(detailRecord.value.visitorType)
     detailApproval.value = await http
       .get<ApprovalInfo>(`/web/visitor/records/${id}/approval`)
+      .then((info) => (info && info.decision ? info : null))
       .catch(() => null)
     detailVisible.value = true
   } catch (e) {
@@ -193,9 +194,14 @@ async function cancelRecord(item: RecordItem) {
 
 async function showApproval(item: RecordItem) {
   try {
-    approval.value = await http.get<{ nodeName?: string; comment?: string; actedAt?: string }>(
+    const info = await http.get<{ nodeName?: string; comment?: string; actedAt?: string; decision?: string }>(
       `/web/visitor/records/${item.id}/approval`,
     )
+    if (!info || !info.decision) {
+      showToast('暂无审批意见')
+      return
+    }
+    approval.value = info
     approvalVisible.value = true
   } catch (e) {
     showToast(e instanceof Error ? e.message : '暂无审批意见')
