@@ -142,6 +142,7 @@ class VisitorModuleIntegrationTest {
     private String adminToken;
     private String deptToken;
     private String guardToken;
+    private String securityToken;
     private String otherAdminToken;
 
     @BeforeEach
@@ -184,6 +185,8 @@ class VisitorModuleIntegrationTest {
         deptToken = token(deptId, "13800003006", RoleEnum.DEPT_OPERATOR, 1L);
         Long guardId = createUser("13800003007", RoleEnum.GUARD, 1L);
         guardToken = token(guardId, "13800003007", RoleEnum.GUARD, 1L);
+        Long securityId = createUser("13800003010", RoleEnum.SECURITY, 1L);
+        securityToken = token(securityId, "13800003010", RoleEnum.SECURITY, 1L);
         otherAdminToken = token(otherAdminId, "13800003005", RoleEnum.SECURITY_ADMIN, 2L);
 
         insertFlow();
@@ -627,9 +630,12 @@ class VisitorModuleIntegrationTest {
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, teacherToken);
 
         List<?> found = (List<?>) exchange("/web/guard/query?plate=粤B12345",
-                HttpMethod.GET, null, guardToken).get("data");
+                HttpMethod.GET, null, securityToken).get("data");
         assertThat(found).hasSize(1);
 
+        Map<String, Object> guardForbidden = exchange("/web/guard/query?plate=粤B12345",
+                HttpMethod.GET, null, guardToken);
+        assertThat(guardForbidden.get("code")).isEqualTo(403);
         Map<String, Object> forbidden = exchange("/web/guard/query?plate=粤B12345",
                 HttpMethod.GET, null, visitorToken);
         assertThat(forbidden.get("code")).isEqualTo(403);

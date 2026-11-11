@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <van-nav-bar :title="title" left-arrow @click-left="$router.back()">
-      <template v-if="mode" #right>
+      <template v-if="mode && canScan && canQuery" #right>
         <span class="nav-link" @click="switchMode">{{ mode === 'verify' ? '车主查询' : '扫码核验' }}</span>
       </template>
     </van-nav-bar>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
@@ -72,6 +72,33 @@ const result = ref<VerifyResult | null>(null)
 const records = ref<RecordItem[]>([])
 const verifying = ref(false)
 const querying = ref(false)
+const canScan = ref(false)
+const canQuery = ref(false)
+
+async function loadAccess() {
+  try {
+    const me = await http.get<{ roles: Array<{ code: number }> }>('/auth/me')
+    const roles = new Set((me.roles ?? []).map((role) => role.code))
+    canScan.value = [1, 2, 3].some((code) => roles.has(code))
+    canQuery.value = [1, 2, 13].some((code) => roles.has(code))
+    if (!canScan.value && !canQuery.value) {
+      showToast('当前身份无核验权限')
+      router.replace('/v/home')
+      return
+    }
+    if (!mode.value) {
+      router.replace({ path: '/g/verify', query: { mode: canScan.value ? 'verify' : 'query' } })
+    } else if (mode.value === 'verify' && !canScan.value) {
+      router.replace({ path: '/g/verify', query: { mode: 'query' } })
+    } else if (mode.value === 'query' && !canQuery.value) {
+      router.replace({ path: '/g/verify', query: { mode: 'verify' } })
+    }
+  } catch {
+    showToast('获取权限失败，请重新登录')
+  }
+}
+
+onMounted(loadAccess)
 
 function switchMode() {
   router.replace({ path: '/g/verify', query: { mode: mode.value === 'verify' ? 'query' : 'verify' } })

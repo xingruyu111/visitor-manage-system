@@ -70,7 +70,7 @@ interface Profile {
   roles: RoleItem[]
 }
 
-type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'DEPT' | 'NONE'
+type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'SECURITY' | 'DEPT' | 'NONE'
 
 interface Entry {
   title: string
@@ -94,6 +94,7 @@ const ROLE_KIND: Record<number, MenuKind> = {
   8: 'APPROVER',
   9: 'VISITOR',
   11: 'DEPT',
+  13: 'SECURITY',
   12: 'APPROVER',
 }
 
@@ -163,10 +164,12 @@ const groups = computed<MenuGroup[]>(() => {
     GUARD: {
       key: 'GUARD',
       title: '门卫',
-      entries: [
-        { title: '扫码核验', to: '/g/verify?mode=verify', icon: 'scan' },
-        { title: '车主查询', to: '/g/verify?mode=query', icon: 'search' },
-      ],
+      entries: [{ title: '扫码核验', to: '/g/verify?mode=verify', icon: 'scan' }],
+    },
+    SECURITY: {
+      key: 'SECURITY',
+      title: '保安',
+      entries: [{ title: '车主查询', to: '/g/verify?mode=query', icon: 'search' }],
     },
     DEPT: {
       key: 'DEPT',

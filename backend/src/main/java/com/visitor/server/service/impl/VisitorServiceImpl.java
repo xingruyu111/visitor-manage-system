@@ -430,7 +430,7 @@ public class VisitorServiceImpl implements VisitorService {
     @Override
     public java.util.List<VisitorRecord> queryByPlate(String plate) {
         RoleEnum role = UserContext.getRole();
-        if (role != RoleEnum.GUARD && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+        if (role != RoleEnum.SECURITY && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
             throw new BizException(403, "无权查询车主信息");
         }
         if (plate == null || plate.isBlank()) {

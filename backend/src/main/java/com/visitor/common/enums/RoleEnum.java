@@ -18,7 +18,8 @@ public enum RoleEnum {
     CANTEEN(8, "食堂人员"),
     ALUMNI(9, "校友"),
     DEPT_OPERATOR(11, "二级学院/机关部处经办人"),
-    COUNSELOR(12, "辅导员");
+    COUNSELOR(12, "辅导员"),
+    SECURITY(13, "保安");
 
     @EnumValue
     private final int code;
