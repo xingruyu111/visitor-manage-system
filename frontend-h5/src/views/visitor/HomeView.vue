@@ -70,7 +70,7 @@ interface Profile {
   roles: RoleItem[]
 }
 
-type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'SECURITY' | 'DEPT' | 'NONE'
+type MenuKind = 'VISITOR' | 'APPROVER' | 'GUARD' | 'SECURITY' | 'SECURITY_ADMIN' | 'DEPT' | 'NONE'
 
 interface Entry {
   title: string
@@ -86,6 +86,7 @@ interface MenuGroup {
 }
 
 const ROLE_KIND: Record<number, MenuKind> = {
+  2: 'SECURITY_ADMIN',
   3: 'GUARD',
   4: 'VISITOR',
   5: 'APPROVER',
@@ -130,7 +131,7 @@ const menuKinds = computed<Exclude<MenuKind, 'NONE'>[]>(() => {
   }
 
   // 主角色：附属学生不生成基础入口，只保留附加角色入口
-  if (current.personType !== 6 && ![1, 2].includes(current.currentRole)) {
+  if (current.personType !== 6 && current.currentRole !== 1) {
     add(ROLE_KIND[current.currentRole] ?? 'NONE')
   }
 
@@ -171,6 +172,16 @@ const groups = computed<MenuGroup[]>(() => {
       title: '保安',
       entries: [{ title: '车主查询', to: '/g/verify?mode=query', icon: 'search' }],
     },
+    SECURITY_ADMIN: {
+      key: 'SECURITY_ADMIN',
+      title: '保卫处',
+      entries: [
+        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o', badge: pendingCount.value || undefined },
+        { title: '历史审批', to: '/a/history', icon: 'clock-o' },
+        { title: '车主查询', to: '/g/verify?mode=query', icon: 'search' },
+        { title: '扫码核验', to: '/g/verify?mode=verify', icon: 'scan' },
+      ],
+    },
     DEPT: {
       key: 'DEPT',
       title: '部门经办人',
@@ -183,7 +194,18 @@ const groups = computed<MenuGroup[]>(() => {
     },
   }
 
-  return menuKinds.value.map((kind) => definitions[kind])
+  const seen = new Set<string>()
+  return menuKinds.value
+    .map((kind) => definitions[kind])
+    .map((group) => ({
+      ...group,
+      entries: group.entries.filter((entry) => {
+        if (seen.has(entry.to)) return false
+        seen.add(entry.to)
+        return true
+      }),
+    }))
+    .filter((group) => group.entries.length > 0)
 })
 
 
