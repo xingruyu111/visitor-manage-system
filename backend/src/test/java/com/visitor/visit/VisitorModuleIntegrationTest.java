@@ -394,6 +394,33 @@ class VisitorModuleIntegrationTest {
     }
 
     @Test
+    void plateBlacklistBlocksApplication() {
+        AccessList list = new AccessList();
+        list.setSchoolId(1L);
+        list.setListType(1);
+        list.setTargetType("PLATE_MOTOR");
+        list.setTargetValue("粤B88888");
+        list.setStatus(1);
+        list.setSource("MANUAL");
+        list.setCreatedAt(LocalDateTime.now());
+        list.setUpdatedAt(LocalDateTime.now());
+        accessListMapper.insert(list);
+
+        String body = """
+                {"targetId":%d,"visitorType":"NORMAL","visitPurpose":"业务洽谈",
+                 "plateNumber":"粤B88888","passMode":"CAR",
+                 "expectedTime":"%s","leaveTime":"%s"}
+                """.formatted(teacherStaffId,
+                FORMAT.format(LocalDateTime.now().plusDays(1)),
+                FORMAT.format(LocalDateTime.now().plusDays(1).plusHours(2)));
+        Map<String, Object> result = exchange("/web/visitor/records", HttpMethod.POST, body, visitorToken);
+
+        assertThat(result.get("code")).isEqualTo(403);
+        assertThat(result.get("message")).asString().contains("黑名单");
+        assertThat(recordMapper.selectCount(null)).isZero();
+    }
+
+    @Test
     void whitelistedVisitorIsAutoApprovedWithPass() {
         insertList(2, "13800003001", null);
 

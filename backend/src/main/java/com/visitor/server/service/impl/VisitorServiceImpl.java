@@ -101,7 +101,8 @@ public class VisitorServiceImpl implements VisitorService {
             throw new BizException(400, "被访人不存在或已停用");
         }
         validateTime(dto.getExpectedTime(), dto.getLeaveTime());
-        String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), null);
+        String plate = dto.getPlateNumber() == null ? null : dto.getPlateNumber().trim().toUpperCase();
+        String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), plate);
         if ("BLACKLIST".equals(access)) {
             alarmService.notifyBlacklistHit(user.getName(), user.getPhone());
             auditLogService.record("BLACKLIST_HIT", "ACCESS_LIST", null, "黑名单拦截：" + user.getPhone());
