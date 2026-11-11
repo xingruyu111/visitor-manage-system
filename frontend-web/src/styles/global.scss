@@ -102,6 +102,12 @@ body {
   vertical-align: middle;
 }
 
+/* 查询栏与表格之间留出间距，和人员管理保持一致 */
+.el-card__body > .el-table,
+.el-card > .el-table {
+  margin-top: 12px;
+}
+
 /* ---------- 按钮 ---------- */
 .el-button {
   border-radius: 6px;
