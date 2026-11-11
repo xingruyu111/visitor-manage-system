@@ -4,6 +4,7 @@ import com.visitor.common.core.PageResult;
 import com.visitor.domain.dto.WhitelistImportRow;
 import com.visitor.domain.dto.WhitelistSaveDTO;
 import com.visitor.domain.entity.AccessList;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 

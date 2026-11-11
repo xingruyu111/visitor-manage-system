@@ -456,6 +456,27 @@ function confirmFieldDate() {
   fieldDateVisible.value = false
 }
 
+function isValidPhone(value: string) {
+  return /^1[3-9]\d{9}$/.test(value.trim())
+}
+
+function isValidIdCard(value: string) {
+  const id = value.trim().toUpperCase()
+  if (!/^\d{17}[\dX]$/.test(id)) return false
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const codes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  const sum = id.slice(0, 17).split('').reduce((total, char, index) => total + Number(char) * weights[index], 0)
+  if (codes[sum % 11] !== id[17]) return false
+  const year = Number(id.slice(6, 10))
+  const month = Number(id.slice(10, 12))
+  const day = Number(id.slice(12, 14))
+  const birth = new Date(year, month - 1, day)
+  return birth.getFullYear() === year
+    && birth.getMonth() === month - 1
+    && birth.getDate() === day
+    && birth <= new Date()
+}
+
 async function submit() {
   if (checkStatus.value === 'BLACKLIST') {
     showToast('您在黑名单中，无法提交预约')
@@ -482,6 +503,18 @@ async function submit() {
   if (missing) {
     showToast(`请填写${missing.label}`)
     return
+  }
+  for (const field of fields.value) {
+    const value = String(extra[field.fieldKey] ?? '').trim()
+    if (!value) continue
+    if (field.fieldType === 'PHONE' && !isValidPhone(value)) {
+      showToast(`${field.label}格式不正确`)
+      return
+    }
+    if (field.fieldType === 'ID_CARD' && !isValidIdCard(value)) {
+      showToast(`${field.label}校验失败`)
+      return
+    }
   }
   submitting.value = true
   try {

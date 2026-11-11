@@ -2,6 +2,7 @@ package com.visitor.server.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.exception.BizException;
+import com.visitor.common.utils.IdentityValidator;
 import com.visitor.domain.entity.FormField;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.service.FormFieldService;
@@ -88,11 +89,19 @@ public class FormFieldServiceImpl implements FormFieldService {
     public void validate(String visitorType, Map<String, String> extra) {
         List<FormField> fields = list(visitorType, true);
         for (FormField field : fields) {
-            if (field.getRequired() != null && field.getRequired() == 1) {
-                String value = extra == null ? null : extra.get(field.getFieldKey());
-                if (value == null || value.isBlank()) {
-                    throw new BizException(400, "缺少必填项：" + field.getLabel());
-                }
+            String value = extra == null ? null : extra.get(field.getFieldKey());
+            if (field.getRequired() != null && field.getRequired() == 1
+                    && (value == null || value.isBlank())) {
+                throw new BizException(400, "缺少必填项：" + field.getLabel());
+            }
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            if ("PHONE".equals(field.getFieldType()) && !IdentityValidator.isPhone(value)) {
+                throw new BizException(400, "手机号格式不正确：" + field.getLabel());
+            }
+            if ("ID_CARD".equals(field.getFieldType()) && !IdentityValidator.isIdCard(value)) {
+                throw new BizException(400, "身份证号校验失败：" + field.getLabel());
             }
         }
     }
