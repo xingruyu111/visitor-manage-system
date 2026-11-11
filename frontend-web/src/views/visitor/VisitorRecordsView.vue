@@ -64,6 +64,13 @@
         <el-descriptions-item label="到访">{{ current.expectedTime }}</el-descriptions-item>
         <el-descriptions-item label="离校">{{ current.leaveTime }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ STATUS[current.status] }}</el-descriptions-item>
+        <el-descriptions-item
+          v-for="entry in extraEntries"
+          :key="entry.key"
+          :label="entry.label"
+        >
+          {{ entry.value }}
+        </el-descriptions-item>
       </el-descriptions>
       <div v-if="current && current.status === 0" class="emergency">
         <el-button type="success" @click="emergency(true)">紧急通过</el-button>
@@ -88,6 +95,8 @@ interface VisitorRecord {
   expectedTime: string
   leaveTime: string
   status: number
+  visitorType?: string
+  extraJson?: string
 }
 
 const STATUS: Record<number, string> = {
@@ -110,6 +119,7 @@ const batchText = ref('')
 const submitting = ref(false)
 const exporting = ref(false)
 const current = ref<VisitorRecord>()
+const extraEntries = ref<Array<{ key: string; label: string; value: string }>>([])
 
 async function load(targetPage = page.value) {
   page.value = targetPage
@@ -205,6 +215,34 @@ async function emergency(approve: boolean) {
 function openDetail(row: VisitorRecord) {
   current.value = row
   drawer.value = true
+  loadExtraEntries(row)
+}
+
+async function loadExtraEntries(row: VisitorRecord) {
+  extraEntries.value = []
+  if (!row.extraJson) return
+  let values: Record<string, unknown> = {}
+  try {
+    values = JSON.parse(row.extraJson)
+  } catch {
+    return
+  }
+  let labels: Record<string, string> = {}
+  try {
+    const fields = await http.get<Array<{ fieldKey: string; label: string }>>('/web/visitor/form-fields', {
+      visitorType: row.visitorType || 'NORMAL',
+    })
+    labels = Object.fromEntries(fields.map((field) => [field.fieldKey, field.label]))
+  } catch {
+    // 字段配置读取失败时使用字段编码
+  }
+  extraEntries.value = Object.entries(values)
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+    .map(([key, value]) => ({
+      key,
+      label: labels[key] || key,
+      value: String(value),
+    }))
 }
 
 onMounted(() => load(1))

@@ -49,6 +49,7 @@
       title="预约详情"
       :record="detailRecord"
       :approval="detailApproval"
+      :field-labels="detailLabels"
     />
 
     <van-dialog v-model:show="approvalVisible" title="审批意见" confirm-button-text="关闭">
@@ -114,6 +115,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 const detailVisible = ref(false)
 const detailRecord = ref<DetailRecord | null>(null)
 const detailApproval = ref<ApprovalInfo | null>(null)
+const detailLabels = ref<Record<string, string>>({})
 
 function canShowPass(item: RecordItem) {
   if (item.status === 1 || item.status === 3) return true
@@ -147,9 +149,21 @@ async function load() {
   }
 }
 
+async function loadFieldLabels(visitorType?: string): Promise<Record<string, string>> {
+  try {
+    const fields = await http.get<Array<{ fieldKey: string; label: string }>>('/web/visitor/form-fields', {
+      visitorType: visitorType || 'NORMAL',
+    })
+    return Object.fromEntries(fields.map((field) => [field.fieldKey, field.label]))
+  } catch {
+    return {}
+  }
+}
+
 async function openDetailById(id: number) {
   try {
     detailRecord.value = await http.get<DetailRecord>(`/web/visitor/records/${id}`)
+    detailLabels.value = await loadFieldLabels(detailRecord.value.visitorType)
     detailApproval.value = await http
       .get<ApprovalInfo>(`/web/visitor/records/${id}/approval`)
       .catch(() => null)

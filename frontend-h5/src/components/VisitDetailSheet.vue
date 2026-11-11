@@ -36,6 +36,16 @@
           <van-cell v-if="record?.headTeacherNo" title="班主任工号" :value="record.headTeacherNo" />
         </section>
 
+        <section v-if="extraEntries.length" class="block">
+          <h3>补充信息</h3>
+          <van-cell
+            v-for="entry in extraEntries"
+            :key="entry.key"
+            :title="entry.label"
+            :value="entry.value"
+          />
+        </section>
+
         <section v-if="task?.dueAt" class="block">
           <h3>审批信息</h3>
           <van-cell title="当前节点" :value="task?.nodeName || '—'" />
@@ -95,6 +105,7 @@ export interface VisitRecord {
   plateNumber?: string
   headTeacherNo?: string
   status?: number
+  extraJson?: string
 }
 
 export interface TaskInfo {
@@ -128,6 +139,7 @@ const props = defineProps<{
   task?: TaskInfo | null
   approval?: ApprovalInfo | null
   history?: HistoryInfo[] | null
+  fieldLabels?: Record<string, string> | null
 }>()
 
 const emit = defineEmits<{ 'update:show': [value: boolean] }>()
@@ -166,6 +178,22 @@ const visitorTypeText = computed(() => {
 const passModeText = computed(() => {
   const map: Record<string, string> = { WALK: '步行', EBIKE: '电动车', CAR: '机动车' }
   return map[props.record?.passMode ?? ''] ?? props.record?.passMode ?? '—'
+})
+
+const extraEntries = computed(() => {
+  if (!props.record?.extraJson) return []
+  try {
+    const data = JSON.parse(props.record.extraJson) as Record<string, unknown>
+    return Object.entries(data)
+      .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+      .map(([key, value]) => ({
+        key,
+        label: props.fieldLabels?.[key] || key,
+        value: String(value),
+      }))
+  } catch {
+    return []
+  }
 })
 </script>
 

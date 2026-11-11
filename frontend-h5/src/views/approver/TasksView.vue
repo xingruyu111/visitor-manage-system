@@ -51,6 +51,7 @@
       :record="detailRecord"
       :task="detailTask"
       :history="detailHistory"
+      :field-labels="detailLabels"
     />
   </div>
 </template>
@@ -84,6 +85,7 @@ const detailVisible = ref(false)
 const detailRecord = ref<VisitRecord | null>(null)
 const detailTask = ref<TaskInfo | null>(null)
 const detailHistory = ref<HistoryInfo[]>([])
+const detailLabels = ref<Record<string, string>>({})
 
 async function load() {
   try {
@@ -96,6 +98,17 @@ async function load() {
   }
 }
 
+async function loadFieldLabels(visitorType?: string): Promise<Record<string, string>> {
+  try {
+    const fields = await http.get<Array<{ fieldKey: string; label: string }>>('/web/visitor/form-fields', {
+      visitorType: visitorType || 'NORMAL',
+    })
+    return Object.fromEntries(fields.map((field) => [field.fieldKey, field.label]))
+  } catch {
+    return {}
+  }
+}
+
 async function openDetail(taskId: number) {
   try {
     const data = await http.get<{
@@ -105,6 +118,7 @@ async function openDetail(taskId: number) {
     }>(`/web/approval/tasks/${taskId}/detail`)
     detailTask.value = data.task
     detailRecord.value = data.record
+    detailLabels.value = await loadFieldLabels(data.record?.visitorType)
     detailHistory.value = data.history ?? []
     detailVisible.value = true
   } catch (e) {
