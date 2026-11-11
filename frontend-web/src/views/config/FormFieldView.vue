@@ -17,7 +17,9 @@
         </el-table-column>
         <el-table-column prop="fieldKey" label="字段编码" width="150" />
         <el-table-column prop="label" label="显示名称" min-width="140" />
-        <el-table-column prop="fieldType" label="类型" width="110" />
+        <el-table-column label="类型" width="110">
+          <template #default="{ row }">{{ TYPE_LABELS[row.fieldType] || row.fieldType }}</template>
+        </el-table-column>
         <el-table-column label="必填" width="80">
           <template #default="{ row }">
             <el-tag :type="row.required === 1 ? 'danger' : 'info'">{{ row.required === 1 ? '是' : '否' }}</el-tag>
@@ -52,7 +54,7 @@
         <el-form-item label="显示名称"><el-input v-model="form.label" placeholder="如 工作单位" /></el-form-item>
         <el-form-item label="字段类型">
           <el-select v-model="form.fieldType" style="width: 100%">
-            <el-option v-for="item in FIELD_TYPES" :key="item" :label="item" :value="item" />
+            <el-option v-for="item in FIELD_TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="是否必填">
@@ -97,7 +99,15 @@ const TYPES = [
   { value: 'CONSTRUCTION', label: '施工/合作' },
 ]
 const TYPE_LABEL = Object.fromEntries(TYPES.map((item) => [item.value, item.label]))
-const FIELD_TYPES = ['TEXT', 'NUMBER', 'DATE', 'SELECT', 'PHONE', 'ID_CARD']
+const FIELD_TYPES = [
+  { value: 'TEXT', label: '文本' },
+  { value: 'NUMBER', label: '数字' },
+  { value: 'DATE', label: '日期' },
+  { value: 'SELECT', label: '下拉选择' },
+  { value: 'PHONE', label: '手机号' },
+  { value: 'ID_CARD', label: '身份证号' },
+]
+const TYPE_LABELS: Record<string, string> = Object.fromEntries(FIELD_TYPES.map((item) => [item.value, item.label]))
 
 const rows = ref<Field[]>([])
 const visitorType = ref<string>()
