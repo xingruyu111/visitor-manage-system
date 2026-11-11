@@ -73,6 +73,7 @@ class AuthControllerIntegrationTest {
         userRoleMapper.delete(null);
         userMapper.delete(null);
         integrationConfigMapper.delete(null);
+        staffMapper.delete(null);
 
         superUserId = createUser("13700000010", "超级管理员", 1, RoleEnum.SYSTEM_ADMIN, null);
         adminUserId = createUser("13700000011", "学校管理员", 1, RoleEnum.SECURITY_ADMIN, 1L);
@@ -317,6 +318,56 @@ class AuthControllerIntegrationTest {
         assertThat(authService.me(userId).getPersonType()).isEqualTo(6);
         assertThat(authService.me(userId).getPersonTypeDesc()).isEqualTo("附属学校学生");
     }
+    @Test
+    void visitorLoginUsesStaffPersonTypeWhenAccountMissing() {
+        Staff staff = new Staff();
+        staff.setSchoolId(1L);
+        staff.setSyncSource("LOCAL");
+        staff.setName("学生小李");
+        staff.setPhone("13700009991");
+        staff.setPersonNo("S-1001");
+        staff.setPersonType(PersonTypeEnum.STUDENT);
+        staff.setStatus(1);
+        staff.setIsDeleted(0);
+        staff.setCreatedAt(LocalDateTime.now());
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(staff);
+
+        ResponseEntity<Map> response = rest.postForEntity(url("/auth/visitor-login"),
+                Map.of("phone", "13700009991", "password", "pass1234"), Map.class);
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        assertThat(data.get("currentRole")).isEqualTo(6);
+        User created = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, "13700009991"));
+        assertThat(created.getPersonNo()).isEqualTo("S-1001");
+        assertThat(userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, created.getId())).getRole()).isEqualTo(RoleEnum.STUDENT);
+    }
+
+    @Test
+    void loginUpgradesLegacyVisitorRoleToStaffPersonType() {
+        Long userId = createUser("13700000015", "访客0000", 1, RoleEnum.VISITOR, null);
+        Staff staff = new Staff();
+        staff.setSchoolId(1L);
+        staff.setSyncSource("LOCAL");
+        staff.setName("学生小王");
+        staff.setPhone("13700000015");
+        staff.setPersonNo("S-1002");
+        staff.setPersonType(PersonTypeEnum.STUDENT);
+        staff.setStatus(1);
+        staff.setIsDeleted(0);
+        staff.setCreatedAt(LocalDateTime.now());
+        staff.setUpdatedAt(LocalDateTime.now());
+        staffMapper.insert(staff);
+
+        Map<String, Object> body = login("13700000015", PASSWORD);
+        Map<String, Object> data = data(body);
+        assertThat(data.get("currentRole")).isEqualTo(6);
+        assertThat(userMapper.selectById(userId).getPersonNo()).isEqualTo("S-1002");
+        assertThat(userRoleMapper.selectOne(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)).getRole()).isEqualTo(RoleEnum.STUDENT);
+    }
+
     private Map<String, Object> data(Map<String, Object> body) {
         return (Map<String, Object>) body.get("data");
     }

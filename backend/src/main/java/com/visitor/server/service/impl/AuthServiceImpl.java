@@ -73,6 +73,7 @@ public class AuthServiceImpl implements AuthService {
         if (!Integer.valueOf(1).equals(user.getStatus())) {
             throw new BizException(403, "账号已停用");
         }
+        syncStaffIdentity(user);
         List<UserRole> roles = activeRoles(user.getId());
         if (roles.isEmpty()) {
             throw new BizException(403, "账号未分配角色");
@@ -99,14 +100,19 @@ public class AuthServiceImpl implements AuthService {
         }
         User visitor = new User();
         visitor.setPhone(phone);
-        visitor.setName("访客" + phone.substring(Math.max(0, phone.length() - 4)));
+        Staff staff = findActiveStaffByPhone(phone);
+        visitor.setName(staff != null ? staff.getName() : "访客" + phone.substring(Math.max(0, phone.length() - 4)));
+        visitor.setPersonNo(staff == null || personNoUsedByOther(staff.getPersonNo(), null)
+                ? null : staff.getPersonNo());
         visitor.setPassword(passwordEncoder.encode(password));
         visitor.setStatus(1);
         visitor.setCreatedAt(LocalDateTime.now());
         visitor.setUpdatedAt(LocalDateTime.now());
         userMapper.insert(visitor);
 
-        List<UserRole> roles = List.of(createRole(visitor.getId(), RoleEnum.VISITOR));
+        RoleEnum role = staff == null || staff.getPersonType() == null
+                ? RoleEnum.VISITOR : staff.getPersonType().getRole();
+        List<UserRole> roles = List.of(createRole(visitor.getId(), role));
         UserRole current = pickDefault(roles);
         String token = jwtUtil.generate(visitor.getId(), visitor.getName(),
                 roles.stream().map(UserRole::getRole).toList(), current.getRole(), current.getSchoolId());
@@ -189,6 +195,68 @@ public class AuthServiceImpl implements AuthService {
                 .eq(Staff::getPhone, user.getPhone())
                 .eq(Staff::getIsDeleted, 0)
                 .last("LIMIT 1"));
+    }
+
+    private Staff findActiveStaffByPhone(String phone) {
+        return staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
+                .eq(Staff::getPhone, phone)
+                .eq(Staff::getStatus, 1)
+                .eq(Staff::getIsDeleted, 0)
+                .last("LIMIT 1"));
+    }
+
+    private boolean personNoUsedByOther(String personNo, Long userId) {
+        if (personNo == null || personNo.isBlank()) {
+            return false;
+        }
+        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getPersonNo, personNo)
+                .ne(userId != null, User::getId, userId));
+        return count != null && count > 0;
+    }
+
+    /**
+     * 旧数据修复：账号最初按访客创建，后来人员管理中出现了同手机号的学生/教职工。
+     * 登录时把唯一的 VISITOR 角色升级为人员类型对应角色，避免“学生身份却只有访客菜单”。
+     */
+    private void syncStaffIdentity(User user) {
+        List<UserRole> roles = activeRoles(user.getId());
+        boolean hasNonVisitor = roles.stream().anyMatch(role -> role.getRole() != RoleEnum.VISITOR);
+        if (hasNonVisitor) {
+            return;
+        }
+        Staff staff = findActiveStaffByPhone(user.getPhone());
+        if (staff == null || staff.getPersonType() == null
+                || staff.getPersonType().getRole() == RoleEnum.VISITOR) {
+            return;
+        }
+        RoleEnum target = staff.getPersonType().getRole();
+        UserRole visitorRole = roles.stream()
+                .filter(role -> role.getRole() == RoleEnum.VISITOR)
+                .findFirst().orElse(null);
+        if (visitorRole != null) {
+            visitorRole.setRole(target);
+            visitorRole.setSource("IDENTITY");
+            visitorRole.setIsDefault(1);
+            visitorRole.setStatus(1);
+            visitorRole.setUpdatedAt(LocalDateTime.now());
+            userRoleMapper.updateById(visitorRole);
+        } else {
+            createRole(user.getId(), target);
+        }
+        if (user.getPersonNo() == null || user.getPersonNo().isBlank()) {
+            if (!personNoUsedByOther(staff.getPersonNo(), user.getId())) {
+                user.setPersonNo(staff.getPersonNo());
+            } else {
+                log.warn("人员工号 {} 已被其他账号占用，跳过账号绑定: userId={}", staff.getPersonNo(), user.getId());
+            }
+        }
+        if (user.getName() == null || user.getName().startsWith("访客")) {
+            user.setName(staff.getName());
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+        log.info("登录时同步人员身份: userId={}, role={}", user.getId(), target);
     }
 
     @Override

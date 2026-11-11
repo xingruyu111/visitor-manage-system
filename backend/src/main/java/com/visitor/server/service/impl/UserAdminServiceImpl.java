@@ -7,9 +7,11 @@ import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.UserCreateDTO;
 import com.visitor.domain.entity.ApprovalTask;
+import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
 import com.visitor.server.mapper.ApprovalTaskMapper;
+import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.service.UserAdminService;
@@ -35,13 +37,16 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final UserRoleMapper userRoleMapper;
     private final ApprovalTaskMapper taskMapper;
     private final PasswordEncoder passwordEncoder;
+    private final StaffMapper staffMapper;
 
     public UserAdminServiceImpl(UserMapper userMapper, UserRoleMapper userRoleMapper,
-                                ApprovalTaskMapper taskMapper, PasswordEncoder passwordEncoder) {
+                                ApprovalTaskMapper taskMapper, PasswordEncoder passwordEncoder,
+                                StaffMapper staffMapper) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.taskMapper = taskMapper;
         this.passwordEncoder = passwordEncoder;
+        this.staffMapper = staffMapper;
     }
 
     @Override
@@ -233,6 +238,14 @@ public class UserAdminServiceImpl implements UserAdminService {
         User user = requireUser(userId);
         if (phone == null || phone.isBlank()) {
             throw new BizException(400, "手机号不能为空");
+        }
+        Staff linked = user.getPersonNo() == null ? null : staffMapper.selectOne(
+                new LambdaQueryWrapper<Staff>()
+                        .eq(Staff::getPersonNo, user.getPersonNo())
+                        .eq(Staff::getIsDeleted, 0)
+                        .last("LIMIT 1"));
+        if (linked != null) {
+            throw new BizException(400, "该账号已关联人员，请到人员管理修改手机号");
         }
         String value = phone.trim();
         Long exists = userMapper.selectCount(new LambdaQueryWrapper<User>()

@@ -41,7 +41,7 @@
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openRoles(row)">角色</el-button>
-            <el-button link type="primary" @click="changePhone(row)">改手机号</el-button>
+            <el-button v-if="!row.personNo" link type="primary" @click="changePhone(row)">改手机号</el-button>
             <el-button link :type="row.status === 1 ? 'danger' : 'success'" @click="toggle(row)">
               {{ row.status === 1 ? '停用' : '启用' }}
             </el-button>

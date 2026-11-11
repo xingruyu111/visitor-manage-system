@@ -116,7 +116,7 @@ class StaffAccountRestoreTest {
         assertThat(restored.getId()).isEqualTo(created.getId());
         User restoredUser = userMapper.selectById(user.getId());
         assertThat(restoredUser.getStatus()).isEqualTo(1);
-        assertThat(restoredUser.getPhone()).isEqualTo("13900007777");
+        assertThat(restoredUser.getPhone()).isEqualTo("13900006666");
         assertThat(roles(user.getId())).allMatch(role -> role.getStatus() == 1);
     }
 
@@ -137,18 +137,17 @@ class StaffAccountRestoreTest {
     }
 
     @Test
-    void phoneUpdateIsIndependentBetweenStaffAndAccount() {
+    void phoneUpdateSyncsAccountAndAccountSideIsBlocked() {
         staffService.create(1L, dto("T103", "13900004444", PersonTypeEnum.TEACHER));
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T103"));
 
         Staff staff = staffMapper.selectOne(new LambdaQueryWrapper<Staff>().eq(Staff::getPersonNo, "T103"));
         staffService.update(1L, staff.getId(), dto("T103", "13900003333", PersonTypeEnum.TEACHER));
 
-        assertThat(userMapper.selectById(user.getId()).getPhone()).isEqualTo("13900004444");
-        assertThat(staffMapper.selectById(staff.getId()).getPhone()).isEqualTo("13900003333");
-
-        userAdminService.updatePhone(user.getId(), "13900002222");
-        assertThat(staffMapper.selectById(staff.getId()).getPhone()).isEqualTo("13900003333");
+        assertThat(userMapper.selectById(user.getId()).getPhone()).isEqualTo("13900003333");
+        assertThatThrownBy(() -> userAdminService.updatePhone(user.getId(), "13900002222"))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("人员管理");
     }
 
     @Test
@@ -228,6 +227,16 @@ class StaffAccountRestoreTest {
         Staff saved = staffMapper.selectById(created.getId());
         assertThat(saved.getPosition()).isNull();
         assertThat(saved.getOrgId()).isNull();
+    }
+    @Test
+    void phoneChangeSyncsLinkedAccount() {
+        StaffVO created = staffService.create(1L, dto("T110", "13900008801", PersonTypeEnum.TEACHER));
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPersonNo, "T110"));
+
+        StaffSaveDTO update = dto("T110", "13900008802", PersonTypeEnum.TEACHER);
+        staffService.update(1L, created.getId(), update);
+
+        assertThat(userMapper.selectById(user.getId()).getPhone()).isEqualTo("13900008802");
     }
     private StaffSaveDTO dto(String personNo, String phone, PersonTypeEnum type) {
         StaffSaveDTO dto = new StaffSaveDTO();

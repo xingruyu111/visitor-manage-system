@@ -84,7 +84,10 @@
       <el-form label-width="90px">
         <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="工号/学号"><el-input v-model="form.personNo" placeholder="唯一，教职工填工号、学生填学号" /></el-form-item>
-        <el-form-item label="手机号"><el-input v-model="form.phone" placeholder="必填，用于开通账号" /></el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="form.phone" placeholder="必填，用于开通账号" />
+          <div class="field-hint">修改后账号手机号会同步更新</div>
+        </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.personType" style="width: 100%">
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
@@ -467,6 +470,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.field-hint {
+  margin-top: 4px;
+  color: #8a97a8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .layout {
   display: flex;
   gap: 16px;

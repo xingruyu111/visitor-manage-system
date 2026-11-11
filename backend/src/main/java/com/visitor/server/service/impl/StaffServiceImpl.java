@@ -184,11 +184,28 @@ public class StaffServiceImpl implements StaffService {
             if (user.getPersonNo() == null) {
                 user.setPersonNo(staff.getPersonNo());
             }
+            if (!java.util.Objects.equals(user.getPhone(), staff.getPhone())) {
+                assertUserPhoneAvailable(staff.getPhone(), user.getId());
+                user.setPhone(staff.getPhone());
+            }
             user.setUpdatedAt(LocalDateTime.now());
             userMapper.updateById(user);
         }
         syncPrimaryRole(staff, user);
         return user;
+    }
+
+    /** 账号手机号必须全局唯一，人员改手机号时校验是否已被独立账号占用。 */
+    private void assertUserPhoneAvailable(String phone, Long userId) {
+        if (phone == null || phone.isBlank()) {
+            return;
+        }
+        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone)
+                .ne(User::getId, userId));
+        if (count != null && count > 0) {
+            throw new BizException(400, "手机号已绑定其他账号");
+        }
     }
 
     /** 按人员类型维护唯一的主角色（source=IDENTITY）。 */
@@ -268,6 +285,10 @@ public class StaffServiceImpl implements StaffService {
                 user.setStatus(1);
                 user.setName(staff.getName());
                 user.setPersonNo(staff.getPersonNo());
+                if (!java.util.Objects.equals(user.getPhone(), staff.getPhone())) {
+                    assertUserPhoneAvailable(staff.getPhone(), user.getId());
+                    user.setPhone(staff.getPhone());
+                }
                 user.setUpdatedAt(LocalDateTime.now());
                 userMapper.updateById(user);
                 if (oldType != staff.getPersonType()) {
