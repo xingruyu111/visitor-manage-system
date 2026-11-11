@@ -10,6 +10,15 @@
       <van-loading v-if="!loaded" class="loading" />
 
       <template v-else>
+        <div v-if="whitelistRecord" class="whitelist-banner" @click="showWhitelistPass">
+          <div class="whitelist-icon"><van-icon name="passed" /></div>
+          <div class="whitelist-text">
+            <strong>您在白名单中</strong>
+            <span>有效期至 {{ whitelistRecord.leaveTime }}，点击查看通行码</span>
+          </div>
+          <van-icon name="arrow" class="whitelist-arrow" />
+        </div>
+
         <van-cell-group v-for="group in groups" :key="group.key" inset :title="group.title" class="group">
           <van-cell
             v-for="entry in group.entries"
@@ -45,13 +54,22 @@
         <van-button block plain type="primary" @click="logout">退出登录</van-button>
       </div>
     </div>
+
+    <van-dialog v-model:show="passVisible" title="通行凭证" confirm-button-text="关闭">
+      <div v-if="pass" class="pass">
+        <canvas ref="canvasRef" class="qr"></canvas>
+        <p class="pass-meta">有效期：{{ pass.validFrom }} ~ {{ pass.validTo }}</p>
+        <p class="pass-meta">通行次数：{{ pass.usedEntries }} / {{ pass.maxEntries }}</p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
 import { useRouter } from 'vue-router'
+import QRCode from 'qrcode'
 import { http } from '@/api/request'
 
 interface RoleItem {
@@ -99,11 +117,31 @@ const ROLE_KIND: Record<number, MenuKind> = {
   12: 'APPROVER',
 }
 
+interface RecordItem {
+  id: number
+  targetType?: string
+  status: number
+  expectedTime: string
+  leaveTime: string
+}
+
+interface Pass {
+  qrToken: string
+  validFrom: string
+  validTo: string
+  usedEntries: number
+  maxEntries: number
+}
+
 const router = useRouter()
 const profile = ref<Profile>()
 const loaded = ref(false)
 const pendingCount = ref(0)
 const unreadCount = ref(0)
+const whitelistRecord = ref<RecordItem>()
+const pass = ref<Pass>()
+const passVisible = ref(false)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const isAlumni = computed(() => {
   const current = profile.value
@@ -212,6 +250,35 @@ const groups = computed<MenuGroup[]>(() => {
 
 
 
+async function loadWhitelist() {
+  try {
+    const data = await http.get<{ records: RecordItem[] }>('/web/visitor/records', { page: 1, size: 50 })
+    const now = new Date()
+    whitelistRecord.value = (data.records ?? []).find((item) => {
+      if (item.targetType !== 'WHITELIST' || ![1, 3, 4].includes(item.status)) return false
+      const from = new Date(item.expectedTime.replace(' ', 'T'))
+      const to = new Date(item.leaveTime.replace(' ', 'T'))
+      return from <= now && now <= to
+    })
+  } catch {
+    whitelistRecord.value = undefined
+  }
+}
+
+async function showWhitelistPass() {
+  if (!whitelistRecord.value) return
+  try {
+    pass.value = await http.get<Pass>(`/web/visitor/records/${whitelistRecord.value.id}/pass`)
+    passVisible.value = true
+    await nextTick()
+    if (canvasRef.value) {
+      await QRCode.toCanvas(canvasRef.value, pass.value.qrToken, { width: 220, margin: 1 })
+    }
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '通行码暂不可用')
+  }
+}
+
 async function logout() {
   try {
     await http.post('/auth/logout')
@@ -250,6 +317,7 @@ async function loadProfile() {
 onMounted(() => {
   loadProfile()
   loadCounts()
+  loadWhitelist()
 })
 </script>
 
@@ -281,6 +349,59 @@ onMounted(() => {
 }
 .group {
   margin-top: 14px;
+}
+.whitelist-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 16px 2px;
+  padding: 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eaf4ff 0%, #f7fbff 100%);
+  border: 1px solid #cfe5ff;
+}
+.whitelist-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 12px;
+  background: #1677ff;
+  color: #ffffff;
+  font-size: 20px;
+}
+.whitelist-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.whitelist-text strong {
+  color: #10233f;
+  font-size: 15px;
+}
+.whitelist-text span {
+  margin-top: 3px;
+  color: #61738c;
+  font-size: 12px;
+}
+.whitelist-arrow {
+  color: #1677ff;
+}
+.pass {
+  padding: 18px 16px 10px;
+  text-align: center;
+}
+.qr {
+  width: 220px;
+  height: 220px;
+}
+.pass-meta {
+  margin: 8px 0 0;
+  color: #61738c;
+  font-size: 12px;
 }
 .group :deep(.van-cell) {
   align-items: center;
