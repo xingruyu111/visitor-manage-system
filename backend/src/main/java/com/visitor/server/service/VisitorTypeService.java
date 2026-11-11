@@ -17,6 +17,8 @@ public interface VisitorTypeService {
 
     VisitorType updateStatus(Long id, Integer status);
 
+    void delete(Long id);
+
     List<BookingRule> rulesOf(String code);
 
     void validateBookingTime(String code, LocalDateTime expected, LocalDateTime leave);

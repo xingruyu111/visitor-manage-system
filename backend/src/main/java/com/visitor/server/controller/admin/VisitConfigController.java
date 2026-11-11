@@ -8,6 +8,7 @@ import com.visitor.server.service.VisitorTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,6 +56,13 @@ public class VisitConfigController {
     @PutMapping("/visitor-types/{id}/status")
     public Result<VisitorType> status(@PathVariable Long id, @RequestParam Integer status) {
         return Result.success(visitorTypeService.updateStatus(id, status));
+    }
+
+    @Operation(summary = "删除访客类型")
+    @DeleteMapping("/visitor-types/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        visitorTypeService.delete(id);
+        return Result.success();
     }
 
     @Operation(summary = "校友通行月份")

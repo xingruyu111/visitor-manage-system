@@ -29,12 +29,13 @@
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleType(row)">
               {{ row.status === 1 ? '停用' : '启用' }}
             </el-button>
+            <el-button link type="danger" :disabled="isBuiltin(row)" @click="removeType(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -143,7 +144,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/api/request'
 
 interface BookingRule {
@@ -171,6 +172,8 @@ const MODES = [
   { value: 'MONTH_DAY', label: '按月+日' },
   { value: 'UNLIMITED', label: '不限' },
 ]
+const BUILTIN_CODES = new Set(['NORMAL', 'PARENT', 'ALUMNI', 'CONSTRUCTION', 'COOPERATION'])
+
 const WEEKDAYS = [
   { value: '1', label: '周一' },
   { value: '2', label: '周二' },
@@ -318,6 +321,23 @@ async function save() {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
   } finally {
     saving.value = false
+  }
+}
+
+function isBuiltin(row: VisitorType) {
+  return BUILTIN_CODES.has(row.code)
+}
+
+async function removeType(row: VisitorType) {
+  try {
+    await ElMessageBox.confirm(`确定删除访客类型「${row.name}」？`, '提示', { type: 'warning' })
+    await http.delete(`/web/admin/visitor-types/${row.id}`)
+    ElMessage.success('已删除')
+    await load()
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e instanceof Error ? e.message : '删除失败')
+    }
   }
 }
 

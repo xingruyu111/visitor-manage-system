@@ -7,6 +7,7 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.BookingRule;
 import com.visitor.domain.dto.VisitorTypeSaveDTO;
 import com.visitor.domain.entity.VisitorType;
+import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.VisitorTypeMapper;
 import com.visitor.server.service.VisitorTypeService;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,13 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
 
     private final VisitorTypeMapper mapper;
     private final ObjectMapper objectMapper;
+    private final FormFieldMapper formFieldMapper;
 
-    public VisitorTypeServiceImpl(VisitorTypeMapper mapper, ObjectMapper objectMapper) {
+    public VisitorTypeServiceImpl(VisitorTypeMapper mapper, ObjectMapper objectMapper,
+                                  FormFieldMapper formFieldMapper) {
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.formFieldMapper = formFieldMapper;
     }
 
     @Override
@@ -86,6 +90,24 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(entity);
         return entity;
+    }
+
+    @Override
+    public void delete(Long id) {
+        VisitorType entity = get(id);
+        if (isBuiltin(entity.getCode())) {
+            throw new BizException(400, "内置访客类型不能删除，可以停用");
+        }
+        Long used = formFieldMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.FormField>()
+                .eq(com.visitor.domain.entity.FormField::getVisitorType, entity.getCode()));
+        if (used != null && used > 0) {
+            throw new BizException(400, "该类型已有表单字段，不能删除");
+        }
+        mapper.deleteById(id);
+    }
+
+    private boolean isBuiltin(String code) {
+        return Set.of("NORMAL", "PARENT", "ALUMNI", "CONSTRUCTION", "COOPERATION").contains(code);
     }
 
     @Override

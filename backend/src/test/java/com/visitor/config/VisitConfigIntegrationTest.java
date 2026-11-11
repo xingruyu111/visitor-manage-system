@@ -283,6 +283,20 @@ class VisitConfigIntegrationTest {
         return rule;
     }
 
+    @Test
+    void customTypeCanBeDeletedButBuiltinCannot() {
+        VisitorType custom = createType("TEST_DELETE", 1, "UNLIMITED", List.of());
+        visitorTypeService.delete(custom.getId());
+        assertThatThrownBy(() -> visitorTypeService.delete(custom.getId()))
+                .isInstanceOf(BizException.class);
+
+        VisitorType normal = visitorTypeMapper.selectOne(new LambdaQueryWrapper<VisitorType>()
+                .eq(VisitorType::getCode, "NORMAL"));
+        assertThatThrownBy(() -> visitorTypeService.delete(normal.getId()))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("内置");
+    }
+
     private VisitorType createType(String code, int maxEntries, String mode, List<String> values) {
         VisitorTypeSaveDTO dto = new VisitorTypeSaveDTO();
         dto.setCode(code);
