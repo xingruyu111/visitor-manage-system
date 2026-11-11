@@ -31,7 +31,7 @@
             取消申请
           </van-button>
           <van-button
-            v-if="item.status === 1 || item.status === 3"
+            v-if="canShowPass(item)"
             size="small"
             round
             type="primary"
@@ -87,6 +87,7 @@ interface RecordItem {
 }
 
 interface Pass {
+  status?: number
   qrToken: string
   validFrom: string
   validTo: string
@@ -105,6 +106,7 @@ const route = useRoute()
 const records = ref<RecordItem[]>([])
 const loaded = ref(false)
 const pass = ref<Pass | null>(null)
+const reusablePass = ref<Record<number, boolean>>({})
 const passVisible = ref(false)
 const approvalVisible = ref(false)
 const approval = ref<{ nodeName?: string; comment?: string; actedAt?: string } | null>(null)
@@ -113,10 +115,31 @@ const detailVisible = ref(false)
 const detailRecord = ref<DetailRecord | null>(null)
 const detailApproval = ref<ApprovalInfo | null>(null)
 
+function canShowPass(item: RecordItem) {
+  if (item.status === 1 || item.status === 3) return true
+  return item.status === 4 && reusablePass.value[item.id] === true
+}
+
+async function loadReusablePasses() {
+  const candidates = records.value.filter((item) => item.status === 4)
+  await Promise.all(candidates.map(async (item) => {
+    try {
+      const info = await http.get<Pass>(`/web/visitor/records/${item.id}/pass`)
+      const remaining = (info.maxEntries ?? 1) - (info.usedEntries ?? 0)
+      const notExpired = !info.validTo || new Date(info.validTo.replace(' ', 'T')) >= new Date()
+      reusablePass.value[item.id] = info.status === 0 && remaining > 0 && notExpired
+    } catch {
+      reusablePass.value[item.id] = false
+    }
+  }))
+}
+
 async function load() {
   try {
     const data = await http.get<{ records: RecordItem[] }>('/web/visitor/records', { page: 1, size: 50 })
     records.value = data.records
+    reusablePass.value = {}
+    void loadReusablePasses()
   } catch (e) {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
