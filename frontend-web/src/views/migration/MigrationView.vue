@@ -13,16 +13,7 @@
         <el-card shadow="never">
           <template #header>访客记录</template>
           <p class="desc">列：访客姓名、手机号、证件号、被访人、事由、车牌号、到访时间、离校时间、状态</p>
-          <el-upload :show-file-list="false" accept=".xlsx,.xls" :http-request="uploadRecords">
-            <el-button type="primary" :loading="recordsLoading">选择文件并导入</el-button>
-          </el-upload>
-          <div v-if="recordsResult" class="result">
-            <p>成功 {{ recordsResult.success }} 条，失败 {{ recordsResult.failed }} 条</p>
-            <el-table v-if="recordsResult.errors?.length" :data="recordsResult.errors" size="small" border>
-              <el-table-column prop="row" label="行号" width="80" />
-              <el-table-column prop="reason" label="原因" />
-            </el-table>
-          </div>
+          <el-button type="primary" @click="openImport('records')">Excel 导入</el-button>
         </el-card>
       </el-col>
 
@@ -30,74 +21,42 @@
         <el-card shadow="never">
           <template #header>黑白名单</template>
           <p class="desc">列：姓名、手机号、车牌号、类型（黑名单/白名单）、失效时间、原因</p>
-          <el-upload :show-file-list="false" accept=".xlsx,.xls" :http-request="uploadAccessList">
-            <el-button type="primary" :loading="accessLoading">选择文件并导入</el-button>
-          </el-upload>
-          <div v-if="accessResult" class="result">
-            <p>成功 {{ accessResult.success }} 条，失败 {{ accessResult.failed }} 条</p>
-            <el-table v-if="accessResult.errors?.length" :data="accessResult.errors" size="small" border>
-              <el-table-column prop="row" label="行号" width="80" />
-              <el-table-column prop="reason" label="原因" />
-            </el-table>
-          </div>
+          <el-button type="primary" @click="openImport('access')">Excel 导入</el-button>
         </el-card>
       </el-col>
     </el-row>
+
+    <ExcelImportDialog
+      v-model="importVisible"
+      :title="importTitle"
+      :template-url="importTemplate"
+      :upload-url="importUrl"
+      :description="importDescription"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, ref } from 'vue'
+import ExcelImportDialog from '@/components/ExcelImportDialog.vue'
 
-interface ImportResult {
-  success: number
-  failed: number
-  errors?: Array<{ row: number; reason: string }>
-}
+const importVisible = ref(false)
+const importMode = ref<'records' | 'access'>('records')
 
-const recordsLoading = ref(false)
-const accessLoading = ref(false)
-const recordsResult = ref<ImportResult>()
-const accessResult = ref<ImportResult>()
+const importTitle = computed(() => (importMode.value === 'records' ? 'Excel 导入访客记录' : 'Excel 导入黑白名单'))
+const importTemplate = computed(() => (importMode.value === 'records'
+  ? '/templates/visitor-record-import.xlsx'
+  : '/templates/access-list-import.xlsx'))
+const importUrl = computed(() => (importMode.value === 'records'
+  ? '/api/web/websuper/migration/visitor-records'
+  : '/api/web/websuper/migration/access-list'))
+const importDescription = computed(() => (importMode.value === 'records'
+  ? '表头：访客姓名、手机号、证件号、被访人、事由、车牌号、到访时间、离校时间、状态。'
+  : '表头：姓名、手机号、车牌号、类型、生效时间、失效时间、原因。'))
 
-async function upload(path: string, file: File): Promise<ImportResult> {
-  const body = new FormData()
-  body.append('file', file)
-  const response = await fetch(`/api${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` },
-    body,
-  })
-  const result = await response.json()
-  if (result.code !== 200) {
-    throw new Error(result.message ?? '导入失败')
-  }
-  return result.data
-}
-
-async function uploadRecords(options: { file: File }) {
-  recordsLoading.value = true
-  try {
-    recordsResult.value = await upload('/web/websuper/migration/visitor-records', options.file)
-    ElMessage.success('导入完成')
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '导入失败')
-  } finally {
-    recordsLoading.value = false
-  }
-}
-
-async function uploadAccessList(options: { file: File }) {
-  accessLoading.value = true
-  try {
-    accessResult.value = await upload('/web/websuper/migration/access-list', options.file)
-    ElMessage.success('导入完成')
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '导入失败')
-  } finally {
-    accessLoading.value = false
-  }
+function openImport(mode: 'records' | 'access') {
+  importMode.value = mode
+  importVisible.value = true
 }
 </script>
 
@@ -106,12 +65,9 @@ async function uploadAccessList(options: { file: File }) {
   margin-bottom: 16px;
 }
 .desc {
-  color: #909399;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.result {
-  margin-top: 12px;
+  margin: 0 0 16px;
+  color: #6b6b6b;
   font-size: 13px;
+  line-height: 1.7;
 }
 </style>

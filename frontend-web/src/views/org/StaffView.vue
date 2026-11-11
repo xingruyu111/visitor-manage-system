@@ -179,13 +179,23 @@
       </template>
     </el-dialog>
 
+    <ExcelImportDialog
+      v-model="excelVisible"
+      :title="excelTitle"
+      :template-url="excelTemplate"
+      :upload-url="excelUploadUrl"
+      :description="excelDescription"
+      @success="onExcelSuccess"
+    />
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request, { http } from '@/api/request'
+import ExcelImportDialog from '@/components/ExcelImportDialog.vue'
 
 interface Staff {
   id: number
@@ -226,6 +236,8 @@ const filterOrgId = ref<number>()
 const loading = ref(false)
 const visible = ref(false)
 const importVisible = ref(false)
+const excelVisible = ref(false)
+const importMode = ref<'staff' | 'org'>('staff')
 const importing = ref(false)
 const importFile = ref<File>()
 const fileInput = ref<HTMLInputElement>()
@@ -362,11 +374,29 @@ function openEdit(row: Staff) {
   visible.value = true
 }
 
+const excelTitle = computed(() => (importMode.value === 'staff' ? 'Excel 导入人员' : 'Excel 导入组织架构'))
+const excelTemplate = computed(() => (importMode.value === 'staff' ? '/templates/staff-import.xlsx' : '/templates/org-import.xlsx'))
+const excelUploadUrl = computed(() => (importMode.value === 'staff' ? '/api/web/admin/staff/import' : '/api/web/admin/orgs/import'))
+const excelDescription = computed(() => (importMode.value === 'staff'
+  ? '表头：工号/学号、姓名、手机号、人员类型、部门、班级、职务。导入后自动开通账号，默认密码 123456。'
+  : '表头：组织名称、上级组织（路径，如 人工智能学院/24级；留空为根节点）。重复节点会自动跳过。'))
+
+function onExcelSuccess() {
+  if (importMode.value === 'staff') {
+    load(1)
+  } else {
+    loadTree()
+  }
+}
+
 function openImport() {
-  importFile.value = undefined
-  importResult.value = undefined
-  importVisible.value = true
-  setTimeout(() => fileInput.value?.click(), 100)
+  importMode.value = 'staff'
+  excelVisible.value = true
+}
+
+function openOrgImport() {
+  importMode.value = 'org'
+  excelVisible.value = true
 }
 
 function onFileChange(event: Event) {
@@ -389,13 +419,6 @@ async function doImport() {
   } finally {
     importing.value = false
   }
-}
-
-function openOrgImport() {
-  orgImportFile.value = undefined
-  orgImportResult.value = undefined
-  orgImportVisible.value = true
-  setTimeout(() => orgFileInput.value?.click(), 100)
 }
 
 function onOrgFileChange(event: Event) {

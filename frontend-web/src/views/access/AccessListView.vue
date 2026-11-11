@@ -34,14 +34,7 @@
         </el-form-item>
         <el-button type="primary" @click="load(1)">查询</el-button>
         <el-button @click="openCreate">新增</el-button>
-        <el-upload
-          class="upload"
-          :show-file-list="false"
-          accept=".xlsx,.xls"
-          :http-request="uploadExcel"
-        >
-          <el-button :loading="uploading">Excel 导入</el-button>
-        </el-upload>
+        <el-button @click="importVisible = true">Excel 导入</el-button>
       </el-form>
 
       <el-table v-if="isWhitelist" v-loading="loading" :data="rows" border class="access-table">
@@ -177,6 +170,15 @@
         <el-button type="primary" :loading="saving" @click="save">确定</el-button>
       </template>
     </el-dialog>
+
+    <ExcelImportDialog
+      v-model="importVisible"
+      :title="importTitle"
+      :template-url="templateUrl"
+      :upload-url="importUploadUrl"
+      :description="importDescription"
+      @success="load(1)"
+    />
   </div>
 </template>
 
@@ -184,6 +186,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/api/request'
+import ExcelImportDialog from '@/components/ExcelImportDialog.vue'
 
 interface Row {
   id: number
@@ -218,9 +221,9 @@ const size = ref(20)
 const keyword = ref('')
 const targetType = ref<string>()
 const loading = ref(false)
-const uploading = ref(false)
 const saving = ref(false)
 const visible = ref(false)
+const importVisible = ref(false)
 const editingId = ref<number>()
 const me = ref<Me>({})
 const form = reactive({
@@ -243,6 +246,12 @@ const whiteForm = reactive({
 const isWhitelist = computed(() => activeTab.value === '2')
 const canApprove = computed(() => (me.value.roles ?? []).some((role) => role.code === 2 || role.code === 1))
 const dialogTitle = computed(() => (isWhitelist.value ? '新增白名单' : editingId.value ? '编辑名单' : '新增名单'))
+const importTitle = computed(() => (isWhitelist.value ? 'Excel 导入白名单' : 'Excel 导入黑名单'))
+const templateUrl = computed(() => (isWhitelist.value ? '/templates/whitelist-import.xlsx' : '/templates/access-list-import.xlsx'))
+const importUploadUrl = computed(() => (isWhitelist.value ? '/api/web/whitelist/import' : '/api/web/admin/access-list/import'))
+const importDescription = computed(() => (isWhitelist.value
+  ? '表头：姓名、手机号、车牌号、生效时间、失效时间、原因。多人同车请每人一行。'
+  : '表头：姓名、手机号、车牌号、类型、生效时间、失效时间、原因。'))
 
 function whiteStatus(row: Row): { text: string; type: 'success' | 'warning' | 'danger' | 'info' } {
   if (row.status === STATUS_PENDING) return { text: '待审批', type: 'warning' }
@@ -418,32 +427,6 @@ async function remove(row: Row) {
   }
 }
 
-async function uploadExcel(options: { file: File }) {
-  uploading.value = true
-  try {
-    const body = new FormData()
-    body.append('file', options.file)
-    const url = isWhitelist.value ? '/api/web/whitelist/import' : '/api/web/admin/access-list/import'
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` },
-      body,
-    })
-    const result = await response.json()
-    if (result.code !== 200) {
-      throw new Error(result.message ?? '导入失败')
-    }
-    const summary = `成功 ${result.data.success} 条，失败 ${result.data.failed} 条`
-    const errors = (result.data.errors ?? []).map((item: { row: number; reason: string }) => `第 ${item.row} 行：${item.reason}`)
-    await ElMessageBox.alert([summary, ...errors].join('\n'), '导入结果', { type: errors.length ? 'warning' : 'success' })
-    await load(1)
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '导入失败')
-  } finally {
-    uploading.value = false
-  }
-}
-
 onMounted(async () => {
   try {
     me.value = await http.get<Me>('/auth/me')
@@ -458,10 +441,6 @@ onMounted(async () => {
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
-}
-.upload {
-  display: inline-block;
-  margin-left: 0;
 }
 .access-table {
   margin-top: 12px;
