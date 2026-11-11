@@ -5,6 +5,7 @@ import com.visitor.common.core.Result;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.VisitLog;
+import com.visitor.security.RoleAccessChecker;
 import com.visitor.security.SchoolScopes;
 import com.visitor.security.UserContext;
 import com.visitor.server.service.VerifyService;
@@ -24,16 +25,17 @@ import java.util.Map;
 public class GuardVerifyController {
 
     private final VerifyService verifyService;
+    private final RoleAccessChecker roleAccessChecker;
 
-    public GuardVerifyController(VerifyService verifyService) {
+    public GuardVerifyController(VerifyService verifyService, RoleAccessChecker roleAccessChecker) {
         this.verifyService = verifyService;
+        this.roleAccessChecker = roleAccessChecker;
     }
 
     @Operation(summary = "扫码核验（入校/离校）")
     @PostMapping
     public Result<Map<String, Object>> verify(@RequestParam String token) {
-        RoleEnum role = UserContext.getRole();
-        if (role != RoleEnum.GUARD && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+        if (!roleAccessChecker.hasAny(RoleEnum.GUARD, RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN)) {
             throw new BizException(403, "门卫才能扫码核验");
         }
         return Result.success(verifyService.verify(UserContext.getUserId(), token));

@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
+import com.visitor.security.RoleAccessChecker;
 import com.visitor.security.UserContext;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
@@ -62,11 +63,12 @@ public class VisitorServiceImpl implements VisitorService {
     private final AuditLogService auditLogService;
     private final SystemSettingService settingService;
     private final ObjectMapper objectMapper;
+    private final RoleAccessChecker roleAccessChecker;
 
     public VisitorServiceImpl(UserMapper userMapper, OrgMapper orgMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper) {
+                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper, RoleAccessChecker roleAccessChecker) {
         this.userMapper = userMapper;
         this.orgMapper = orgMapper;
         this.staffMapper = staffMapper;
@@ -84,6 +86,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.auditLogService = auditLogService;
         this.settingService = settingService;
         this.objectMapper = objectMapper;
+        this.roleAccessChecker = roleAccessChecker;
     }
 
     @Override
@@ -429,8 +432,7 @@ public class VisitorServiceImpl implements VisitorService {
 
     @Override
     public java.util.List<VisitorRecord> queryByPlate(String plate) {
-        RoleEnum role = UserContext.getRole();
-        if (role != RoleEnum.SECURITY && role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+        if (!roleAccessChecker.hasAny(RoleEnum.SECURITY, RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN)) {
             throw new BizException(403, "无权查询车主信息");
         }
         if (plate == null || plate.isBlank()) {
