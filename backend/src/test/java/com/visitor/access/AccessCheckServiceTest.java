@@ -46,10 +46,10 @@ class AccessCheckServiceTest {
         white.setTargetValue("粤b12345");
         service.create(1L, white);
 
-        assertThat(service.check(1L, "13800009991", null, null)).isEqualTo("BLACKLIST");
-        assertThat(service.check(1L, null, null, "粤B12345")).isEqualTo("WHITELIST");
-        assertThat(service.check(1L, "other", null, null)).isEqualTo("NONE");
-        assertThat(service.check(1L, null, null, null)).isEqualTo("NONE");
+        assertThat(service.check(1L, "13800009991", null)).isEqualTo("BLACKLIST");
+        assertThat(service.check(1L, null, "粤B12345")).isEqualTo("WHITELIST");
+        assertThat(service.check(1L, "other", null)).isEqualTo("NONE");
+        assertThat(service.check(1L, null, null)).isEqualTo("NONE");
     }
 
     @Test
@@ -116,7 +116,7 @@ class AccessCheckServiceTest {
         created.setStatus(1);
         mapper.updateById(created);
 
-        assertThat(service.check(1L, "13800009995", null, null)).isEqualTo("NONE");
+        assertThat(service.check(1L, "13800009995", null)).isEqualTo("NONE");
         assertThat(service.expireOverdue()).isGreaterThanOrEqualTo(1);
         assertThat(mapper.selectById(created.getId()).getStatus()).isZero();
     }
@@ -149,7 +149,7 @@ class AccessCheckServiceTest {
         assertThat(released.getStatus()).isZero();
         assertThat(released.getReleasedAt()).isNotNull();
         assertThat(released.getReleaseReason()).isEqualTo("家长申诉");
-        assertThat(service.check(1L, "13800009996", null, null)).isEqualTo("NONE");
+        assertThat(service.check(1L, "13800009996", null)).isEqualTo("NONE");
     }
 
     @Test

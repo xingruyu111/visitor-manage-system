@@ -37,13 +37,10 @@ public class AccessCheckServiceImpl implements AccessCheckService {
     }
 
     @Override
-    public String check(Long schoolId, String phone, String idCard, String plate) {
+    public String check(Long schoolId, String phone, String plate) {
         List<String> values = new ArrayList<>();
         if (phone != null && !phone.isBlank()) {
             values.add(phone);
-        }
-        if (idCard != null && !idCard.isBlank()) {
-            values.add(idCard);
         }
         if (plate != null && !plate.isBlank()) {
             values.add(plate.toUpperCase());

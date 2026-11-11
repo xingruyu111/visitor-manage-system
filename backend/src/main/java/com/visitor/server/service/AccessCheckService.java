@@ -9,7 +9,7 @@ import java.util.Map;
 public interface AccessCheckService {
 
     /** 返回 BLACKLIST / WHITELIST / NONE */
-    String check(Long schoolId, String phone, String idCard, String plate);
+    String check(Long schoolId, String phone, String plate);
 
     PageResult<AccessList> page(Long schoolId, Integer listType, String targetType, String keyword,
                                 int page, int size);

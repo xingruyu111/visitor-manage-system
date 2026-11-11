@@ -102,7 +102,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
         validateTime(dto.getExpectedTime(), dto.getLeaveTime());
         String plate = dto.getPlateNumber() == null ? null : dto.getPlateNumber().trim().toUpperCase();
-        String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), dto.getIdCard(), plate);
+        String access = accessCheckService.check(target.getSchoolId(), user.getPhone(), plate);
         if ("BLACKLIST".equals(access)) {
             alarmService.notifyBlacklistHit(user.getName(), user.getPhone());
             auditLogService.record("BLACKLIST_HIT", "ACCESS_LIST", null, "黑名单拦截：" + user.getPhone());
@@ -361,7 +361,7 @@ public class VisitorServiceImpl implements VisitorService {
         if (user == null) {
             throw new BizException(401, "用户不存在");
         }
-        String result = accessCheckService.check(1L, user.getPhone(), user.getIdCard(), plate);
+        String result = accessCheckService.check(1L, user.getPhone(), plate);
         java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("status", result);
         body.put("message", switch (result) {
