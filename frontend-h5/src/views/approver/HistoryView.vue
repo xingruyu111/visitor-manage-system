@@ -7,7 +7,7 @@
     <van-empty v-else-if="history.length === 0" description="暂无历史审批" />
 
     <div v-else class="list">
-      <div v-for="item in history" :key="item.taskId" class="history-card">
+      <div v-for="item in history" :key="item.taskId" class="history-card" @click="openDetail(item)">
         <div class="history-top">
           <span class="node">{{ item.nodeName }}</span>
           <van-tag :type="item.decision === 'APPROVED' ? 'success' : 'danger'" round>
@@ -16,9 +16,6 @@
         </div>
         <div class="time">{{ item.actedAt }}</div>
         <div v-if="item.comment" class="comment">{{ item.comment }}</div>
-        <div class="history-actions">
-          <van-button size="small" round plain @click="openDetail(item)">查看详情</van-button>
-        </div>
       </div>
     </div>
 
@@ -127,6 +124,11 @@ onMounted(load)
   background: #ffffff;
   border: 1px solid rgba(226, 236, 249, 0.9);
   box-shadow: 0 6px 20px rgba(16, 42, 80, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.history-card:active {
+  transform: scale(0.995);
 }
 .history-top {
   display: flex;

@@ -11,16 +11,15 @@
     <van-empty v-else-if="tasks.length === 0" description="暂无待审批任务" />
 
     <div v-else class="list">
-      <div v-for="item in tasks" :key="item.id" class="task-card">
+      <div v-for="item in tasks" :key="item.id" class="task-card" @click="openDetail(item.id)">
         <div class="task-top">
           <span class="task-node">{{ item.nodeName }}</span>
           <van-tag type="warning" round>待审批</van-tag>
         </div>
         <div class="task-due"><van-icon name="clock-o" /> 截止 {{ item.dueAt }}</div>
         <div class="task-actions">
-          <van-button size="small" round plain @click="openDetail(item.id)">详情</van-button>
-          <van-button size="small" round type="primary" @click="openComment(item, true)">通过</van-button>
-          <van-button size="small" round plain type="danger" @click="openComment(item, false)">驳回</van-button>
+          <van-button size="small" round type="primary" @click.stop="openComment(item, true)">通过</van-button>
+          <van-button size="small" round plain type="danger" @click.stop="openComment(item, false)">驳回</van-button>
         </div>
       </div>
     </div>
@@ -186,6 +185,11 @@ onMounted(async () => {
   background: #ffffff;
   border: 1px solid rgba(226, 236, 249, 0.9);
   box-shadow: 0 6px 20px rgba(16, 42, 80, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.task-card:active {
+  transform: scale(0.995);
 }
 .task-top {
   display: flex;

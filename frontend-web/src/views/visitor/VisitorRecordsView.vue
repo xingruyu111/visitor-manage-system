@@ -15,7 +15,7 @@
         <el-button :loading="exporting" @click="exportExcel">导出</el-button>
       </el-form>
 
-      <el-table v-loading="loading" :data="rows" border>
+      <el-table v-loading="loading" :data="rows" border class="clickable-table" @row-click="openDetail">
         <el-table-column prop="visitorName" label="访客" width="120" />
         <el-table-column prop="visitorPhone" label="手机号" width="140" />
         <el-table-column prop="targetName" label="被访人" width="120" />
@@ -26,11 +26,6 @@
         <el-table-column label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="TAG[row.status] ?? 'info'">{{ STATUS[row.status] ?? row.status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="90" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -260,5 +255,8 @@ onMounted(() => load(1))
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
+}
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
 }
 </style>
