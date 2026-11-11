@@ -35,6 +35,11 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.locator('.van-cell').filter({ hasText: '离校时间' }).first().click()
   await page.locator('.time-confirm').click()
 
+  const requiredFields = page.locator('.van-field input[placeholder="必填"]')
+  for (let i = 0; i < await requiredFields.count(); i++) {
+    await requiredFields.nth(i).fill('E2E补充')
+  }
+
   await page.getByRole('button', { name: '提交申请' }).click()
   await expect(page).toHaveURL(/\/v\/records/)
   await expect(page.getByText('我的预约').first()).toBeVisible()
