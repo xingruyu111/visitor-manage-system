@@ -20,7 +20,7 @@ test.beforeAll(async ({ request }) => {
   if (staffBody.code === 200) {
     TARGET_ID = staffBody.data.id
   } else {
-    const list = await request.get(`/api/web/admin/staff?keyword=${TEACHER.phone}&page=1&size=10`, {
+    const list = await request.get('/api/web/admin/staff?keyword=T-E2E-001&page=1&size=10', {
       headers: adminAuth,
     })
     TARGET_ID = (await list.json()).data.records[0].id
