@@ -10,6 +10,7 @@ import com.visitor.domain.entity.ApprovalFlow;
 import com.visitor.domain.entity.ApprovalInstance;
 import com.visitor.domain.entity.ApprovalRule;
 import com.visitor.domain.entity.ApprovalTask;
+import com.visitor.security.RoleAccessChecker;
 import com.visitor.security.UserContext;
 import com.visitor.server.service.AuditLogService;
 import com.visitor.server.service.NotificationService;
@@ -41,12 +42,13 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     private final ApplicationEventPublisher eventPublisher;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final RoleAccessChecker roleAccessChecker;
 
     public ApprovalEngineImpl(ApprovalFlowMapper flowMapper, ApprovalRuleMapper ruleMapper,
                               ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper,
                               AssigneeResolver assigneeResolver, ObjectMapper objectMapper,
                               ApplicationEventPublisher eventPublisher, AuditLogService auditLogService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService, RoleAccessChecker roleAccessChecker) {
         this.flowMapper = flowMapper;
         this.ruleMapper = ruleMapper;
         this.instanceMapper = instanceMapper;
@@ -56,6 +58,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         this.eventPublisher = eventPublisher;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
+        this.roleAccessChecker = roleAccessChecker;
     }
 
     @Override
@@ -235,11 +238,16 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         Long userId = UserContext.getUserId();
         int safePage = Math.max(page, 1);
         int safeSize = Math.min(Math.max(size, 1), 100);
-        Page<ApprovalTask> result = taskMapper.selectPage(new Page<>(safePage, safeSize),
-                new LambdaQueryWrapper<ApprovalTask>()
+        boolean admin = roleAccessChecker.hasAny(RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN);
+        LambdaQueryWrapper<ApprovalTask> query = new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getStatus, ApprovalStatuses.PENDING)
+                .and(admin, wrapper -> wrapper
                         .eq(ApprovalTask::getAssigneeId, userId)
-                        .eq(ApprovalTask::getStatus, ApprovalStatuses.PENDING)
-                        .orderByAsc(ApprovalTask::getDueAt));
+                        .or()
+                        .eq(ApprovalTask::getAssigneeType, "SECURITY"))
+                .eq(!admin, ApprovalTask::getAssigneeId, userId)
+                .orderByAsc(ApprovalTask::getDueAt);
+        Page<ApprovalTask> result = taskMapper.selectPage(new Page<>(safePage, safeSize), query);
         return PageResult.of(result.getTotal(), safePage, safeSize, result.getRecords());
     }
 
@@ -409,21 +417,26 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     private void authorize(ApprovalTask task, ApprovalInstance instance, boolean emergency) {
         RoleEnum role = UserContext.getRole();
         Long me = UserContext.getUserId();
+        boolean actualAdmin = roleAccessChecker.hasAny(RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN);
 
         if (emergency) {
-            if (role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+            if (!actualAdmin) {
                 throw new BizException(403, "仅管理员可紧急审批");
             }
             checkSchoolScope(instance.getSchoolId());
             return;
         }
         if (task.getAssigneeId() != null) {
-            if (!task.getAssigneeId().equals(me)) {
-                throw new BizException(403, "不是当前审批人");
+            if (task.getAssigneeId().equals(me)) {
+                return;
             }
-            return;
+            if (actualAdmin && "SECURITY".equals(task.getAssigneeType())) {
+                checkSchoolScope(instance.getSchoolId());
+                return;
+            }
+            throw new BizException(403, "不是当前审批人");
         }
-        if (role != RoleEnum.SECURITY_ADMIN && role != RoleEnum.SYSTEM_ADMIN) {
+        if (!actualAdmin) {
             throw new BizException(403, "该节点由管理员处理");
         }
         checkSchoolScope(instance.getSchoolId());
