@@ -56,8 +56,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
+import { useRouter } from 'vue-router'
+import { http } from '@/api/request'
 
 interface ImportError {
   row: number
@@ -70,10 +72,25 @@ interface ImportResult {
   errors?: ImportError[]
 }
 
+const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File>()
 const uploading = ref(false)
 const result = ref<ImportResult>()
+
+onMounted(async () => {
+  try {
+    const me = await http.get<{ roles?: Array<{ code: number }> }>('/auth/me')
+    const allowed = (me.roles ?? []).some((role) => role.code === 1 || role.code === 2)
+    if (!allowed) {
+      showToast('仅保卫处管理员可导入白名单')
+      router.replace('/v/home')
+    }
+  } catch {
+    showToast('获取身份失败')
+    router.replace('/v/home')
+  }
+})
 
 const fileSize = computed(() => {
   if (!file.value) return ''

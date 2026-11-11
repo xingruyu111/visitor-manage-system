@@ -223,7 +223,6 @@ const groups = computed<MenuGroup[]>(() => {
       title: '部门经办人',
       entries: [
         { title: '批量预约', to: '/d/batch', icon: 'orders-o' },
-        { title: '导入白名单', to: '/s/whitelist-import', icon: 'upgrade' },
       ],
     },
     VISITOR: {
