@@ -85,6 +85,23 @@ body {
   font-weight: 500;
 }
 
+/* 行内查询表单：输入框、下拉框、按钮保持同一水平线 */
+.el-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.el-form--inline .el-form-item {
+  margin: 0;
+}
+
+.el-form--inline .el-button {
+  margin-left: 0;
+  vertical-align: middle;
+}
+
 /* ---------- 按钮 ---------- */
 .el-button {
   border-radius: 6px;
