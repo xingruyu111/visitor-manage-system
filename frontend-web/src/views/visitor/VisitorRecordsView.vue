@@ -73,8 +73,8 @@
         </el-descriptions-item>
       </el-descriptions>
       <div v-if="current && current.status === 0" class="emergency">
-        <el-button type="success" @click="emergency(true)">紧急通过</el-button>
-        <el-button type="danger" @click="emergency(false)">紧急驳回</el-button>
+        <el-button type="success" @click="emergency(true)">代通过</el-button>
+        <el-button type="danger" @click="emergency(false)">代驳回</el-button>
       </div>
     </el-drawer>
   </div>
@@ -196,13 +196,13 @@ async function emergency(approve: boolean) {
   if (!current.value) return
   try {
     const { value } = await ElMessageBox.prompt(
-      approve ? '紧急通过意见（可选）' : '紧急驳回原因',
-      approve ? '紧急通过' : '紧急驳回',
+      approve ? '代通过意见（可选）' : '代驳回原因',
+      approve ? '代通过' : '代驳回',
     )
     await http.post(
       `/web/admin/visitor-records/${current.value.id}/emergency?approve=${approve}&comment=${encodeURIComponent(value || '')}`,
     )
-    ElMessage.success(approve ? '已紧急通过' : '已紧急驳回')
+    ElMessage.success(approve ? '已代通过' : '已代驳回')
     drawer.value = false
     await load()
   } catch (e) {
