@@ -11,6 +11,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
+    allowedHosts: true,
     port: 5173,
     watch: {
       ignored: ['**/*.tmpdir/**', '**/*.tmp', '**/.*.tmp*'],
