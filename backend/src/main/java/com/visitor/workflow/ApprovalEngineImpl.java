@@ -124,6 +124,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
         auditLogService.record("APPROVAL_APPROVE", "APPROVAL_TASK", task.getId(), "通过审批");
+        notifyProxyHandled(task, true, comment);
 
         FlowDefinition definition = read(instance.getDefinitionJson());
         FlowDefinition.Node next = nextNode(definition, task.getSeq());
@@ -151,6 +152,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.updateById(task);
         auditLogService.record("APPROVAL_REJECT", "APPROVAL_TASK", task.getId(), "驳回审批");
+        notifyProxyHandled(task, false, comment);
 
         skipPending(instance.getId());
         complete(instance, ApprovalStatuses.REJECTED);
@@ -414,6 +416,21 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         return instance;
     }
 
+    private void notifyProxyHandled(ApprovalTask task, boolean approved, String comment) {
+        Long assigneeId = task.getAssigneeId();
+        Long actorId = UserContext.getUserId();
+        if (assigneeId == null || assigneeId.equals(actorId)) {
+            return;
+        }
+        String action = approved ? "代通过" : "代驳回";
+        String actor = UserContext.getName() == null ? "管理员" : UserContext.getName();
+        String detail = "您的「" + task.getNodeName() + "」审批任务已由" + actor + action;
+        if (comment != null && !comment.isBlank()) {
+            detail += "，意见：" + comment;
+        }
+        notificationService.notifyUser(assigneeId, "审批任务已" + action,
+                detail, "APPROVAL", "APPROVAL_TASK", task.getId());
+    }
     private void authorize(ApprovalTask task, ApprovalInstance instance, boolean emergency) {
         RoleEnum role = UserContext.getRole();
         Long me = UserContext.getUserId();
