@@ -454,8 +454,7 @@ INSERT INTO vst_visitor_type (code,name,max_entries,booking_rules_json,status,so
  ('NORMAL','普通访客',1,'[{"mode":"UNLIMITED","values":[]}]',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
  ('PARENT','学生家长',1,'[{"mode":"UNLIMITED","values":[]}]',1,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
  ('ALUMNI','校友',0,'[{"mode":"UNLIMITED","values":[]}]',1,3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
- ('CONSTRUCTION','施工/合作',1,'[{"mode":"UNLIMITED","values":[]}]',1,4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
- ('COOPERATION','合作访客',1,'[{"mode":"UNLIMITED","values":[]}]',1,5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+ ('CONSTRUCTION','施工/合作',1,'[{"mode":"UNLIMITED","values":[]}]',1,4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 
 DROP TABLE IF EXISTS vst_visit_config;
 CREATE TABLE vst_visit_config (

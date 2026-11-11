@@ -225,7 +225,6 @@ const visitorTypes = ref<VisitorTypeOption[]>([
   { code: 'NORMAL', name: '普通访客', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
   { code: 'PARENT', name: '学生家长', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
   { code: 'CONSTRUCTION', name: '施工/合作', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
-  { code: 'COOPERATION', name: '合作访客', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
   { code: 'ALUMNI', name: '校友', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
 ])
 

@@ -107,7 +107,7 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
     }
 
     private boolean isBuiltin(String code) {
-        return Set.of("NORMAL", "PARENT", "ALUMNI", "CONSTRUCTION", "COOPERATION").contains(code);
+        return Set.of("NORMAL", "PARENT", "ALUMNI", "CONSTRUCTION").contains(code);
     }
 
     @Override

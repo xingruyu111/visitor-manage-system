@@ -103,7 +103,6 @@ const TYPES = ref([
   { value: 'ALUMNI', label: '校友' },
   { value: 'PARENT', label: '学生家长' },
   { value: 'CONSTRUCTION', label: '施工/合作' },
-  { value: 'COOPERATION', label: '合作访客' },
 ])
 const TYPE_LABEL = ref<Record<string, string>>(Object.fromEntries(TYPES.value.map((item) => [item.value, item.label])))
 const FIELD_TYPES = [

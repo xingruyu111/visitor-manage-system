@@ -33,8 +33,7 @@ VALUES
   ('NORMAL', '普通访客', 1, '[{"mode":"UNLIMITED","values":[]}]', 1, 1, NOW(), NOW()),
   ('PARENT', '学生家长', 1, '[{"mode":"UNLIMITED","values":[]}]', 1, 2, NOW(), NOW()),
   ('ALUMNI', '校友', 0, '[{"mode":"UNLIMITED","values":[]}]', 1, 3, NOW(), NOW()),
-  ('CONSTRUCTION', '施工/合作', 1, '[{"mode":"UNLIMITED","values":[]}]', 1, 4, NOW(), NOW()),
-  ('COOPERATION', '合作访客', 1, '[{"mode":"UNLIMITED","values":[]}]', 1, 5, NOW(), NOW())
+  ('CONSTRUCTION', '施工/合作', 1, '[{"mode":"UNLIMITED","values":[]}]', 1, 4, NOW(), NOW())
 ON DUPLICATE KEY UPDATE code = code;
 
 INSERT INTO vst_visit_config (school_id, alumni_months_json, created_at, updated_at)

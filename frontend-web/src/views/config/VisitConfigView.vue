@@ -172,7 +172,7 @@ const MODES = [
   { value: 'MONTH_DAY', label: '按月+日' },
   { value: 'UNLIMITED', label: '不限' },
 ]
-const BUILTIN_CODES = new Set(['NORMAL', 'PARENT', 'ALUMNI', 'CONSTRUCTION', 'COOPERATION'])
+const BUILTIN_CODES = new Set(['NORMAL', 'PARENT', 'ALUMNI', 'CONSTRUCTION'])
 
 const WEEKDAYS = [
   { value: '1', label: '周一' },
