@@ -902,6 +902,7 @@ class VisitorModuleIntegrationTest {
         headTeacher.setUpdatedAt(LocalDateTime.now());
         staffMapper.insert(headTeacher);
 
+        Long affiliatedUserId = createUser("13800003009", RoleEnum.STUDENT, 1L);
         com.visitor.domain.entity.Staff affiliated = new com.visitor.domain.entity.Staff();
         affiliated.setSchoolId(1L);
         affiliated.setName("附属学生");
@@ -944,6 +945,11 @@ class VisitorModuleIntegrationTest {
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
                 .eq(ApprovalTask::getInstanceId, instanceId));
         assertThat(task.getAssigneeId()).isEqualTo(headTeacherUserId);
+        assertThat(notificationMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.Notification>()
+                .eq(com.visitor.domain.entity.Notification::getUserId, affiliatedUserId))).isZero();
+        assertThat(notificationMapper.selectCount(new LambdaQueryWrapper<com.visitor.domain.entity.Notification>()
+                .eq(com.visitor.domain.entity.Notification::getUserId, headTeacherUserId)
+                .eq(com.visitor.domain.entity.Notification::getTitle, "新的审批待办"))).isEqualTo(1);
 
         String headToken = token(headTeacherUserId, "13800003008", RoleEnum.TEACHER, 1L);
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, headToken);

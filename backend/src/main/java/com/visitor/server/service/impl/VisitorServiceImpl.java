@@ -29,6 +29,7 @@ import com.visitor.server.service.AuditLogService;
 import com.visitor.server.service.SystemSettingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.server.service.AccessCheckService;
+import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.security.UserContext;
 import com.visitor.workflow.ApprovalEngine;
@@ -171,7 +172,9 @@ public class VisitorServiceImpl implements VisitorService {
         recordMapper.insert(record);
         User targetUser = target.getPhone() == null ? null : userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getPhone, target.getPhone()));
-        if (targetUser != null) {
+        boolean affiliatedStudent = target.getPersonType() == PersonTypeEnum.AFFILIATED_STUDENT;
+        // 附属学生不参与审批，审批人是工号对应的班主任，避免给学生发“请及时审批”
+        if (targetUser != null && !affiliatedStudent) {
             notificationService.notifyUser(targetUser.getId(), "新的访客申请",
                     record.getVisitorName() + " 申请入校，请及时审批", "APPROVAL_RESULT",
                     "VISITOR_RECORD", record.getId());
