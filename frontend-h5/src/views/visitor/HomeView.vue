@@ -214,6 +214,8 @@ const groups = computed<MenuGroup[]>(() => {
       key: 'SECURITY_ADMIN',
       title: '保卫处',
       entries: [
+        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o', badge: pendingCount.value || undefined },
+        { title: '历史审批', to: '/a/history', icon: 'clock-o' },
         { title: '批量预约', to: '/d/batch', icon: 'orders-o' },
         { title: '导入白名单', to: '/s/whitelist-import', icon: 'upgrade' },
       ],

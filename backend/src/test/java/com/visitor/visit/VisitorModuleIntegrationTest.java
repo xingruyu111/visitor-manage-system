@@ -576,7 +576,7 @@ class VisitorModuleIntegrationTest {
         assertThat(record.getStatus()).isZero();
         ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
                 .eq(ApprovalTask::getInstanceId, taskMapper.selectList(null).get(0).getInstanceId()));
-        assertThat(task.getAssigneeId()).isNull();
+        assertThat(task.getAssigneeId()).isNotNull();
 
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, adminToken);
 

@@ -251,11 +251,11 @@ class ApprovalEngineTest {
         ApprovalTask review = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
                 .eq(ApprovalTask::getInstanceId, instance.getId())
                 .eq(ApprovalTask::getSeq, 2));
-        assertThat(review.getAssigneeId()).isNull();
-        assertThat(review.getStatus()).isEqualTo(ApprovalStatuses.PENDING);
-
         Long securityUserId = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhone, "13800002004")).getId();
+        assertThat(review.getAssigneeId()).isEqualTo(securityUserId);
+        assertThat(review.getStatus()).isEqualTo(ApprovalStatuses.PENDING);
+
         as(securityUserId, RoleEnum.SECURITY_ADMIN, 1L);
         engine.approve(review.getId(), "复核通过", false);
 

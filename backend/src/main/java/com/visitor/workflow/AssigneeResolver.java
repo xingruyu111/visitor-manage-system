@@ -6,11 +6,14 @@ import com.visitor.domain.entity.Org;
 import com.visitor.domain.entity.SchoolClass;
 import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
+import com.visitor.domain.entity.UserRole;
+import com.visitor.common.enums.RoleEnum;
 import com.visitor.server.mapper.CounselorOrgMapper;
 import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.SchoolClassMapper;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.mapper.UserMapper;
+import com.visitor.server.mapper.UserRoleMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -27,14 +30,17 @@ public class AssigneeResolver {
     private final UserMapper userMapper;
     private final CounselorOrgMapper counselorOrgMapper;
     private final OrgMapper orgMapper;
+    private final UserRoleMapper userRoleMapper;
 
     public AssigneeResolver(StaffMapper staffMapper, SchoolClassMapper classMapper, UserMapper userMapper,
-                            CounselorOrgMapper counselorOrgMapper, OrgMapper orgMapper) {
+                            CounselorOrgMapper counselorOrgMapper, OrgMapper orgMapper,
+                            UserRoleMapper userRoleMapper) {
         this.staffMapper = staffMapper;
         this.classMapper = classMapper;
         this.userMapper = userMapper;
         this.counselorOrgMapper = counselorOrgMapper;
         this.orgMapper = orgMapper;
+        this.userRoleMapper = userRoleMapper;
     }
 
     /**
@@ -51,10 +57,23 @@ public class AssigneeResolver {
             case TARGET -> userIdOfStaff(targetId);
             case COUNSELOR -> userIdOfStaff(counselorIdOf(targetId));
             case HEAD_TEACHER -> userIdOfStaff(headTeacherIdOf(targetId));
-            case SECURITY, DEFAULT -> null;
+            case SECURITY -> securityAdminId();
+            case DEFAULT -> null;
         };
     }
 
+    private Long securityAdminId() {
+        for (UserRole role : userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getRole, RoleEnum.SECURITY_ADMIN)
+                .eq(UserRole::getStatus, 1)
+                .orderByAsc(UserRole::getId))) {
+            User user = userMapper.selectById(role.getUserId());
+            if (user != null && Integer.valueOf(1).equals(user.getStatus())) {
+                return user.getId();
+            }
+        }
+        return null;
+    }
     public String nameOf(Long userId) {
         if (userId == null) {
             return null;
