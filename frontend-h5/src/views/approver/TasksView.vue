@@ -18,11 +18,31 @@
         </div>
         <div class="task-due"><van-icon name="clock-o" /> 截止 {{ item.dueAt }}</div>
         <div class="task-actions">
-          <van-button size="small" round type="primary" @click="handle(item, true)">通过</van-button>
-          <van-button size="small" round plain type="danger" @click="handle(item, false)">驳回</van-button>
+          <van-button size="small" round type="primary" @click="openComment(item, true)">通过</van-button>
+          <van-button size="small" round plain type="danger" @click="openComment(item, false)">驳回</van-button>
         </div>
       </div>
     </div>
+
+    <van-popup v-model:show="commentVisible" position="bottom" round>
+      <div class="comment-sheet">
+        <div class="comment-head">
+          <button class="comment-cancel" @click="commentVisible = false">取消</button>
+          <strong>{{ commentApprove ? '通过审批' : '驳回审批' }}</strong>
+          <button class="comment-submit" :disabled="commentSubmitting" @click="submitComment">
+            {{ commentSubmitting ? '提交中' : '提交' }}
+          </button>
+        </div>
+        <van-field
+          v-model="comment"
+          type="textarea"
+          rows="4"
+          maxlength="200"
+          show-word-limit
+          :placeholder="commentApprove ? '请填写审批意见（选填）' : '请填写驳回原因'"
+        />
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -39,6 +59,11 @@ interface Task {
 
 const tasks = ref<Task[]>([])
 const loaded = ref(false)
+const commentVisible = ref(false)
+const comment = ref('')
+const commentApprove = ref(true)
+const commentSubmitting = ref(false)
+const currentTask = ref<Task>()
 
 async function load() {
   try {
@@ -51,14 +76,31 @@ async function load() {
   }
 }
 
-async function handle(task: Task, approve: boolean) {
-  const action = approve ? 'approve' : 'reject'
+function openComment(task: Task, approve: boolean) {
+  currentTask.value = task
+  commentApprove.value = approve
+  comment.value = ''
+  commentVisible.value = true
+}
+
+async function submitComment() {
+  const task = currentTask.value
+  if (!task) return
+  if (!commentApprove.value && !comment.value.trim()) {
+    showToast('驳回请填写审批意见')
+    return
+  }
+  const action = commentApprove.value ? 'approve' : 'reject'
+  commentSubmitting.value = true
   try {
-    await http.post(`/web/approval/tasks/${task.id}/${action}?comment=H5处理`)
-    showToast(approve ? '已通过' : '已驳回')
+    await http.post(`/web/approval/tasks/${task.id}/${action}?comment=${encodeURIComponent(comment.value.trim())}`)
+    showToast(commentApprove.value ? '已通过' : '已驳回')
+    commentVisible.value = false
     await load()
   } catch (e) {
     showToast(e instanceof Error ? e.message : '操作失败')
+  } finally {
+    commentSubmitting.value = false
   }
 }
 
@@ -116,6 +158,40 @@ onMounted(load)
   padding-top: 12px;
   border-top: 1px solid #eff4fb;
 }
+.comment-sheet {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef3fa;
+}
+
+.comment-head strong {
+  font-size: 16px;
+  color: #10233f;
+}
+
+.comment-cancel,
+.comment-submit {
+  border: 0;
+  background: transparent;
+  padding: 6px 2px;
+  font-size: 15px;
+}
+
+.comment-cancel {
+  color: #61738c;
+}
+
+.comment-submit {
+  color: #1677ff;
+  font-weight: 600;
+}
+
 .nav-link {
   color: #14508f;
   font-size: 14px;
