@@ -21,6 +21,20 @@
             <template #icon>
               <span class="entry-icon"><van-icon :name="entry.icon" /></span>
             </template>
+            <template v-if="entry.badge" #value>
+              <span class="count-badge">{{ entry.badge > 99 ? '99+' : entry.badge }}</span>
+            </template>
+          </van-cell>
+        </van-cell-group>
+
+        <van-cell-group inset title="消息" class="group">
+          <van-cell title="站内通知" is-link to="/v/notifications">
+            <template #icon>
+              <span class="entry-icon"><van-icon name="bell" /></span>
+            </template>
+            <template v-if="unreadCount > 0" #value>
+              <span class="count-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            </template>
           </van-cell>
         </van-cell-group>
 
@@ -62,6 +76,7 @@ interface Entry {
   title: string
   to: string
   icon: string
+  badge?: number
 }
 
 interface MenuGroup {
@@ -85,6 +100,8 @@ const ROLE_KIND: Record<number, MenuKind> = {
 const router = useRouter()
 const profile = ref<Profile>()
 const loaded = ref(false)
+const pendingCount = ref(0)
+const unreadCount = ref(0)
 
 const isAlumni = computed(() => {
   const current = profile.value
@@ -139,7 +156,7 @@ const groups = computed<MenuGroup[]>(() => {
       key: 'APPROVER',
       title: '审批',
       entries: [
-        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o' },
+        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o', badge: pendingCount.value || undefined },
         { title: '历史审批', to: '/a/history', icon: 'clock-o' },
       ],
     },
@@ -179,6 +196,21 @@ async function logout() {
   await router.replace('/login')
 }
 
+async function loadCounts() {
+  try {
+    const tasks = await http.get<{ total: number }>('/web/approval/tasks', { page: 1, size: 1 })
+    pendingCount.value = tasks.total ?? 0
+  } catch {
+    pendingCount.value = 0
+  }
+  try {
+    const unread = await http.get<{ count: number }>('/web/notifications/unread-count')
+    unreadCount.value = unread.count ?? 0
+  } catch {
+    unreadCount.value = 0
+  }
+}
+
 async function loadProfile() {
   try {
     profile.value = await http.get<Profile>('/auth/me')
@@ -189,7 +221,10 @@ async function loadProfile() {
   }
 }
 
-onMounted(loadProfile)
+onMounted(() => {
+  loadProfile()
+  loadCounts()
+})
 </script>
 
 <style scoped>
@@ -224,6 +259,20 @@ onMounted(loadProfile)
 .group :deep(.van-cell) {
   align-items: center;
 }
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f04438;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .entry-icon {
   display: flex;
   align-items: center;

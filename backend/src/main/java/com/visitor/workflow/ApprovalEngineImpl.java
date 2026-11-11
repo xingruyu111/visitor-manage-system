@@ -12,6 +12,7 @@ import com.visitor.domain.entity.ApprovalRule;
 import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.security.UserContext;
 import com.visitor.server.service.AuditLogService;
+import com.visitor.server.service.NotificationService;
 import com.visitor.server.mapper.ApprovalFlowMapper;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
 import com.visitor.server.mapper.ApprovalRuleMapper;
@@ -39,10 +40,13 @@ public class ApprovalEngineImpl implements ApprovalEngine {
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public ApprovalEngineImpl(ApprovalFlowMapper flowMapper, ApprovalRuleMapper ruleMapper,
                               ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper,
-                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper, ApplicationEventPublisher eventPublisher, AuditLogService auditLogService) {
+                              AssigneeResolver assigneeResolver, ObjectMapper objectMapper,
+                              ApplicationEventPublisher eventPublisher, AuditLogService auditLogService,
+                              NotificationService notificationService) {
         this.flowMapper = flowMapper;
         this.ruleMapper = ruleMapper;
         this.instanceMapper = instanceMapper;
@@ -51,6 +55,7 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         this.objectMapper = objectMapper;
         this.eventPublisher = eventPublisher;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -347,6 +352,12 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         taskMapper.insert(task);
+
+        // 第一级被访人由预约提交时的“新的访客申请”通知触达，其余审批节点统一发待办通知
+        if (assigneeId != null && !"TARGET".equals(task.getAssigneeType())) {
+            notificationService.notifyUser(assigneeId, "新的审批待办",
+                    node.name() + "，请及时处理", "APPROVAL", "APPROVAL_TASK", task.getId());
+        }
 
         instance.setCurrentSeq(node.seq());
         instance.setUpdatedAt(LocalDateTime.now());

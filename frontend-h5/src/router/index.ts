@@ -47,6 +47,12 @@ const router = createRouter({
       meta: { title: '我的预约' },
     },
     {
+      path: '/v/notifications',
+      name: 'Notifications',
+      component: () => import('@/views/notification/NotificationsView.vue'),
+      meta: { title: '站内通知' },
+    },
+    {
       path: '/v/home',
       name: 'VisitorHome',
       component: () => import('@/views/visitor/HomeView.vue'),
