@@ -1,10 +1,6 @@
 <template>
   <div class="page">
-    <van-nav-bar :title="title" left-arrow @click-left="$router.back()">
-      <template v-if="mode && canScan && canQuery" #right>
-        <span class="nav-link" @click="switchMode">{{ mode === 'verify' ? '车主查询' : '扫码核验' }}</span>
-      </template>
-    </van-nav-bar>
+    <van-nav-bar :title="title" left-arrow @click-left="$router.back()" />
 
     <van-cell-group v-if="showVerify" inset title="扫码核验">
       <template v-if="!result">
@@ -193,10 +189,6 @@ onMounted(async () => {
 
 onBeforeUnmount(stopScan)
 
-function switchMode() {
-  router.replace({ path: '/g/verify', query: { mode: mode.value === 'verify' ? 'query' : 'verify' } })
-}
-
 async function query() {
   if (!plate.value) {
     showToast('请输入车牌号')
@@ -289,10 +281,5 @@ async function query() {
 }
 .van-cell-group--inset {
   margin-top: 12px;
-}
-.nav-link {
-  color: #14508f;
-  font-size: 14px;
-  font-weight: 500;
 }
 </style>
