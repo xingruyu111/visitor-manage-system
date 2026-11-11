@@ -14,6 +14,8 @@ public interface WhitelistService {
 
     AccessList create(WhitelistSaveDTO dto);
 
+    AccessList update(Long id, WhitelistSaveDTO dto);
+
     AccessList approve(Long id);
 
     AccessList reject(Long id, String reason);

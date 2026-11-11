@@ -139,6 +139,59 @@ class WhitelistIntegrationTest {
     }
 
     @Test
+    void blacklistedPlateCannotJoinWhitelist() {
+        AccessList black = new AccessList();
+        black.setSchoolId(1L);
+        black.setListType(1);
+        black.setTargetType("PLATE_MOTOR");
+        black.setTargetValue("粤B77777");
+        black.setStatus(1);
+        black.setSource("MANUAL");
+        black.setCreatedAt(LocalDateTime.now());
+        black.setUpdatedAt(LocalDateTime.now());
+        accessListMapper.insert(black);
+
+        LocalDateTime from = LocalDateTime.now().plusHours(1).withNano(0);
+        LocalDateTime to = from.plusDays(7);
+        Map<String, Object> result = exchange("/web/whitelist", HttpMethod.POST,
+                body("黑牌人员", "13900002011", "粤B77777", from, to, "测试"), adminToken);
+
+        assertThat(result.get("code")).isEqualTo(400);
+        assertThat(result.get("message")).asString().contains("黑名单");
+        assertThat(accessListMapper.selectCount(new LambdaQueryWrapper<AccessList>()
+                .eq(AccessList::getListType, 2)
+                .eq(AccessList::getTargetValue, "13900002011"))).isZero();
+    }
+
+    @Test
+    void updateActiveWhitelistSyncsRecordAndPlate() {
+        LocalDateTime from = LocalDateTime.now().plusHours(1).withNano(0);
+        LocalDateTime to = from.plusDays(3);
+        Map<String, Object> created = exchange("/web/whitelist", HttpMethod.POST,
+                body("原姓名", "13900002012", "", from, to, "原原因"), adminToken);
+        Map<?, ?> data = (Map<?, ?>) created.get("data");
+        Long id = ((Number) data.get("id")).longValue();
+        Long recordId = ((Number) data.get("visitorRecordId")).longValue();
+
+        LocalDateTime newFrom = from.plusDays(1);
+        LocalDateTime newTo = to.plusDays(5);
+        Map<String, Object> updated = exchange("/web/whitelist/" + id, HttpMethod.PUT,
+                body("新姓名", "13900002012", "粤B66666", newFrom, newTo, "修改原因"), adminToken);
+
+        assertThat(updated.get("code")).isEqualTo(200);
+        VisitorRecord record = recordMapper.selectById(recordId);
+        assertThat(record.getVisitorName()).isEqualTo("新姓名");
+        assertThat(record.getPlateNumber()).isEqualTo("粤B66666");
+        assertThat(record.getPassMode()).isEqualTo("CAR");
+        assertThat(record.getVisitPurpose()).isEqualTo("修改原因");
+        assertThat(record.getExpectedTime()).isEqualTo(newFrom);
+        assertThat(record.getLeaveTime()).isEqualTo(newTo);
+        VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, recordId));
+        assertThat(pass.getValidTo()).isEqualTo(newTo);
+    }
+
+    @Test
     void duplicateActivePersonIsRejected() {
         LocalDateTime from = LocalDateTime.now().plusHours(1).withNano(0);
         LocalDateTime to = from.plusDays(1);

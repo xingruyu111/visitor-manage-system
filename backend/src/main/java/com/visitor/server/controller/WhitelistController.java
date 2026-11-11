@@ -46,6 +46,12 @@ public class WhitelistController {
         return Result.success(whitelistService.create(dto));
     }
 
+    @Operation(summary = "修改白名单")
+    @PutMapping("/{id}")
+    public Result<AccessList> update(@PathVariable Long id, @Valid @RequestBody WhitelistSaveDTO dto) {
+        return Result.success(whitelistService.update(id, dto));
+    }
+
     @Operation(summary = "审批通过")
     @PostMapping("/{id}/approve")
     public Result<AccessList> approve(@PathVariable Long id) {

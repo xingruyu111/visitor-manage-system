@@ -51,8 +51,9 @@
             <el-tag :type="whiteStatus(row).type">{{ whiteStatus(row).text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="190" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
+            <el-button v-if="canApprove" link type="primary" @click="openWhiteEdit(row)">编辑</el-button>
             <template v-if="canApprove && row.status === 0">
               <el-button link type="success" @click="approve(row)">通过</el-button>
               <el-button link type="danger" @click="reject(row)">驳回</el-button>
@@ -224,6 +225,7 @@ const loading = ref(false)
 const saving = ref(false)
 const visible = ref(false)
 const importVisible = ref(false)
+const whiteEditingId = ref<number>()
 const editingId = ref<number>()
 const me = ref<Me>({})
 const form = reactive({
@@ -245,7 +247,7 @@ const whiteForm = reactive({
 
 const isWhitelist = computed(() => activeTab.value === '2')
 const canApprove = computed(() => (me.value.roles ?? []).some((role) => role.code === 2 || role.code === 1))
-const dialogTitle = computed(() => (isWhitelist.value ? '新增白名单' : editingId.value ? '编辑名单' : '新增名单'))
+const dialogTitle = computed(() => (isWhitelist.value ? (whiteEditingId.value ? '编辑白名单' : '新增白名单') : editingId.value ? '编辑名单' : '新增名单'))
 const importTitle = computed(() => (isWhitelist.value ? 'Excel 导入白名单' : 'Excel 导入黑名单'))
 const templateUrl = computed(() => (isWhitelist.value ? '/templates/whitelist-import.xlsx' : '/templates/access-list-import.xlsx'))
 const importUploadUrl = computed(() => (isWhitelist.value ? '/api/web/whitelist/import' : '/api/web/admin/access-list/import'))
@@ -298,6 +300,7 @@ function onTabChange() {
 
 function openCreate() {
   editingId.value = undefined
+  whiteEditingId.value = undefined
   if (isWhitelist.value) {
     Object.assign(whiteForm, {
       personName: '',
@@ -318,6 +321,19 @@ function openCreate() {
   visible.value = true
 }
 
+function openWhiteEdit(row: Row) {
+  whiteEditingId.value = row.id
+  Object.assign(whiteForm, {
+    personName: row.personName || '',
+    phone: row.targetValue || '',
+    plateNumber: row.plateNumber || '',
+    effectiveFrom: row.effectiveFrom || '',
+    effectiveTo: row.effectiveTo || '',
+    reason: row.reason || '',
+  })
+  visible.value = true
+}
+
 function openEdit(row: Row) {
   editingId.value = row.id
   form.listType = row.listType
@@ -333,15 +349,22 @@ async function save() {
   saving.value = true
   try {
     if (isWhitelist.value) {
-      await http.post('/web/whitelist', {
+      const body = {
         personName: whiteForm.personName,
         phone: whiteForm.phone,
         plateNumber: whiteForm.plateNumber || undefined,
         effectiveFrom: whiteForm.effectiveFrom,
         effectiveTo: whiteForm.effectiveTo,
         reason: whiteForm.reason || undefined,
-      })
-      ElMessage.success(canApprove.value ? '已生效并生成预约记录' : '已提交，等待保卫处审批')
+      }
+      if (whiteEditingId.value) {
+        await http.put(`/web/whitelist/${whiteEditingId.value}`, body)
+      } else {
+        await http.post('/web/whitelist', body)
+      }
+      ElMessage.success(whiteEditingId.value
+        ? '已保存'
+        : canApprove.value ? '已生效并生成预约记录' : '已提交，等待保卫处审批')
     } else {
       const body = {
         listType: form.listType,

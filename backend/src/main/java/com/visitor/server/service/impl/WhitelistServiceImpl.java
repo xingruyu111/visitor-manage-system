@@ -11,6 +11,7 @@ import com.visitor.domain.dto.WhitelistSaveDTO;
 import com.visitor.domain.entity.AccessList;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.UserRole;
+import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.security.RoleAccessChecker;
 import com.visitor.security.SchoolScopes;
@@ -18,6 +19,7 @@ import com.visitor.security.UserContext;
 import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
+import com.visitor.server.mapper.VisitorPassMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
 import com.visitor.server.service.AccessCheckService;
 import com.visitor.server.service.NotificationService;
@@ -56,11 +58,13 @@ public class WhitelistServiceImpl implements WhitelistService {
     private final NotificationService notificationService;
     private final RoleAccessChecker roleAccessChecker;
     private final AccessCheckService accessCheckService;
+    private final VisitorPassMapper passMapper;
 
     public WhitelistServiceImpl(AccessListMapper accessListMapper, UserMapper userMapper,
                                 UserRoleMapper userRoleMapper, VisitorRecordMapper recordMapper,
                                 VisitorPassIssuer passIssuer, NotificationService notificationService,
-                                RoleAccessChecker roleAccessChecker, AccessCheckService accessCheckService) {
+                                RoleAccessChecker roleAccessChecker, AccessCheckService accessCheckService,
+                                VisitorPassMapper passMapper) {
         this.accessListMapper = accessListMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
@@ -69,6 +73,7 @@ public class WhitelistServiceImpl implements WhitelistService {
         this.notificationService = notificationService;
         this.roleAccessChecker = roleAccessChecker;
         this.accessCheckService = accessCheckService;
+        this.passMapper = passMapper;
     }
 
     @Override
@@ -161,6 +166,90 @@ public class WhitelistServiceImpl implements WhitelistService {
             notifySecurityAdmins(entry);
         }
         return entry;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AccessList update(Long id, WhitelistSaveDTO dto) {
+        requireApprover();
+        AccessList entry = getWhitelist(id);
+        String name = dto.getPersonName() == null ? "" : dto.getPersonName().trim();
+        String phone = normalize(dto.getPhone());
+        String plate = normalizePlate(dto.getPlateNumber());
+        if (name.isEmpty()) {
+            throw new BizException(400, "姓名不能为空");
+        }
+        if (phone.isEmpty()) {
+            throw new BizException(400, "手机号不能为空");
+        }
+        if (dto.getEffectiveFrom() == null || dto.getEffectiveTo() == null
+                || !dto.getEffectiveFrom().isBefore(dto.getEffectiveTo())) {
+            throw new BizException(400, "失效时间必须晚于生效时间");
+        }
+        if (!dto.getEffectiveTo().isAfter(LocalDateTime.now())) {
+            throw new BizException(400, "失效时间必须晚于当前时间");
+        }
+        Long duplicate = accessListMapper.selectCount(new LambdaQueryWrapper<AccessList>()
+                .eq(AccessList::getSchoolId, SchoolScopes.DEFAULT_SCHOOL_ID)
+                .eq(AccessList::getListType, LIST_WHITE)
+                .eq(AccessList::getTargetType, "PERSON")
+                .eq(AccessList::getTargetValue, phone)
+                .ne(AccessList::getId, id)
+                .in(AccessList::getStatus, PENDING, ACTIVE));
+        if (duplicate != null && duplicate > 0) {
+            throw new BizException(400, "该手机号已在白名单中");
+        }
+        assertNotBlacklisted(phone, plate);
+        entry.setTargetValue(phone);
+        entry.setPersonName(name);
+        entry.setPlateNumber(plate.isEmpty() ? null : plate);
+        entry.setEffectiveFrom(dto.getEffectiveFrom());
+        entry.setEffectiveTo(dto.getEffectiveTo());
+        entry.setReason(dto.getReason());
+        entry.setUpdatedAt(LocalDateTime.now());
+        accessListMapper.updateById(entry);
+
+        if (entry.getStatus() == ACTIVE) {
+            syncRecord(entry);
+        }
+        return entry;
+    }
+
+    private void syncRecord(AccessList entry) {
+        VisitorRecord record = entry.getVisitorRecordId() == null ? null : recordMapper.selectById(entry.getVisitorRecordId());
+        if (record == null || record.getStatus() == 5 || record.getStatus() == 6) {
+            generateRecord(entry);
+            return;
+        }
+        User person = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, entry.getTargetValue())
+                .last("LIMIT 1"));
+        record.setVisitorUserId(person != null ? person.getId() : UserContext.getUserId());
+        record.setVisitorName(entry.getPersonName());
+        record.setVisitorPhone(entry.getTargetValue());
+        record.setPlateNumber(entry.getPlateNumber());
+        record.setPassMode(entry.getPlateNumber() == null || entry.getPlateNumber().isBlank() ? "WALK" : "CAR");
+        record.setVisitPurpose(entry.getReason() == null ? "白名单通行" : entry.getReason());
+        record.setExpectedTime(entry.getEffectiveFrom());
+        record.setLeaveTime(entry.getEffectiveTo());
+        if (record.getStatus() == 4) {
+            record.setStatus(1);
+        }
+        record.setUpdatedAt(LocalDateTime.now());
+        recordMapper.updateById(record);
+
+        VisitorPass pass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, record.getId())
+                .last("LIMIT 1"));
+        if (pass != null) {
+            pass.setValidFrom(entry.getEffectiveFrom());
+            pass.setValidTo(entry.getEffectiveTo());
+            pass.setStatus(0);
+            pass.setUpdatedAt(LocalDateTime.now());
+            passMapper.updateById(pass);
+        } else {
+            passIssuer.issue(record);
+        }
     }
 
     @Override
