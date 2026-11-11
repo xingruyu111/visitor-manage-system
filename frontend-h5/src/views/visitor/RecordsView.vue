@@ -7,7 +7,7 @@
     <van-empty v-else-if="records.length === 0" description="暂无预约记录" />
 
     <div v-else class="list">
-      <div v-for="item in records" :key="item.id" class="record-card">
+      <div v-for="item in records" :key="item.id" class="record-card" @click="openDetail(item)">
         <div class="record-head">
           <div class="record-title">
             <span class="name">{{ item.targetName || '访客' }}</span>
@@ -20,27 +20,26 @@
           <span v-if="item.plateNumber" class="plate">{{ item.plateNumber }}</span>
         </div>
         <div class="record-actions">
-          <van-button size="small" round plain @click="openDetail(item)">详情</van-button>
           <van-button
             v-if="item.status === 0"
             size="small"
             round
             plain
             type="danger"
-            @click="cancelRecord(item)"
+            @click.stop="cancelRecord(item)"
           >
             取消申请
           </van-button>
           <van-button
-            v-if="item.status === 1 || item.status === 3 || item.status === 4"
+            v-if="item.status === 1 || item.status === 3"
             size="small"
             round
             type="primary"
-            @click="showPass(item)"
+            @click.stop="showPass(item)"
           >
             通行码
           </van-button>
-          <van-button size="small" round plain type="primary" @click="showApproval(item)">审批意见</van-button>
+          <van-button size="small" round plain type="primary" @click.stop="showApproval(item)">审批意见</van-button>
         </div>
       </div>
     </div>
@@ -215,6 +214,12 @@ onMounted(async () => {
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 6px 20px rgba(16, 42, 80, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.record-card:active {
+  transform: scale(0.995);
 }
 .record-head {
   display: flex;
