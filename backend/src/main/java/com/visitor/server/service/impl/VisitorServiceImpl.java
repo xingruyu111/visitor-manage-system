@@ -300,9 +300,8 @@ public class VisitorServiceImpl implements VisitorService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deptBatch(Long schoolId, VisitorBatchDTO dto, Long operatorId) {
-        RoleEnum role = UserContext.getRole();
-        if (role != RoleEnum.DEPT_OPERATOR && role != RoleEnum.SYSTEM_ADMIN) {
-            throw new BizException(403, "仅部门经办人可发起批量预约");
+        if (!roleAccessChecker.hasAny(RoleEnum.DEPT_OPERATOR, RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN)) {
+            throw new BizException(403, "仅部门经办人或保卫处管理员可发起批量预约");
         }
         int created = 0;
         for (VisitorBatchDTO.Item item : dto.getItems()) {

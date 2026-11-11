@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <van-nav-bar title="部门批量预约" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="批量预约" left-arrow @click-left="$router.back()" />
 
     <van-cell-group inset title="访客名单">
       <van-field

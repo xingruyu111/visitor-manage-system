@@ -175,12 +175,7 @@ const groups = computed<MenuGroup[]>(() => {
     SECURITY_ADMIN: {
       key: 'SECURITY_ADMIN',
       title: '保卫处',
-      entries: [
-        { title: '我的待办', to: '/a/tasks', icon: 'todo-list-o', badge: pendingCount.value || undefined },
-        { title: '历史审批', to: '/a/history', icon: 'clock-o' },
-        { title: '车主查询', to: '/g/verify?mode=query', icon: 'search' },
-        { title: '扫码核验', to: '/g/verify?mode=verify', icon: 'scan' },
-      ],
+      entries: [{ title: '批量预约', to: '/d/batch', icon: 'orders-o' }],
     },
     DEPT: {
       key: 'DEPT',
