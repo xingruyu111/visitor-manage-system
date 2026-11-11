@@ -2,6 +2,7 @@ package com.visitor.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.enums.RoleEnum;
+import com.visitor.security.RoleAccessChecker;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.ApprovalInstance;
 import com.visitor.domain.entity.ApprovalTask;
@@ -23,13 +24,16 @@ public class ApprovalTaskDetailService {
     private final ApprovalTaskMapper taskMapper;
     private final ApprovalInstanceMapper instanceMapper;
     private final VisitorRecordMapper recordMapper;
+    private final RoleAccessChecker roleAccessChecker;
 
     public ApprovalTaskDetailService(ApprovalTaskMapper taskMapper,
                                      ApprovalInstanceMapper instanceMapper,
-                                     VisitorRecordMapper recordMapper) {
+                                     VisitorRecordMapper recordMapper,
+                                     RoleAccessChecker roleAccessChecker) {
         this.taskMapper = taskMapper;
         this.instanceMapper = instanceMapper;
         this.recordMapper = recordMapper;
+        this.roleAccessChecker = roleAccessChecker;
     }
 
     public Map<String, Object> detail(Long taskId) {
@@ -38,8 +42,7 @@ public class ApprovalTaskDetailService {
             throw new BizException(404, "审批任务不存在");
         }
         Long userId = UserContext.getUserId();
-        RoleEnum role = UserContext.getRole();
-        boolean admin = role == RoleEnum.SYSTEM_ADMIN || role == RoleEnum.SECURITY_ADMIN;
+        boolean admin = roleAccessChecker.hasAny(RoleEnum.SYSTEM_ADMIN, RoleEnum.SECURITY_ADMIN);
         if (!admin && !userId.equals(task.getAssigneeId())) {
             throw new BizException(403, "无权查看该审批任务");
         }
