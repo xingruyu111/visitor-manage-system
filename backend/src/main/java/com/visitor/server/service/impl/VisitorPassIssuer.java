@@ -43,7 +43,12 @@ public class VisitorPassIssuer {
             }
         }
         pass.setValidTo(validTo);
-        pass.setMaxEntries("ALUMNI".equals(record.getVisitorType()) ? 30 : 1);
+        if ("WHITELIST".equals(record.getTargetType())) {
+            // 白名单在有效期内不限次进出
+            pass.setMaxEntries(999999);
+        } else {
+            pass.setMaxEntries("ALUMNI".equals(record.getVisitorType()) ? 30 : 1);
+        }
         pass.setUsedEntries(0);
         pass.setStatus(0);
         pass.setCreatedAt(LocalDateTime.now());

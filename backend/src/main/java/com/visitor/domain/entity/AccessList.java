@@ -33,6 +33,11 @@ public class AccessList {
     private String reason;
     private String source;
     private Integer status;
+    private Long createdBy;
+    private Long approvedBy;
+    private LocalDateTime approvedAt;
+    private Long visitorRecordId;
+    private String rejectReason;
     private LocalDateTime releasedAt;
     private String releaseReason;
     private LocalDateTime createdAt;
