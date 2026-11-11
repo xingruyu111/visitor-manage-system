@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { title: '访客预约' },
     },
     {
+      path: '/s/whitelist-import',
+      name: 'WhitelistImport',
+      component: () => import('@/views/security/WhitelistImportView.vue'),
+      meta: { title: '导入白名单' },
+    },
+    {
       path: '/d/batch',
       name: 'DeptBatch',
       component: () => import('@/views/dept/BatchApplyView.vue'),

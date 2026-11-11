@@ -175,12 +175,18 @@ const groups = computed<MenuGroup[]>(() => {
     SECURITY_ADMIN: {
       key: 'SECURITY_ADMIN',
       title: '保卫处',
-      entries: [{ title: '批量预约', to: '/d/batch', icon: 'orders-o' }],
+      entries: [
+        { title: '批量预约', to: '/d/batch', icon: 'orders-o' },
+        { title: '导入白名单', to: '/s/whitelist-import', icon: 'upgrade' },
+      ],
     },
     DEPT: {
       key: 'DEPT',
       title: '部门经办人',
-      entries: [{ title: '批量预约', to: '/d/batch', icon: 'orders-o' }],
+      entries: [
+        { title: '批量预约', to: '/d/batch', icon: 'orders-o' },
+        { title: '导入白名单', to: '/s/whitelist-import', icon: 'upgrade' },
+      ],
     },
     VISITOR: {
       key: 'VISITOR',
