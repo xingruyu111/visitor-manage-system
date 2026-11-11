@@ -21,6 +21,16 @@
         </div>
         <div class="record-actions">
           <van-button
+            v-if="item.status === 0"
+            size="small"
+            round
+            plain
+            type="danger"
+            @click="cancelRecord(item)"
+          >
+            取消申请
+          </van-button>
+          <van-button
             v-if="item.status === 1 || item.status === 3 || item.status === 4"
             size="small"
             round
@@ -53,7 +63,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
-import { showToast } from 'vant'
+import { showConfirmDialog, showToast } from 'vant'
 import QRCode from 'qrcode'
 import { http } from '@/api/request'
 
@@ -98,6 +108,24 @@ async function load() {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
     loaded.value = true
+  }
+}
+
+async function cancelRecord(item: RecordItem) {
+  try {
+    await showConfirmDialog({
+      title: '取消申请',
+      message: '确定取消这条待审批的预约吗？',
+      confirmButtonText: '取消申请',
+      cancelButtonText: '再想想',
+    })
+    await http.post(`/web/visitor/records/${item.id}/cancel`)
+    showToast('已取消')
+    await load()
+  } catch (e) {
+    if (e !== 'cancel') {
+      showToast(e instanceof Error ? e.message : '取消失败')
+    }
   }
 }
 
