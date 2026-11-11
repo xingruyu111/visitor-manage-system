@@ -7,15 +7,28 @@
     </van-nav-bar>
 
     <van-cell-group v-if="showVerify" inset title="扫码核验">
-      <van-field v-model="token" label="通行码" placeholder="粘贴或扫描通行码" />
-      <div class="actions">
-        <van-button block type="primary" :loading="verifying" @click="verify">核验</van-button>
-      </div>
+      <template v-if="!result">
+        <div class="scanner">
+          <video ref="videoRef" class="scanner-video" muted playsinline />
+          <div class="scan-frame" />
+          <div v-if="scanning" class="scanner-status">正在扫描…</div>
+          <div v-else-if="scanError" class="scanner-status error">{{ scanError }}</div>
+        </div>
+        <p class="scanner-hint">将访客通行码放入框内，识别后自动核验</p>
+        <div v-if="!scanning" class="actions">
+          <van-button block type="primary" :loading="verifying" @click="startScan">
+            {{ scanError ? '重新扫码' : '继续扫码' }}
+          </van-button>
+        </div>
+      </template>
     </van-cell-group>
 
     <van-cell-group v-if="showVerify && result" inset title="核验结果">
       <van-cell title="方向" :value="result.direction === 'IN' ? '入校' : '离校'" />
       <van-cell title="访客" :value="result.visitorName" />
+      <div class="actions">
+        <van-button block type="primary" @click="scanAgain">继续扫码</van-button>
+      </div>
     </van-cell-group>
 
     <van-cell-group v-if="showQuery" inset title="车主查询">
@@ -37,9 +50,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { BrowserQRCodeReader } from '@zxing/browser'
 import { http } from '@/api/request'
 
 interface VerifyResult {
@@ -66,7 +80,6 @@ const title = computed(() => {
   return '门卫核验'
 })
 
-const token = ref('')
 const plate = ref('')
 const result = ref<VerifyResult | null>(null)
 const records = ref<RecordItem[]>([])
@@ -74,6 +87,11 @@ const verifying = ref(false)
 const querying = ref(false)
 const canScan = ref(false)
 const canQuery = ref(false)
+const videoRef = ref<HTMLVideoElement>()
+const scanning = ref(false)
+const scanError = ref('')
+const codeReader = new BrowserQRCodeReader()
+let controls: { stop: () => void } | null = null
 
 async function loadAccess() {
   try {
@@ -98,26 +116,85 @@ async function loadAccess() {
   }
 }
 
-onMounted(loadAccess)
-
-function switchMode() {
-  router.replace({ path: '/g/verify', query: { mode: mode.value === 'verify' ? 'query' : 'verify' } })
+function cameraErrorMessage(error: unknown) {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError') return '请允许使用摄像头后重试'
+    if (error.name === 'NotFoundError') return '未检测到摄像头'
+    if (error.name === 'NotReadableError') return '摄像头被其他应用占用'
+  }
+  return error instanceof Error ? error.message : '摄像头启动失败'
 }
 
-async function verify() {
-  if (!token.value) {
-    showToast('请输入通行码')
-    return
+function stopScan() {
+  controls?.stop()
+  controls = null
+  scanning.value = false
+}
+
+async function startScan() {
+  if (scanning.value) return
+  result.value = null
+  scanError.value = ''
+  await nextTick()
+  if (!videoRef.value) return
+  scanning.value = true
+  try {
+    controls = await codeReader.decodeFromConstraints(
+      { video: { facingMode: { ideal: 'environment' } } },
+      videoRef.value,
+      async (scanResult) => {
+        if (!scanResult || verifying.value || !scanning.value) return
+        stopScan()
+        await verify(scanResult.getText())
+      },
+    )
+  } catch (error) {
+    stopScan()
+    scanError.value = cameraErrorMessage(error)
   }
+}
+
+async function verify(code: string) {
   verifying.value = true
   try {
-    result.value = await http.post<VerifyResult>(`/web/guard/verify?token=${encodeURIComponent(token.value)}`)
+    result.value = await http.post<VerifyResult>(`/web/guard/verify?token=${encodeURIComponent(code)}`)
     showToast(result.value.direction === 'IN' ? '已入校' : '已离校')
   } catch (e) {
     showToast(e instanceof Error ? e.message : '核验失败')
+    await startScan()
   } finally {
     verifying.value = false
   }
+}
+
+function scanAgain() {
+  result.value = null
+  startScan()
+}
+
+watch(
+  () => route.query.mode,
+  async () => {
+    stopScan()
+    if (showVerify.value) {
+      await nextTick()
+      startScan()
+    }
+  },
+)
+
+onMounted(async () => {
+  await loadAccess()
+  if (showVerify.value && canScan.value) {
+    await nextTick()
+    startScan()
+  }
+})
+
+onBeforeUnmount(stopScan)
+
+function switchMode() {
+  router.replace({ path: '/g/verify', query: { mode: mode.value === 'verify' ? 'query' : 'verify' } })
 }
 
 async function query() {
@@ -144,6 +221,68 @@ async function query() {
   min-height: 100vh;
   background: transparent;
   padding-bottom: 32px;
+}
+.scanner {
+  position: relative;
+  margin: 16px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #0b1626;
+}
+.scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scan-frame {
+  position: absolute;
+  inset: 18%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.28);
+}
+.scan-frame::before,
+.scan-frame::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: #4ea1ff;
+  border-style: solid;
+}
+.scan-frame::before {
+  left: -2px;
+  top: -2px;
+  border-width: 3px 0 0 3px;
+  border-radius: 10px 0 0;
+}
+.scan-frame::after {
+  right: -2px;
+  bottom: -2px;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 10px;
+}
+.scanner-status {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.scanner-status.error {
+  background: rgba(240, 68, 56, 0.9);
+}
+.scanner-hint {
+  margin: 0 16px;
+  color: #61738c;
+  font-size: 13px;
+  text-align: center;
 }
 .actions {
   padding: 12px 16px 4px;
