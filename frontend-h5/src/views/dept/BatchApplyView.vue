@@ -4,7 +4,8 @@
 
     <div class="intro-card">
       <div class="intro-title">Excel 批量预约</div>
-      <p>按人员填写，每人一行；提交后进入保卫处审批，通过后自动签发通行凭证。</p>
+      <p v-if="isSecurityAdmin">按人员填写，每人一行；保卫处管理员提交后直接生效并签发通行凭证。</p>
+      <p v-else>按人员填写，每人一行；提交后进入保卫处审批，通过后自动签发通行凭证。</p>
       <a class="template-link" href="/templates/batch-apply-import.xlsx" download>
         下载导入模板
       </a>
@@ -56,8 +57,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
+import { http } from '@/api/request'
 
 interface ImportError {
   row: number
@@ -73,12 +75,22 @@ interface ImportResult {
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File>()
 const uploading = ref(false)
+const isSecurityAdmin = ref(false)
 const result = ref<ImportResult>()
 
 const fileSize = computed(() => {
   if (!file.value) return ''
   const size = file.value.size
   return size > 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(size / 1024)} KB`
+})
+
+onMounted(async () => {
+  try {
+    const me = await http.get<{ roles?: Array<{ code: number }> }>('/auth/me')
+    isSecurityAdmin.value = (me.roles ?? []).some((role) => role.code === 1 || role.code === 2)
+  } catch {
+    isSecurityAdmin.value = false
+  }
 })
 
 function onFileChange(event: Event) {

@@ -304,6 +304,7 @@ public class VisitorServiceImpl implements VisitorService {
         if (!roleAccessChecker.hasAny(RoleEnum.DEPT_OPERATOR, RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN)) {
             throw new BizException(403, "仅部门经办人或保卫处管理员可发起批量预约");
         }
+        boolean direct = roleAccessChecker.hasAny(RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN);
         int created = 0;
         for (VisitorBatchDTO.Item item : dto.getItems()) {
             validateTime(item.getExpectedTime(), item.getLeaveTime());
@@ -317,13 +318,17 @@ public class VisitorServiceImpl implements VisitorService {
             record.setVisitPurpose(item.getVisitPurpose());
             record.setExpectedTime(item.getExpectedTime());
             record.setLeaveTime(item.getLeaveTime());
-            record.setStatus(0);
+            record.setStatus(direct ? 1 : 0);
             record.setCreatedAt(LocalDateTime.now());
             record.setUpdatedAt(LocalDateTime.now());
             recordMapper.insert(record);
-            approvalEngine.start(new ApprovalEngine.StartCommand(
-                    "VISITOR_RECORD", record.getId(), schoolId, operatorId,
-                    "NORMAL", null, null, "VISIT_DEPT_BATCH"));
+            if (direct) {
+                passIssuer.issue(record);
+            } else {
+                approvalEngine.start(new ApprovalEngine.StartCommand(
+                        "VISITOR_RECORD", record.getId(), schoolId, operatorId,
+                        "NORMAL", null, null, "VISIT_DEPT_BATCH"));
+            }
             created++;
         }
         return created;
