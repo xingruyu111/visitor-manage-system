@@ -103,6 +103,8 @@ public class VerifyServiceImpl implements VerifyService {
         result.put("targetName", record.getTargetName());
         result.put("expectedTime", record.getExpectedTime());
         result.put("leaveTime", record.getLeaveTime());
+        result.put("visitorType", record.getVisitorType());
+        result.put("extraJson", record.getExtraJson());
         VisitorPass latestPass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
                 .eq(VisitorPass::getRecordId, record.getId())
                 .orderByDesc(VisitorPass::getId)

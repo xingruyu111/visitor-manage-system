@@ -55,6 +55,7 @@
       v-model:show="detailVisible"
       title="预约详情"
       :record="detailRecord"
+      :field-labels="detailLabels"
     />
   </div>
 </template>
@@ -78,6 +79,8 @@ interface VerifyResult {
   recordStatus?: number
   usedEntries?: number
   maxEntries?: number
+  visitorType?: string
+  extraJson?: string
 }
 
 interface RecordItem {
@@ -91,6 +94,8 @@ interface RecordItem {
   leaveTime: string
   passMode?: string
   status?: number
+  visitorType?: string
+  extraJson?: string
 }
 
 const route = useRoute()
@@ -116,6 +121,7 @@ const scanning = ref(false)
 const scanError = ref('')
 const detailVisible = ref(false)
 const detailRecord = ref<VisitRecord | null>(null)
+const detailLabels = ref<Record<string, string>>({})
 const codeReader = new BrowserQRCodeReader()
 let controls: { stop: () => void } | null = null
 
@@ -219,12 +225,24 @@ onMounted(async () => {
 
 onBeforeUnmount(stopScan)
 
-function openQueryDetail(item: RecordItem) {
+async function loadFieldLabels(visitorType?: string): Promise<Record<string, string>> {
+  try {
+    const fields = await http.get<Array<{ fieldKey: string; label: string }>>('/web/visitor/form-fields', {
+      visitorType: visitorType || 'NORMAL',
+    })
+    return Object.fromEntries(fields.map((field) => [field.fieldKey, field.label]))
+  } catch {
+    return {}
+  }
+}
+
+async function openQueryDetail(item: RecordItem) {
   detailRecord.value = item
+  detailLabels.value = await loadFieldLabels(item.visitorType)
   detailVisible.value = true
 }
 
-function openResultDetail() {
+async function openResultDetail() {
   if (!result.value) return
   detailRecord.value = {
     visitorName: result.value.visitorName,
@@ -234,7 +252,10 @@ function openResultDetail() {
     expectedTime: result.value.expectedTime,
     leaveTime: result.value.leaveTime,
     status: result.value.recordStatus,
+    visitorType: result.value.visitorType,
+    extraJson: result.value.extraJson,
   }
+  detailLabels.value = await loadFieldLabels(result.value.visitorType)
   detailVisible.value = true
 }
 
