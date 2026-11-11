@@ -308,6 +308,22 @@ public class ApprovalEngineImpl implements ApprovalEngine {
         }
     }
     private String resolveFlowCode(StartCommand command) {
+        if (command.targetType() != null) {
+            List<ApprovalFlow> flows = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
+                    .eq(ApprovalFlow::getStatus, 1)
+                    .orderByDesc(ApprovalFlow::getVersion));
+            for (ApprovalFlow flow : flows) {
+                try {
+                    FlowDefinition definition = read(flow.getDefinitionJson());
+                    if (definition.targetTypes() != null
+                            && definition.targetTypes().contains(command.targetType())) {
+                        return flow.getFlowCode();
+                    }
+                } catch (Exception ignored) {
+                    // 跳过损坏的历史流程定义，继续匹配
+                }
+            }
+        }
         List<ApprovalRule> rules = ruleMapper.selectList(new LambdaQueryWrapper<ApprovalRule>()
                 .eq(ApprovalRule::getStatus, 1)
                 .orderByAsc(ApprovalRule::getPriority));

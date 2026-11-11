@@ -12,6 +12,9 @@
         <el-table-column prop="flowCode" label="流程编码" width="200" />
         <el-table-column prop="name" label="名称" min-width="160" />
         <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column label="适用被访人类型" min-width="180">
+          <template #default="{ row }">{{ targetTypesText(row) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="STATUS_TAG[row.status] ?? 'info'">{{ STATUS[row.status] ?? row.status }}</el-tag>
@@ -37,6 +40,11 @@
         </el-form-item>
         <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="超时(小时)"><el-input-number v-model="form.timeoutHours" :min="1" :max="240" /></el-form-item>
+        <el-form-item label="适用被访人类型">
+          <el-select v-model="form.targetTypes" multiple collapse-tags style="width: 100%" placeholder="不选表示未关联，按审批规则兜底">
+            <el-option v-for="item in TARGET_TYPES" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="审批节点">
           <el-table :data="form.nodes" border size="small" style="width: 100%">
             <el-table-column label="序号" width="80">
@@ -71,6 +79,9 @@
     <el-dialog v-model="versionsVisible" title="版本历史" width="520px">
       <el-table :data="versions" border size="small">
         <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column label="适用被访人类型" min-width="180">
+          <template #default="{ row }">{{ targetTypesText(row) }}</template>
+        </el-table-column>
         <el-table-column prop="name" label="名称" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">{{ STATUS[row.status] }}</template>
@@ -119,6 +130,15 @@ interface Node {
 const STATUS: Record<number, string> = { 0: '草稿', 1: '已发布', 2: '已停用' }
 const STATUS_TAG: Record<number, 'success' | 'info' | 'warning'> = { 0: 'warning', 1: 'success', 2: 'info' }
 const ASSIGNEES = ['TARGET', 'COUNSELOR', 'HEAD_TEACHER', 'SECURITY']
+const TARGET_TYPES = [
+  { value: 'TEACHER', label: '教职工' },
+  { value: 'STUDENT', label: '学生' },
+  { value: 'AFFILIATED_TEACHER', label: '附属学校教职工' },
+  { value: 'AFFILIATED_STUDENT', label: '附属学校学生' },
+  { value: 'MERCHANT', label: '校内商户' },
+  { value: 'CANTEEN', label: '食堂人员' },
+  { value: 'ALUMNI', label: '校友' },
+]
 
 const rows = ref<Flow[]>([])
 const loading = ref(false)
@@ -128,7 +148,7 @@ const versionsVisible = ref(false)
 const previewVisible = ref(false)
 const versions = ref<Flow[]>([])
 const preview = ref<Array<{ seq: number; name: string; assigneeType: string; assigneeName?: string }>>([])
-const form = reactive({ code: '', name: '', timeoutHours: 24, nodes: [] as Node[] })
+const form = reactive({ code: '', name: '', timeoutHours: 24, targetTypes: [] as string[], nodes: [] as Node[] })
 
 async function load() {
   loading.value = true
@@ -146,6 +166,7 @@ function openCreate() {
   form.code = ''
   form.name = ''
   form.timeoutHours = 24
+  form.targetTypes = []
   form.nodes = [{ seq: 1, name: '被访人审批', assignee: 'TARGET' }]
   editVisible.value = true
 }
@@ -154,13 +175,14 @@ function openEdit(row: Flow) {
   creating.value = false
   form.code = row.flowCode
   form.name = row.name
-  let definition: { timeoutHours?: number; nodes?: Node[] } = {}
+  let definition: { timeoutHours?: number; targetTypes?: string[]; nodes?: Node[] } = {}
   try {
     definition = JSON.parse(row.definitionJson)
   } catch {
     definition = {}
   }
   form.timeoutHours = definition.timeoutHours ?? 24
+  form.targetTypes = definition.targetTypes ?? []
   form.nodes = (definition.nodes ?? []).map((node) => ({ ...node }))
   editVisible.value = true
 }
@@ -174,11 +196,23 @@ function removeNode(index: number) {
   form.nodes.splice(index, 1)
 }
 
+function targetTypesText(row: Flow) {
+  try {
+    const definition = JSON.parse(row.definitionJson) as { targetTypes?: string[] }
+    const values = definition.targetTypes ?? []
+    if (values.length === 0) return '未关联'
+    return values.map((value) => TARGET_TYPES.find((item) => item.value === value)?.label || value).join('、')
+  } catch {
+    return '未关联'
+  }
+}
+
 function definition() {
   return {
     code: form.code,
     name: form.name,
     timeoutHours: form.timeoutHours,
+    targetTypes: form.targetTypes,
     nodes: form.nodes.map((node) => ({
       seq: node.seq,
       name: node.name,

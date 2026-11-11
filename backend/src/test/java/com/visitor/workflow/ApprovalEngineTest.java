@@ -261,6 +261,26 @@ class ApprovalEngineTest {
 
         assertThat(instanceMapper.selectById(instance.getId()).getStatus()).isEqualTo(ApprovalStatuses.APPROVED);
     }
+    @Test
+    void flowAssociationByTargetTypeTakesPrecedence() {
+        ApprovalFlow flow = new ApprovalFlow();
+        flow.setFlowCode("VISIT_BY_TARGET");
+        flow.setName("按被访人类型流程");
+        flow.setVersion(1);
+        flow.setStatus(1);
+        flow.setDefinitionJson("{\"code\":\"VISIT_BY_TARGET\",\"name\":\"按被访人类型流程\","
+                + "\"targetTypes\":[\"TEACHER\"],"
+                + "\"nodes\":[{\"seq\":1,\"name\":\"按类型审批\",\"assignee\":\"TARGET\"}]}");
+        flow.setCreatedAt(LocalDateTime.now());
+        flow.setUpdatedAt(LocalDateTime.now());
+        flowMapper.insert(flow);
+
+        ApprovalInstance instance = engine.start(new ApprovalEngine.StartCommand(
+                "VISITOR_RECORD", 88L, 1L, studentUserId, "NORMAL", "TEACHER", teacherStaffId));
+
+        assertThat(instance.getFlowCode()).isEqualTo("VISIT_BY_TARGET");
+    }
+
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return engine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));
