@@ -19,6 +19,7 @@ import com.visitor.server.mapper.AccessListMapper;
 import com.visitor.server.mapper.UserMapper;
 import com.visitor.server.mapper.UserRoleMapper;
 import com.visitor.server.mapper.VisitorRecordMapper;
+import com.visitor.server.service.AccessCheckService;
 import com.visitor.server.service.NotificationService;
 import com.visitor.server.service.WhitelistService;
 import org.springframework.stereotype.Service;
@@ -54,11 +55,12 @@ public class WhitelistServiceImpl implements WhitelistService {
     private final VisitorPassIssuer passIssuer;
     private final NotificationService notificationService;
     private final RoleAccessChecker roleAccessChecker;
+    private final AccessCheckService accessCheckService;
 
     public WhitelistServiceImpl(AccessListMapper accessListMapper, UserMapper userMapper,
                                 UserRoleMapper userRoleMapper, VisitorRecordMapper recordMapper,
                                 VisitorPassIssuer passIssuer, NotificationService notificationService,
-                                RoleAccessChecker roleAccessChecker) {
+                                RoleAccessChecker roleAccessChecker, AccessCheckService accessCheckService) {
         this.accessListMapper = accessListMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
@@ -66,6 +68,7 @@ public class WhitelistServiceImpl implements WhitelistService {
         this.passIssuer = passIssuer;
         this.notificationService = notificationService;
         this.roleAccessChecker = roleAccessChecker;
+        this.accessCheckService = accessCheckService;
     }
 
     @Override
@@ -112,6 +115,7 @@ public class WhitelistServiceImpl implements WhitelistService {
         if (!dto.getEffectiveTo().isAfter(LocalDateTime.now())) {
             throw new BizException(400, "失效时间必须晚于当前时间");
         }
+        assertNotBlacklisted(phone, plate);
 
         AccessList entry = accessListMapper.selectOne(new LambdaQueryWrapper<AccessList>()
                 .eq(AccessList::getSchoolId, SchoolScopes.DEFAULT_SCHOOL_ID)
@@ -172,6 +176,7 @@ public class WhitelistServiceImpl implements WhitelistService {
         entry.setApprovedAt(LocalDateTime.now());
         entry.setRejectReason(null);
         entry.setUpdatedAt(LocalDateTime.now());
+        assertNotBlacklisted(entry.getTargetValue(), entry.getPlateNumber());
         accessListMapper.updateById(entry);
         generateRecord(entry);
         return entry;
@@ -210,6 +215,7 @@ public class WhitelistServiceImpl implements WhitelistService {
             entry.setApprovedBy(UserContext.getUserId());
             entry.setApprovedAt(LocalDateTime.now());
             entry.setUpdatedAt(LocalDateTime.now());
+            assertNotBlacklisted(entry.getTargetValue(), entry.getPlateNumber());
             accessListMapper.updateById(entry);
             generateRecord(entry);
         } else {
@@ -341,8 +347,13 @@ public class WhitelistServiceImpl implements WhitelistService {
         }
     }
 
-    private AccessList getWhitelist(Long id) {
-        AccessList entry = accessListMapper.selectById(id);
+    private void assertNotBlacklisted(String phone, String plate) {
+        String access = accessCheckService.check(SchoolScopes.DEFAULT_SCHOOL_ID, phone, plate);
+        if ("BLACKLIST".equals(access)) {
+            throw new BizException(400, "该人员或车牌在黑名单中，不能加入白名单");
+        }
+    }
+    private AccessList getWhitelist(Long id) {        AccessList entry = accessListMapper.selectById(id);
         if (entry == null || entry.getListType() != LIST_WHITE || !"PERSON".equals(entry.getTargetType())) {
             throw new BizException(404, "白名单不存在");
         }
