@@ -21,10 +21,6 @@
           <el-icon><Files /></el-icon>
           <span>名单管理</span>
         </el-menu-item>
-        <el-menu-item index="/approval-tasks">
-          <el-icon><Checked /></el-icon>
-          <span>审批任务</span>
-        </el-menu-item>
         <el-menu-item index="/alarms">
           <el-icon><Warning /></el-icon>
           <span>通行告警</span>
@@ -141,7 +137,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { http } from '@/api/request'
-import { Odometer, Monitor, Tickets, User, Bell, Share, Connection, Files, Checked, UserFilled, EditPen, Calendar, Avatar, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
+import { Odometer, Monitor, Tickets, User, Bell, Share, Connection, Files, UserFilled, EditPen, Calendar, Avatar, Warning, Upload, Position, TrendCharts, Document, Link, CircleClose, Lock, Setting, Refresh } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

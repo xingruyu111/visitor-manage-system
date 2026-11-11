@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { http } from '@/api/request'
 
@@ -118,7 +118,16 @@ async function exportCsv() {
   }
 }
 
-onMounted(() => load(1))
+watch(
+  () => props.fixedAction,
+  (value) => {
+    action.value = value
+    keyword.value = ''
+    page.value = 1
+    load(1)
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
