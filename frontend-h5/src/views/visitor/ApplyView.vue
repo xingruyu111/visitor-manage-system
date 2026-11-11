@@ -92,13 +92,34 @@
     </van-cell-group>
 
     <van-cell-group v-if="fields.length" inset title="补充信息">
-      <van-field
-        v-for="field in fields"
-        :key="field.fieldKey"
-        v-model="extra[field.fieldKey]"
-        :label="field.label"
-        :placeholder="field.required === 1 ? '必填' : '选填'"
-      />
+      <template v-for="field in fields" :key="field.fieldKey">
+        <van-field
+          v-if="field.fieldType === 'SELECT'"
+          readonly
+          clickable
+          :label="field.label"
+          :model-value="extra[field.fieldKey]"
+          :placeholder="field.required === 1 ? '请选择（必填）' : '请选择'"
+          @click="openFieldSelect(field)"
+        />
+        <van-field
+          v-else-if="field.fieldType === 'DATE'"
+          readonly
+          clickable
+          :label="field.label"
+          :model-value="extra[field.fieldKey]"
+          :placeholder="field.required === 1 ? '请选择日期（必填）' : '请选择日期'"
+          @click="openFieldDate(field)"
+        />
+        <van-field
+          v-else
+          v-model="extra[field.fieldKey]"
+          :label="field.label"
+          :type="fieldInputType(field)"
+          :maxlength="fieldMaxLength(field)"
+          :placeholder="field.required === 1 ? '必填' : '选填'"
+        />
+      </template>
     </van-cell-group>
 
     <div class="actions">
@@ -135,6 +156,30 @@
         </van-tabs>
       </div>
     </van-popup>
+
+    <van-popup v-model:show="fieldPickerVisible" position="bottom" round>
+      <van-picker
+        :columns="fieldOptions.map((item) => ({ text: item, value: item }))"
+        @confirm="onFieldOptionConfirm"
+        @cancel="fieldPickerVisible = false"
+      />
+    </van-popup>
+
+    <van-popup v-model:show="fieldDateVisible" position="bottom" round>
+      <div class="time-picker">
+        <div class="time-picker-head">
+          <button class="time-cancel" @click="fieldDateVisible = false">取消</button>
+          <strong>{{ fieldDateTitle }}</strong>
+          <button class="time-confirm" @click="confirmFieldDate">确定</button>
+        </div>
+        <van-date-picker
+          v-model="fieldDateValues"
+          :min-date="new Date(1900, 0, 1)"
+          :max-date="new Date(2100, 11, 31)"
+          :show-toolbar="false"
+        />
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -147,6 +192,8 @@ import { http } from '@/api/request'
 interface FormField {
   fieldKey: string
   label: string
+  fieldType?: string
+  options?: string
   required?: number
 }
 
@@ -192,6 +239,12 @@ const checkMessage = ref('')
 const visitorType = ref('NORMAL')
 const fields = ref<FormField[]>([])
 const extra = reactive<Record<string, string>>({})
+const fieldPickerVisible = ref(false)
+const fieldDateVisible = ref(false)
+const selectedField = ref<FormField>()
+const fieldOptions = ref<string[]>([])
+const fieldDateValues = ref<string[]>(['2026', '01', '01'])
+const fieldDateTitle = computed(() => selectedField.value?.label || '选择日期')
 const submitting = ref(false)
 const profile = ref<Profile>()
 const showTypePicker = ref(false)
@@ -350,6 +403,59 @@ async function loadPreCheck() {
   }
 }
 
+function fieldInputType(field: FormField) {
+  if (field.fieldType === 'NUMBER') return 'number'
+  if (field.fieldType === 'PHONE') return 'tel'
+  return 'text'
+}
+
+function fieldMaxLength(field: FormField) {
+  if (field.fieldType === 'PHONE') return 11
+  if (field.fieldType === 'ID_CARD') return 18
+  return undefined
+}
+
+function openFieldSelect(field: FormField) {
+  selectedField.value = field
+  fieldOptions.value = (field.options || '')
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (fieldOptions.value.length === 0) {
+    showToast('该字段暂无可选项')
+    return
+  }
+  fieldPickerVisible.value = true
+}
+
+function onFieldOptionConfirm({ selectedValues }: { selectedValues: string[] }) {
+  if (!selectedField.value) return
+  extra[selectedField.value.fieldKey] = selectedValues[0] ?? ''
+  fieldPickerVisible.value = false
+}
+
+function openFieldDate(field: FormField) {
+  selectedField.value = field
+  const current = extra[field.fieldKey]
+  if (current && /^\d{4}-\d{2}-\d{2}$/.test(current)) {
+    fieldDateValues.value = current.split('-')
+  } else {
+    const now = new Date()
+    fieldDateValues.value = [
+      String(now.getFullYear()),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ]
+  }
+  fieldDateVisible.value = true
+}
+
+function confirmFieldDate() {
+  if (!selectedField.value) return
+  extra[selectedField.value.fieldKey] = fieldDateValues.value.join('-')
+  fieldDateVisible.value = false
+}
+
 async function submit() {
   if (checkStatus.value === 'BLACKLIST') {
     showToast('您在黑名单中，无法提交预约')
@@ -369,6 +475,12 @@ async function submit() {
   }
   if (isAffiliatedStudent.value && !headTeacherNo.value) {
     showToast('附属学生预约请填写班主任工号')
+    return
+  }
+  const missing = fields.value.find((field) => field.required === 1
+    && !String(extra[field.fieldKey] ?? '').trim())
+  if (missing) {
+    showToast(`请填写${missing.label}`)
     return
   }
   submitting.value = true
