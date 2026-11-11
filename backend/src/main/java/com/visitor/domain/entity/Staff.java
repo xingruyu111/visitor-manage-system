@@ -27,6 +27,10 @@ public class Staff {
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long orgId;
     private PersonTypeEnum personType;
+
+    /** 仅用于展示，不落库 */
+    @TableField(exist = false)
+    private String orgName;
     private String jobNo;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String studentNo;

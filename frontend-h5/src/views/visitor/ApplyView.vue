@@ -24,7 +24,7 @@
             v-for="item in targets"
             :key="item.id"
             :title="item.name"
-            :label="item.phone"
+            :label="targetMeta(item)"
             clickable
             @click="selectTarget(item)"
           />
@@ -34,7 +34,7 @@
       <van-cell
         v-if="selectedTarget"
         title="已选被访人"
-        :label="`${selectedTarget.name} ${selectedTarget.phone || ''}`"
+        :label="`${selectedTarget.name} · ${targetMeta(selectedTarget)}`"
       />
     </van-cell-group>
 
@@ -154,6 +154,7 @@ interface Staff {
   id: number
   name: string
   phone?: string
+  orgName?: string
   personType?: number
 }
 
@@ -305,6 +306,10 @@ async function search() {
   } catch (e) {
     showToast(e instanceof Error ? e.message : '搜索失败')
   }
+}
+
+function targetMeta(target: Staff) {
+  return [target.phone, target.orgName].filter(Boolean).join(' · ')
 }
 
 function selectTarget(target: Staff) {

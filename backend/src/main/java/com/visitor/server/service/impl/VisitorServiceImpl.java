@@ -7,11 +7,13 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.VisitorApplyDTO;
 import com.visitor.domain.dto.VisitorBatchDTO;
 import com.visitor.domain.entity.ApprovalInstance;
+import com.visitor.domain.entity.Org;
 import com.visitor.domain.entity.Staff;
 import com.visitor.domain.entity.User;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.server.mapper.ApprovalInstanceMapper;
+import com.visitor.server.mapper.OrgMapper;
 import com.visitor.server.mapper.ApprovalTaskMapper;
 import com.visitor.domain.entity.ApprovalTask;
 import com.visitor.server.mapper.StaffMapper;
@@ -43,6 +45,7 @@ import java.util.Objects;
 public class VisitorServiceImpl implements VisitorService {
 
     private final UserMapper userMapper;
+    private final OrgMapper orgMapper;
     private final StaffMapper staffMapper;
     private final VisitorRecordMapper recordMapper;
     private final VisitorPassMapper passMapper;
@@ -59,11 +62,12 @@ public class VisitorServiceImpl implements VisitorService {
     private final SystemSettingService settingService;
     private final ObjectMapper objectMapper;
 
-    public VisitorServiceImpl(UserMapper userMapper, StaffMapper staffMapper,
+    public VisitorServiceImpl(UserMapper userMapper, OrgMapper orgMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
                               ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper) {
         this.userMapper = userMapper;
+        this.orgMapper = orgMapper;
         this.staffMapper = staffMapper;
         this.recordMapper = recordMapper;
         this.passMapper = passMapper;
@@ -404,12 +408,40 @@ public class VisitorServiceImpl implements VisitorService {
             return java.util.List.of();
         }
         String value = keyword.trim();
-        return staffMapper.selectList(new LambdaQueryWrapper<Staff>()
+        java.util.List<Staff> staffList = staffMapper.selectList(new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getStatus, 1)
                 .eq(Staff::getIsDeleted, 0)
                 .and(w -> w.eq(Staff::getName, value).or().eq(Staff::getPhone, value))
                 .orderByAsc(Staff::getId)
                 .last("LIMIT 10"));
+        if (staffList.isEmpty()) {
+            return staffList;
+        }
+        java.util.List<Org> orgs = orgMapper.selectList(null);
+        java.util.Map<Long, Org> byId = new java.util.HashMap<>();
+        for (Org org : orgs) {
+            byId.put(org.getId(), org);
+        }
+        java.util.Map<Long, String> paths = new java.util.HashMap<>();
+        for (Staff staff : staffList) {
+            staff.setOrgName(staff.getOrgId() == null ? null : orgPath(byId.get(staff.getOrgId()), byId, paths));
+        }
+        return staffList;
+    }
+
+    private String orgPath(Org org, java.util.Map<Long, Org> byId, java.util.Map<Long, String> paths) {
+        if (org == null) {
+            return null;
+        }
+        String cached = paths.get(org.getId());
+        if (cached != null) {
+            return cached;
+        }
+        String value = org.getParentId() == null
+                ? org.getName()
+                : orgPath(byId.get(org.getParentId()), byId, paths) + "/" + org.getName();
+        paths.put(org.getId(), value);
+        return value;
     }
 
     @Override
