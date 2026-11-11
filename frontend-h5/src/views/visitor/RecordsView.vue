@@ -63,7 +63,7 @@
       <div class="pass" v-if="pass">
         <canvas ref="canvasRef" class="qr"></canvas>
         <p class="meta">有效期：{{ pass.validFrom }} ~ {{ pass.validTo }}</p>
-        <p class="meta">通行次数：{{ pass.usedEntries }} / {{ pass.maxEntries }}</p>
+        <p class="meta">通行次数：{{ pass.maxEntries >= 999999 ? '不限次' : (pass.usedEntries + ' / ' + pass.maxEntries) }}</p>
       </div>
     </van-dialog>
   </div>

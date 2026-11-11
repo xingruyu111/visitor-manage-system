@@ -98,13 +98,14 @@ interface Field {
   status: number
 }
 
-const TYPES = [
+const TYPES = ref([
   { value: 'NORMAL', label: '普通访客' },
   { value: 'ALUMNI', label: '校友' },
   { value: 'PARENT', label: '学生家长' },
   { value: 'CONSTRUCTION', label: '施工/合作' },
-]
-const TYPE_LABEL = Object.fromEntries(TYPES.map((item) => [item.value, item.label]))
+  { value: 'COOPERATION', label: '合作访客' },
+])
+const TYPE_LABEL = ref<Record<string, string>>(Object.fromEntries(TYPES.value.map((item) => [item.value, item.label])))
 const FIELD_TYPES = [
   { value: 'TEXT', label: '文本' },
   { value: 'NUMBER', label: '数字' },
@@ -129,6 +130,19 @@ const form = reactive({
   options: '',
   status: 1,
 })
+
+async function loadVisitorTypes() {
+  try {
+    const data = await http.get<Array<{ code: string; name: string; status: number }>>('/web/admin/visitor-types')
+    const enabled = data.filter((item) => item.status === 1)
+    if (enabled.length > 0) {
+      TYPES.value = enabled.map((item) => ({ value: item.code, label: item.name }))
+      TYPE_LABEL.value = Object.fromEntries(TYPES.value.map((item) => [item.value, item.label]))
+    }
+  } catch {
+    // 保留内置类型兜底
+  }
+}
 
 async function load() {
   loading.value = true
@@ -223,5 +237,8 @@ async function remove(row: Field) {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await loadVisitorTypes()
+  await load()
+})
 </script>

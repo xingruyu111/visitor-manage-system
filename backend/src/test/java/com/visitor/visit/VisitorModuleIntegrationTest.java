@@ -104,6 +104,9 @@ class VisitorModuleIntegrationTest {
     private ParentSlotMapper parentSlotMapper;
 
     @Autowired
+    private com.visitor.server.mapper.VisitorTypeMapper visitorTypeMapper;
+
+    @Autowired
     private NotifyConfigMapper notifyConfigMapper;
 
     @Autowired
@@ -617,8 +620,8 @@ class VisitorModuleIntegrationTest {
 
         VisitorPass pass = passIssuer.issue(record);
 
-        assertThat(pass.getMaxEntries()).isEqualTo(30);
-        assertThat(pass.getValidTo()).isAfter(record.getExpectedTime().plusDays(29));
+        assertThat(pass.getMaxEntries()).isEqualTo(999999);
+        assertThat(pass.getValidTo()).isEqualTo(record.getLeaveTime());
     }
 
     private void insertDeptFlow() {
@@ -637,15 +640,11 @@ class VisitorModuleIntegrationTest {
     void parentMustApplyWithinConfiguredSlot() {
         java.time.LocalDate monday = java.time.LocalDate.now()
                 .with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
-        com.visitor.domain.entity.ParentSlot slot = new com.visitor.domain.entity.ParentSlot();
-        slot.setVisitorPhone("13800003001");
-        slot.setWeekday(1);
-        slot.setStartTime(java.time.LocalTime.of(8, 0));
-        slot.setEndTime(java.time.LocalTime.of(18, 0));
-        slot.setEffectiveFrom(monday.minusDays(7));
-        slot.setEffectiveTo(monday.plusDays(7));
-        slot.setStatus(1);
-        parentSlotMapper.insert(slot);
+        com.visitor.domain.entity.VisitorType parentType = visitorTypeMapper.selectOne(
+                new LambdaQueryWrapper<com.visitor.domain.entity.VisitorType>()
+                        .eq(com.visitor.domain.entity.VisitorType::getCode, "PARENT"));
+        parentType.setBookingRulesJson("[{\"mode\":\"WEEKLY\",\"values\":[\"1\"],\"startTime\":\"08:00\",\"endTime\":\"18:00\"}]");
+        visitorTypeMapper.updateById(parentType);
 
         String okBody = """
                 {"targetId":%d,"visitorType":"PARENT","expectedTime":"%s","leaveTime":"%s"}
@@ -658,7 +657,7 @@ class VisitorModuleIntegrationTest {
                 """.formatted(teacherStaffId, tuesday.format(FORMAT), tuesday.plusHours(1).format(FORMAT));
         Map<String, Object> bad = exchange("/web/visitor/records", HttpMethod.POST, badBody, visitorToken);
         assertThat(bad.get("code")).isEqualTo(400);
-        assertThat(bad.get("message")).asString().contains("家长固定时段");
+        assertThat(bad.get("message")).asString().contains("可预约时间段");
     }
     @Test
     void guardCanQueryByPlateButVisitorCannot() {

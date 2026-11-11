@@ -32,6 +32,7 @@ import com.visitor.server.service.AccessCheckService;
 import com.visitor.common.enums.PersonTypeEnum;
 import com.visitor.common.enums.RoleEnum;
 import com.visitor.security.RoleAccessChecker;
+import com.visitor.server.service.VisitorTypeService;
 import com.visitor.security.UserContext;
 import com.visitor.workflow.ApprovalEngine;
 import com.visitor.workflow.ApprovalStatuses;
@@ -64,11 +65,13 @@ public class VisitorServiceImpl implements VisitorService {
     private final SystemSettingService settingService;
     private final ObjectMapper objectMapper;
     private final RoleAccessChecker roleAccessChecker;
+    private final VisitorTypeService visitorTypeService;
 
     public VisitorServiceImpl(UserMapper userMapper, OrgMapper orgMapper, StaffMapper staffMapper,
                               VisitorRecordMapper recordMapper, VisitorPassMapper passMapper,
                               VisitorPassIssuer passIssuer, ApprovalEngine approvalEngine,
-                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper, RoleAccessChecker roleAccessChecker) {
+                              ApprovalInstanceMapper instanceMapper, ApprovalTaskMapper taskMapper, AccessCheckService accessCheckService, NotificationService notificationService, FormFieldService formFieldService, ParentSlotService parentSlotService, AlarmService alarmService, AuditLogService auditLogService, SystemSettingService settingService, ObjectMapper objectMapper, RoleAccessChecker roleAccessChecker,
+                              VisitorTypeService visitorTypeService) {
         this.userMapper = userMapper;
         this.orgMapper = orgMapper;
         this.staffMapper = staffMapper;
@@ -87,6 +90,7 @@ public class VisitorServiceImpl implements VisitorService {
         this.settingService = settingService;
         this.objectMapper = objectMapper;
         this.roleAccessChecker = roleAccessChecker;
+        this.visitorTypeService = visitorTypeService;
     }
 
     @Override
@@ -112,15 +116,10 @@ public class VisitorServiceImpl implements VisitorService {
             assertNoOverlap(userId, dto.getExpectedTime(), dto.getLeaveTime());
         }
 
-        formFieldService.validate(dto.getVisitorType() == null || dto.getVisitorType().isBlank()
-                ? "NORMAL" : dto.getVisitorType().trim().toUpperCase(), dto.getExtra());
-
         String visitorType = dto.getVisitorType() == null || dto.getVisitorType().isBlank()
                 ? "NORMAL" : dto.getVisitorType().trim().toUpperCase();
-
-        if ("PARENT".equals(visitorType)) {
-            parentSlotService.validate(user.getPhone(), dto.getExpectedTime(), dto.getLeaveTime());
-        }
+        formFieldService.validate(visitorType, dto.getExtra());
+        visitorTypeService.validateBookingTime(visitorType, dto.getExpectedTime(), dto.getLeaveTime());
 
         String passMode = dto.getPassMode() == null || dto.getPassMode().isBlank()
                 ? "WALK" : dto.getPassMode().trim().toUpperCase();

@@ -118,16 +118,16 @@ const router = createRouter({
           meta: { title: 'IP 黑名单' },
         },
         {
+          path: 'visit-config',
+          name: 'VisitConfig',
+          component: () => import('@/views/config/VisitConfigView.vue'),
+          meta: { title: '预约配置' },
+        },
+        {
           path: 'form-fields',
           name: 'FormFields',
           component: () => import('@/views/config/FormFieldView.vue'),
           meta: { title: '表单字段' },
-        },
-        {
-          path: 'parent-slots',
-          name: 'ParentSlots',
-          component: () => import('@/views/config/ParentSlotView.vue'),
-          meta: { title: '家长时段' },
         },
         {
           path: 'access-list',

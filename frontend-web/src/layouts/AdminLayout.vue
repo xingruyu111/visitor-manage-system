@@ -59,9 +59,9 @@
           <el-icon><EditPen /></el-icon>
           <span>表单字段</span>
         </el-menu-item>
-        <el-menu-item index="/parent-slots">
+        <el-menu-item index="/visit-config">
           <el-icon><Calendar /></el-icon>
-          <span>家长时段</span>
+          <span>预约配置</span>
         </el-menu-item>
         <el-menu-item index="/integration-config">
           <el-icon><Connection /></el-icon>

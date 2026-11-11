@@ -215,12 +215,19 @@ interface PickerConfirm {
   selectedOptions: Array<{ text: string; value: string }>
 }
 
-const VISITOR_TYPES: Record<string, string> = {
-  NORMAL: '普通',
-  PARENT: '家长',
-  CONSTRUCTION: '施工合作',
-  ALUMNI: '校友',
+interface VisitorTypeOption {
+  code: string
+  name: string
+  bookingRulesJson?: string
 }
+
+const visitorTypes = ref<VisitorTypeOption[]>([
+  { code: 'NORMAL', name: '普通访客', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
+  { code: 'PARENT', name: '学生家长', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
+  { code: 'CONSTRUCTION', name: '施工/合作', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
+  { code: 'COOPERATION', name: '合作访客', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
+  { code: 'ALUMNI', name: '校友', bookingRulesJson: '[{"mode":"UNLIMITED","values":[]}]' },
+])
 
 const router = useRouter()
 const keyword = ref('')
@@ -266,11 +273,82 @@ const isAlumni = computed(() => {
 const isAffiliatedStudent = computed(() => selectedTarget.value?.personType === 6)
 
 const visitorTypeOptions = computed(() => {
-  const codes = isAlumni.value ? ['ALUMNI'] : ['NORMAL', 'PARENT', 'CONSTRUCTION']
-  return codes.map((code) => ({ text: VISITOR_TYPES[code], value: code }))
+  if (isAlumni.value) {
+    return visitorTypes.value.filter((item) => item.code === 'ALUMNI')
+      .map((item) => ({ text: item.name, value: item.code }))
+  }
+  return visitorTypes.value
+    .filter((item) => item.code !== 'ALUMNI')
+    .map((item) => ({ text: item.name, value: item.code }))
 })
 
-const visitorTypeLabel = computed(() => VISITOR_TYPES[visitorType.value] ?? '普通')
+const visitorTypeLabel = computed(() =>
+  visitorTypes.value.find((item) => item.code === visitorType.value)?.name ?? '普通访客')
+
+const selectedVisitorType = computed(() =>
+  visitorTypes.value.find((item) => item.code === visitorType.value))
+
+async function loadVisitorTypes() {
+  try {
+    const data = await http.get<VisitorTypeOption[]>('/web/visitor/visitor-types')
+    if (data.length > 0) {
+      visitorTypes.value = data
+    }
+  } catch {
+    // 使用内置类型兜底
+  }
+}
+
+function bookingRules() {
+  try {
+    return JSON.parse(selectedVisitorType.value?.bookingRulesJson || '[]') as Array<{
+      mode: string
+      values?: string[]
+      startTime?: string
+      endTime?: string
+    }>
+  } catch {
+    return []
+  }
+}
+
+function isTimeAllowed(expected: string, leave: string) {
+  const rules = bookingRules()
+  if (rules.length === 0 || rules.some((rule) => rule.mode === 'UNLIMITED'
+    && withinRuleTime(rule, expected, leave))) {
+    return true
+  }
+  const from = new Date(expected.replace(' ', 'T'))
+  const to = new Date(leave.replace(' ', 'T'))
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return false
+  if (from.toDateString() !== to.toDateString()) return false
+  return rules.some((rule) => matchesDate(rule, from) && withinRuleTime(rule, expected, leave))
+}
+
+function matchesDate(rule: { mode: string; values?: string[] }, date: Date) {
+  const values = rule.values || []
+  if (rule.mode === 'DAILY') return values.includes(String(date.getDate()))
+  if (rule.mode === 'WEEKLY') {
+    const weekday = date.getDay() === 0 ? 7 : date.getDay()
+    return values.includes(String(weekday))
+  }
+  if (rule.mode === 'MONTHLY') return values.includes(String(date.getMonth() + 1))
+  if (rule.mode === 'MONTH_DAY') return values.includes(`${date.getMonth() + 1}-${date.getDate()}`)
+  return false
+}
+
+function withinRuleTime(rule: { startTime?: string; endTime?: string }, expected: string, leave: string) {
+  const from = new Date(expected.replace(' ', 'T'))
+  const to = new Date(leave.replace(' ', 'T'))
+  if (from.toDateString() !== to.toDateString()) return false
+  const minutes = (value: Date) => value.getHours() * 60 + value.getMinutes()
+  const parse = (value?: string, fallback = 0) => {
+    if (!value) return fallback
+    const [hour, minute] = value.split(':').map(Number)
+    return hour * 60 + minute
+  }
+  return minutes(from) >= parse(rule.startTime, 0) && minutes(to) <= parse(rule.endTime, 24 * 60 - 1)
+}
 
 function localTime(offsetHours: number) {
   const date = new Date(Date.now() + offsetHours * 3600 * 1000)
@@ -313,6 +391,10 @@ function confirmTime() {
     return
   }
   if (timeTarget.value === 'expectedTime') {
+    if (leaveTime.value && !isTimeAllowed(value, leaveTime.value)) {
+      showToast('所选时间不在当前访客类型的可预约时段内')
+      return
+    }
     expectedTime.value = value
     if (leaveTime.value && leaveTime.value <= value) {
       leaveTime.value = localTime(3)
@@ -322,6 +404,10 @@ function confirmTime() {
       showToast('离校时间需晚于到访时间')
       return
     }
+    if (expectedTime.value && !isTimeAllowed(expectedTime.value, value)) {
+      showToast('所选时间不在当前访客类型的可预约时段内')
+      return
+    }
     leaveTime.value = value
   }
   timePickerVisible.value = false
@@ -329,11 +415,14 @@ function confirmTime() {
 
 async function loadProfile() {
   try {
+    await loadVisitorTypes()
     profile.value = await http.get<Profile>('/auth/me')
     if (isAlumni.value) {
       visitorType.value = 'ALUMNI'
-    } else if (!['NORMAL', 'PARENT', 'CONSTRUCTION'].includes(visitorType.value)) {
-      visitorType.value = 'NORMAL'
+    } else if (!visitorTypes.value.some((item) => item.code === visitorType.value)) {
+      visitorType.value = visitorTypes.value.find((item) => item.code === 'NORMAL')?.code
+        ?? visitorTypes.value[0]?.code
+        ?? 'NORMAL'
     }
     await loadFields()
   } catch {

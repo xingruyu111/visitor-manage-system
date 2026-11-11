@@ -3,6 +3,7 @@ package com.visitor.server.service.impl;
 import com.visitor.domain.entity.VisitorPass;
 import com.visitor.domain.entity.VisitorRecord;
 import com.visitor.server.mapper.VisitorPassMapper;
+import com.visitor.server.service.VisitorTypeService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -16,10 +17,13 @@ public class VisitorPassIssuer {
 
     private final VisitorPassMapper passMapper;
     private final GateSyncService gateSyncService;
+    private final VisitorTypeService visitorTypeService;
 
-    public VisitorPassIssuer(VisitorPassMapper passMapper, GateSyncService gateSyncService) {
+    public VisitorPassIssuer(VisitorPassMapper passMapper, GateSyncService gateSyncService,
+                            VisitorTypeService visitorTypeService) {
         this.passMapper = passMapper;
         this.gateSyncService = gateSyncService;
+        this.visitorTypeService = visitorTypeService;
     }
 
     public VisitorPass issue(VisitorRecord record) {
@@ -35,19 +39,12 @@ public class VisitorPassIssuer {
         pass.setPassNo("P" + record.getId() + "-" + System.currentTimeMillis());
         pass.setQrToken(UUID.randomUUID().toString());
         pass.setValidFrom(record.getExpectedTime());
-        LocalDateTime validTo = record.getLeaveTime();
-        if ("ALUMNI".equals(record.getVisitorType())) {
-            LocalDateTime monthEnd = record.getExpectedTime().plusDays(30);
-            if (monthEnd.isAfter(validTo)) {
-                validTo = monthEnd;
-            }
-        }
-        pass.setValidTo(validTo);
+        pass.setValidTo(record.getLeaveTime());
         if ("WHITELIST".equals(record.getTargetType())) {
             // 白名单在有效期内不限次进出
             pass.setMaxEntries(999999);
         } else {
-            pass.setMaxEntries("ALUMNI".equals(record.getVisitorType()) ? 30 : 1);
+            pass.setMaxEntries(visitorTypeService.passMaxEntries(record.getVisitorType()));
         }
         pass.setUsedEntries(0);
         pass.setStatus(0);

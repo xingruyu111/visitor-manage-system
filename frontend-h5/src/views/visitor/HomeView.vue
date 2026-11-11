@@ -19,6 +19,15 @@
           <van-icon name="arrow" class="whitelist-arrow" />
         </div>
 
+        <div v-else-if="alumniMonth?.eligible" class="whitelist-banner" @click="showAlumniPass">
+          <div class="whitelist-icon alumni-icon"><van-icon name="friends-o" /></div>
+          <div class="whitelist-text">
+            <strong>本月校友通行</strong>
+            <span>有效期至 {{ alumniMonth.validTo }}，点击查看通行码</span>
+          </div>
+          <van-icon name="arrow" class="whitelist-arrow" />
+        </div>
+
         <van-cell-group v-for="group in groups" :key="group.key" inset :title="group.title" class="group">
           <van-cell
             v-for="entry in group.entries"
@@ -59,7 +68,7 @@
       <div v-if="pass" class="pass">
         <canvas ref="canvasRef" class="qr"></canvas>
         <p class="pass-meta">有效期：{{ pass.validFrom }} ~ {{ pass.validTo }}</p>
-        <p class="pass-meta">通行次数：{{ pass.usedEntries }} / {{ pass.maxEntries }}</p>
+        <p class="pass-meta">通行次数：{{ pass.maxEntries >= 999999 ? '不限次' : (pass.usedEntries + ' / ' + pass.maxEntries) }}</p>
       </div>
     </van-dialog>
   </div>
@@ -133,12 +142,21 @@ interface Pass {
   maxEntries: number
 }
 
+interface AlumniMonth {
+  eligible: boolean
+  recordId?: number
+  month?: number
+  validFrom?: string
+  validTo?: string
+}
+
 const router = useRouter()
 const profile = ref<Profile>()
 const loaded = ref(false)
 const pendingCount = ref(0)
 const unreadCount = ref(0)
 const whitelistRecord = ref<RecordItem>()
+const alumniMonth = ref<AlumniMonth>()
 const pass = ref<Pass>()
 const passVisible = ref(false)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -268,8 +286,17 @@ async function loadWhitelist() {
 
 async function showWhitelistPass() {
   if (!whitelistRecord.value) return
+  await openPass(whitelistRecord.value.id)
+}
+
+async function showAlumniPass() {
+  if (!alumniMonth.value?.recordId) return
+  await openPass(alumniMonth.value.recordId)
+}
+
+async function openPass(recordId: number) {
   try {
-    pass.value = await http.get<Pass>(`/web/visitor/records/${whitelistRecord.value.id}/pass`)
+    pass.value = await http.get<Pass>(`/web/visitor/records/${recordId}/pass`)
     passVisible.value = true
     await nextTick()
     if (canvasRef.value) {
@@ -277,6 +304,14 @@ async function showWhitelistPass() {
     }
   } catch (e) {
     showToast(e instanceof Error ? e.message : '通行码暂不可用')
+  }
+}
+
+async function loadAlumniMonth() {
+  try {
+    alumniMonth.value = await http.get<AlumniMonth>('/web/visitor/alumni-month')
+  } catch {
+    alumniMonth.value = undefined
   }
 }
 
@@ -319,6 +354,7 @@ onMounted(() => {
   loadProfile()
   loadCounts()
   loadWhitelist()
+  loadAlumniMonth()
 })
 </script>
 
@@ -387,6 +423,9 @@ onMounted(() => {
   margin-top: 3px;
   color: #61738c;
   font-size: 12px;
+}
+.alumni-icon {
+  background: #0f9f6e;
 }
 .whitelist-arrow {
   color: #1677ff;

@@ -435,3 +435,36 @@ CREATE TABLE vst_counselor_org (
   PRIMARY KEY (id),
   CONSTRAINT uk_counselor_org UNIQUE (school_id, org_id)
 );
+
+DROP TABLE IF EXISTS vst_visitor_type;
+CREATE TABLE vst_visitor_type (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  code VARCHAR(32) NOT NULL,
+  name VARCHAR(64) NOT NULL,
+  max_entries INT NOT NULL DEFAULT 1,
+  booking_rules_json CLOB,
+  status TINYINT NOT NULL DEFAULT 1,
+  sort_no INT NOT NULL DEFAULT 0,
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_visitor_type_code UNIQUE (code)
+);
+INSERT INTO vst_visitor_type (code,name,max_entries,booking_rules_json,status,sort_no,created_at,updated_at) VALUES
+ ('NORMAL','普通访客',1,'[{"mode":"UNLIMITED","values":[]}]',1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+ ('PARENT','学生家长',1,'[{"mode":"UNLIMITED","values":[]}]',1,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+ ('ALUMNI','校友',0,'[{"mode":"UNLIMITED","values":[]}]',1,3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+ ('CONSTRUCTION','施工/合作',1,'[{"mode":"UNLIMITED","values":[]}]',1,4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+ ('COOPERATION','合作访客',1,'[{"mode":"UNLIMITED","values":[]}]',1,5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+
+DROP TABLE IF EXISTS vst_visit_config;
+CREATE TABLE vst_visit_config (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  school_id BIGINT NOT NULL,
+  alumni_months_json VARCHAR(128),
+  created_at DATETIME,
+  updated_at DATETIME,
+  PRIMARY KEY (id),
+  CONSTRAINT uk_visit_config_school UNIQUE (school_id)
+);
+INSERT INTO vst_visit_config (school_id,alumni_months_json,created_at,updated_at) VALUES (1,'[]',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
