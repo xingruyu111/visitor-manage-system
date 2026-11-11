@@ -18,6 +18,7 @@
         </div>
         <div class="task-due"><van-icon name="clock-o" /> 截止 {{ item.dueAt }}</div>
         <div class="task-actions">
+          <van-button size="small" round plain @click="openDetail(item.id)">详情</van-button>
           <van-button size="small" round type="primary" @click="openComment(item, true)">通过</van-button>
           <van-button size="small" round plain type="danger" @click="openComment(item, false)">驳回</van-button>
         </div>
@@ -43,13 +44,27 @@
         />
       </div>
     </van-popup>
+
+    <VisitDetailSheet
+      v-model:show="detailVisible"
+      title="审批详情"
+      :record="detailRecord"
+      :task="detailTask"
+      :history="detailHistory"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
+import VisitDetailSheet, {
+  type HistoryInfo,
+  type TaskInfo,
+  type VisitRecord,
+} from '@/components/VisitDetailSheet.vue'
 
 interface Task {
   id: number
@@ -57,6 +72,7 @@ interface Task {
   dueAt: string
 }
 
+const route = useRoute()
 const tasks = ref<Task[]>([])
 const loaded = ref(false)
 const commentVisible = ref(false)
@@ -64,6 +80,10 @@ const comment = ref('')
 const commentApprove = ref(true)
 const commentSubmitting = ref(false)
 const currentTask = ref<Task>()
+const detailVisible = ref(false)
+const detailRecord = ref<VisitRecord | null>(null)
+const detailTask = ref<TaskInfo | null>(null)
+const detailHistory = ref<HistoryInfo[]>([])
 
 async function load() {
   try {
@@ -73,6 +93,22 @@ async function load() {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
     loaded.value = true
+  }
+}
+
+async function openDetail(taskId: number) {
+  try {
+    const data = await http.get<{
+      task: TaskInfo
+      record: VisitRecord | null
+      history: HistoryInfo[]
+    }>(`/web/approval/tasks/${taskId}/detail`)
+    detailTask.value = data.task
+    detailRecord.value = data.record
+    detailHistory.value = data.history ?? []
+    detailVisible.value = true
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '加载详情失败')
   }
 }
 
@@ -104,7 +140,13 @@ async function submitComment() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  const taskId = Number(route.query.taskId)
+  if (taskId) {
+    await openDetail(taskId)
+  }
+})
 </script>
 
 <style scoped>

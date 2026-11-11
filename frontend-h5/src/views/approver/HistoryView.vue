@@ -16,8 +16,19 @@
         </div>
         <div class="time">{{ item.actedAt }}</div>
         <div v-if="item.comment" class="comment">{{ item.comment }}</div>
+        <div class="history-actions">
+          <van-button size="small" round plain @click="openDetail(item)">查看详情</van-button>
+        </div>
       </div>
     </div>
+
+    <VisitDetailSheet
+      v-model:show="detailVisible"
+      title="审批详情"
+      :record="detailRecord"
+      :task="detailTask"
+      :history="detailHistory"
+    />
   </div>
 </template>
 
@@ -25,6 +36,11 @@
 import { onMounted, ref } from 'vue'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
+import VisitDetailSheet, {
+  type HistoryInfo,
+  type TaskInfo,
+  type VisitRecord,
+} from '@/components/VisitDetailSheet.vue'
 
 interface HistoryItem {
   taskId: number
@@ -36,6 +52,26 @@ interface HistoryItem {
 
 const history = ref<HistoryItem[]>([])
 const loaded = ref(false)
+const detailVisible = ref(false)
+const detailRecord = ref<VisitRecord | null>(null)
+const detailTask = ref<TaskInfo | null>(null)
+const detailHistory = ref<HistoryInfo[]>([])
+
+async function openDetail(item: HistoryItem) {
+  try {
+    const data = await http.get<{
+      task: TaskInfo
+      record: VisitRecord | null
+      history: HistoryInfo[]
+    }>(`/web/approval/tasks/${item.taskId}/detail`)
+    detailTask.value = data.task
+    detailRecord.value = data.record
+    detailHistory.value = data.history ?? []
+    detailVisible.value = true
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '加载详情失败')
+  }
+}
 
 async function load() {
   try {
@@ -102,5 +138,12 @@ onMounted(load)
   color: #4a5f7a;
   font-size: 13px;
   line-height: 1.6;
+}
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eff4fb;
 }
 </style>

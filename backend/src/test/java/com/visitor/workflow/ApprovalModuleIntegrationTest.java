@@ -342,6 +342,21 @@ class ApprovalModuleIntegrationTest {
         assertThat(emergency.get("code")).isEqualTo(200);
         assertThat(instanceMapper.selectById(second.getId()).getStatus()).isEqualTo("APPROVED");
     }
+    @Test
+    void assigneeCanReadTaskDetailWithHistory() {
+        ApprovalInstance instance = start(30L, "TEACHER", teacherStaffId);
+        ApprovalTask task = taskMapper.selectOne(new LambdaQueryWrapper<ApprovalTask>()
+                .eq(ApprovalTask::getInstanceId, instance.getId()));
+
+        Map<String, Object> detail = data(exchange("/web/approval/tasks/" + task.getId() + "/detail",
+                HttpMethod.GET, null, teacherToken));
+        assertThat(((Map<?, ?>) detail.get("task")).get("nodeName")).isEqualTo("被访人审批");
+        assertThat((List<?>) detail.get("history")).hasSize(1);
+
+        Map<String, Object> forbidden = exchange("/web/approval/tasks/" + task.getId() + "/detail",
+                HttpMethod.GET, null, studentToken);
+        assertThat(forbidden.get("code")).isEqualTo(403);
+    }
     private ApprovalInstance start(Long bizId, String targetType, Long targetId) {
         return approvalEngine.start(new ApprovalEngine.StartCommand(
                 "VISITOR_RECORD", bizId, 1L, studentUserId, "NORMAL", targetType, targetId));

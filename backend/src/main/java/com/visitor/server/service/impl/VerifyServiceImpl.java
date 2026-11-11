@@ -98,6 +98,21 @@ public class VerifyServiceImpl implements VerifyService {
         result.put("recordId", record.getId());
         result.put("recordStatus", record.getStatus());
         result.put("visitorName", record.getVisitorName());
+        result.put("visitorPhone", record.getVisitorPhone());
+        result.put("plateNumber", record.getPlateNumber());
+        result.put("targetName", record.getTargetName());
+        result.put("expectedTime", record.getExpectedTime());
+        result.put("leaveTime", record.getLeaveTime());
+        VisitorPass latestPass = passMapper.selectOne(new LambdaQueryWrapper<VisitorPass>()
+                .eq(VisitorPass::getRecordId, record.getId())
+                .orderByDesc(VisitorPass::getId)
+                .last("LIMIT 1"));
+        if (latestPass != null) {
+            result.put("usedEntries", latestPass.getUsedEntries());
+            result.put("maxEntries", latestPass.getMaxEntries());
+            result.put("validFrom", latestPass.getValidFrom());
+            result.put("validTo", latestPass.getValidTo());
+        }
         return result;
     }
 

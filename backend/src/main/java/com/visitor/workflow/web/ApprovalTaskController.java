@@ -3,6 +3,7 @@ package com.visitor.workflow.web;
 import com.visitor.common.core.PageResult;
 import com.visitor.common.core.Result;
 import com.visitor.domain.entity.ApprovalTask;
+import com.visitor.server.service.ApprovalTaskDetailService;
 import com.visitor.workflow.ApprovalEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,9 +26,17 @@ import java.util.List;
 public class ApprovalTaskController {
 
     private final ApprovalEngine approvalEngine;
+    private final ApprovalTaskDetailService detailService;
 
-    public ApprovalTaskController(ApprovalEngine approvalEngine) {
+    public ApprovalTaskController(ApprovalEngine approvalEngine, ApprovalTaskDetailService detailService) {
         this.approvalEngine = approvalEngine;
+        this.detailService = detailService;
+    }
+
+    @Operation(summary = "审批任务详情")
+    @GetMapping("/{id}/detail")
+    public Result<java.util.Map<String, Object>> detail(@PathVariable Long id) {
+        return Result.success(detailService.detail(id));
     }
 
     @Operation(summary = "我的待审批任务")

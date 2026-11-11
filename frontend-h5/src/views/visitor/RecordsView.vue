@@ -20,6 +20,7 @@
           <span v-if="item.plateNumber" class="plate">{{ item.plateNumber }}</span>
         </div>
         <div class="record-actions">
+          <van-button size="small" round plain @click="openDetail(item)">详情</van-button>
           <van-button
             v-if="item.status === 0"
             size="small"
@@ -44,6 +45,13 @@
       </div>
     </div>
 
+    <VisitDetailSheet
+      v-model:show="detailVisible"
+      title="预约详情"
+      :record="detailRecord"
+      :approval="detailApproval"
+    />
+
     <van-dialog v-model:show="approvalVisible" title="审批意见" confirm-button-text="关闭">
       <div class="pass" v-if="approval">
         <p class="meta">{{ approval.nodeName }} · {{ approval.actedAt }}</p>
@@ -63,8 +71,10 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import QRCode from 'qrcode'
+import VisitDetailSheet, { type VisitRecord as DetailRecord, type ApprovalInfo } from '@/components/VisitDetailSheet.vue'
 import { http } from '@/api/request'
 
 interface RecordItem {
@@ -92,6 +102,7 @@ const TAG: Record<number, 'primary' | 'success' | 'danger' | 'warning' | 'defaul
   0: 'warning', 1: 'success', 2: 'danger', 3: 'primary', 4: 'default', 5: 'default', 6: 'default',
 }
 
+const route = useRoute()
 const records = ref<RecordItem[]>([])
 const loaded = ref(false)
 const pass = ref<Pass | null>(null)
@@ -99,6 +110,9 @@ const passVisible = ref(false)
 const approvalVisible = ref(false)
 const approval = ref<{ nodeName?: string; comment?: string; actedAt?: string } | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const detailVisible = ref(false)
+const detailRecord = ref<DetailRecord | null>(null)
+const detailApproval = ref<ApprovalInfo | null>(null)
 
 async function load() {
   try {
@@ -108,6 +122,18 @@ async function load() {
     showToast(e instanceof Error ? e.message : '加载失败')
   } finally {
     loaded.value = true
+  }
+}
+
+async function openDetailById(id: number) {
+  try {
+    detailRecord.value = await http.get<DetailRecord>(`/web/visitor/records/${id}`)
+    detailApproval.value = await http
+      .get<ApprovalInfo>(`/web/visitor/records/${id}/approval`)
+      .catch(() => null)
+    detailVisible.value = true
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : '加载详情失败')
   }
 }
 
@@ -153,7 +179,17 @@ async function showPass(item: RecordItem) {
   }
 }
 
-onMounted(load)
+async function openDetail(item: RecordItem) {
+  await openDetailById(item.id)
+}
+
+onMounted(async () => {
+  await load()
+  const recordId = Number(route.query.recordId)
+  if (recordId) {
+    await openDetailById(recordId)
+  }
+})
 </script>
 
 <style scoped>

@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { http } from '@/api/request'
 
@@ -43,9 +44,12 @@ interface Notice {
   content: string
   type?: string
   isRead: number
+  bizType?: string
+  bizId?: number
   createdAt: string
 }
 
+const router = useRouter()
 const records = ref<Notice[]>([])
 const loaded = ref(false)
 
@@ -73,12 +77,20 @@ function tagType(type?: string): 'primary' | 'warning' | 'default' {
 }
 
 async function open(item: Notice) {
-  if (item.isRead !== 0) return
-  try {
-    await http.post(`/web/notifications/${item.id}/read`)
-    item.isRead = 1
-  } catch (e) {
-    showToast(e instanceof Error ? e.message : '操作失败')
+  if (item.isRead === 0) {
+    try {
+      await http.post(`/web/notifications/${item.id}/read`)
+      item.isRead = 1
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '操作失败')
+    }
+  }
+  if (item.bizType === 'APPROVAL_TASK' && item.bizId) {
+    router.push({ path: '/a/tasks', query: { taskId: String(item.bizId) } })
+  } else if (item.title.includes('新的访客申请')) {
+    router.push('/a/tasks')
+  } else if (item.bizType === 'VISITOR_RECORD' && item.bizId) {
+    router.push({ path: '/v/records', query: { recordId: String(item.bizId) } })
   }
 }
 

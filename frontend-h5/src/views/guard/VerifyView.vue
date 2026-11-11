@@ -22,8 +22,14 @@
     <van-cell-group v-if="showVerify && result" inset title="核验结果">
       <van-cell title="方向" :value="result.direction === 'IN' ? '入校' : '离校'" />
       <van-cell title="访客" :value="result.visitorName" />
+      <van-cell title="手机号" :value="result.visitorPhone || '—'" />
+      <van-cell v-if="result.plateNumber" title="车牌号" :value="result.plateNumber" />
+      <van-cell title="被访人" :value="result.targetName || '—'" />
+      <van-cell title="到访时间" :value="result.expectedTime || '—'" />
+      <van-cell title="离校时间" :value="result.leaveTime || '—'" />
       <div class="actions">
-        <van-button block type="primary" @click="scanAgain">继续扫码</van-button>
+        <van-button block plain type="primary" @click="openResultDetail">查看完整详情</van-button>
+        <van-button block type="primary" class="again" @click="scanAgain">继续扫码</van-button>
       </div>
     </van-cell-group>
 
@@ -40,8 +46,16 @@
         :key="item.id"
         :title="`${item.visitorName} ${item.plateNumber}`"
         :label="`${item.expectedTime} ~ ${item.leaveTime}`"
+        is-link
+        @click="openQueryDetail(item)"
       />
     </van-cell-group>
+
+    <VisitDetailSheet
+      v-model:show="detailVisible"
+      title="预约详情"
+      :record="detailRecord"
+    />
   </div>
 </template>
 
@@ -51,18 +65,32 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { BrowserQRCodeReader } from '@zxing/browser'
 import { http } from '@/api/request'
+import VisitDetailSheet, { type VisitRecord } from '@/components/VisitDetailSheet.vue'
 
 interface VerifyResult {
   direction: string
   visitorName: string
+  visitorPhone?: string
+  plateNumber?: string
+  targetName?: string
+  expectedTime?: string
+  leaveTime?: string
+  recordStatus?: number
+  usedEntries?: number
+  maxEntries?: number
 }
 
 interface RecordItem {
   id: number
   visitorName: string
+  visitorPhone?: string
   plateNumber?: string
+  targetName?: string
+  visitPurpose?: string
   expectedTime: string
   leaveTime: string
+  passMode?: string
+  status?: number
 }
 
 const route = useRoute()
@@ -86,6 +114,8 @@ const canQuery = ref(false)
 const videoRef = ref<HTMLVideoElement>()
 const scanning = ref(false)
 const scanError = ref('')
+const detailVisible = ref(false)
+const detailRecord = ref<VisitRecord | null>(null)
 const codeReader = new BrowserQRCodeReader()
 let controls: { stop: () => void } | null = null
 
@@ -188,6 +218,25 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(stopScan)
+
+function openQueryDetail(item: RecordItem) {
+  detailRecord.value = item
+  detailVisible.value = true
+}
+
+function openResultDetail() {
+  if (!result.value) return
+  detailRecord.value = {
+    visitorName: result.value.visitorName,
+    visitorPhone: result.value.visitorPhone,
+    plateNumber: result.value.plateNumber,
+    targetName: result.value.targetName,
+    expectedTime: result.value.expectedTime,
+    leaveTime: result.value.leaveTime,
+    status: result.value.recordStatus,
+  }
+  detailVisible.value = true
+}
 
 async function query() {
   if (!plate.value) {
