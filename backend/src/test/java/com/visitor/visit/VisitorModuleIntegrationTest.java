@@ -585,6 +585,23 @@ class VisitorModuleIntegrationTest {
     }
 
     @Test
+    void securityAdminBatchIsDirectlyApproved() {
+        String body = """
+                {"items":[{"name":"保卫处直录","phone":"13900007777","expectedTime":"%s","leaveTime":"%s"}]}
+                """.formatted(FORMAT.format(LocalDateTime.now()), FORMAT.format(LocalDateTime.now().plusHours(2)));
+
+        Map<String, Object> result = exchange("/web/dept/visitor-records/batch",
+                HttpMethod.POST, body, adminToken);
+
+        assertThat(result.get("code")).isEqualTo(200);
+        assertThat(number(data(result).get("created"))).isEqualTo(1);
+        VisitorRecord record = recordMapper.selectOne(null);
+        assertThat(record.getStatus()).isEqualTo(1);
+        assertThat(passMapper.selectCount(null)).isEqualTo(1L);
+        assertThat(taskMapper.selectCount(null)).isZero();
+    }
+
+    @Test
     void alumniPassIsMonthly() {
         VisitorRecord record = new VisitorRecord();
         record.setSchoolId(1L);
