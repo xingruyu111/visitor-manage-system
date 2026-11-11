@@ -417,31 +417,11 @@ public class VisitorServiceImpl implements VisitorService {
         if (staffList.isEmpty()) {
             return staffList;
         }
-        java.util.List<Org> orgs = orgMapper.selectList(null);
-        java.util.Map<Long, Org> byId = new java.util.HashMap<>();
-        for (Org org : orgs) {
-            byId.put(org.getId(), org);
-        }
-        java.util.Map<Long, String> paths = new java.util.HashMap<>();
         for (Staff staff : staffList) {
-            staff.setOrgName(staff.getOrgId() == null ? null : orgPath(byId.get(staff.getOrgId()), byId, paths));
+            Org org = staff.getOrgId() == null ? null : orgMapper.selectById(staff.getOrgId());
+            staff.setOrgName(org == null ? null : org.getName());
         }
         return staffList;
-    }
-
-    private String orgPath(Org org, java.util.Map<Long, Org> byId, java.util.Map<Long, String> paths) {
-        if (org == null) {
-            return null;
-        }
-        String cached = paths.get(org.getId());
-        if (cached != null) {
-            return cached;
-        }
-        String value = org.getParentId() == null
-                ? org.getName()
-                : orgPath(byId.get(org.getParentId()), byId, paths) + "/" + org.getName();
-        paths.put(org.getId(), value);
-        return value;
     }
 
     @Override
