@@ -26,15 +26,21 @@
           </template>
         </el-table-column>
         <el-table-column prop="options" label="选项" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="sortNo" label="排序" width="80" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" width="190" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button
+              link
+              :type="row.status === 1 ? 'warning' : 'success'"
+              @click="toggleStatus(row)"
+            >
+              {{ row.status === 1 ? '停用' : '启用' }}
+            </el-button>
             <el-button link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -183,6 +189,26 @@ async function save() {
     await load()
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  }
+}
+
+async function toggleStatus(row: Field) {
+  const next = row.status === 1 ? 0 : 1
+  try {
+    await http.put(`/web/admin/form-fields/${row.id}`, {
+      visitorType: row.visitorType,
+      fieldKey: row.fieldKey,
+      label: row.label,
+      fieldType: row.fieldType,
+      required: row.required,
+      options: row.options,
+      sortNo: row.sortNo,
+      status: next,
+    })
+    ElMessage.success(next === 1 ? '已启用' : '已停用')
+    await load()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '操作失败')
   }
 }
 
