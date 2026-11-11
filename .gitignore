@@ -36,3 +36,6 @@ blob-report/
 
 # 本地截图
 .screenshots/
+
+/白名单导入测试.xlsx
+/批量预约导入测试.xlsx
