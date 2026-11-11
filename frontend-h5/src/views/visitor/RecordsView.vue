@@ -44,7 +44,6 @@
     <van-dialog v-model:show="passVisible" title="通行凭证" confirm-button-text="关闭">
       <div class="pass" v-if="pass">
         <canvas ref="canvasRef" class="qr"></canvas>
-        <p class="token">{{ pass.qrToken }}</p>
         <p class="meta">有效期：{{ pass.validFrom }} ~ {{ pass.validTo }}</p>
         <p class="meta">通行次数：{{ pass.usedEntries }} / {{ pass.maxEntries }}</p>
       </div>
