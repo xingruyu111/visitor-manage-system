@@ -104,7 +104,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="职务"><el-input v-model="form.position" placeholder="备注，不参与审批" /></el-form-item>
+        <el-form-item label="职务"><el-input v-model="form.position" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
