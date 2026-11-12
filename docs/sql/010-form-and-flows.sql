@@ -7,11 +7,11 @@ INSERT IGNORE INTO vst_approval_flow (flow_code, name, version, status, definiti
 ('VISIT_TEACHER', '教职工访客流程', 1, 1,
  '{"code":"VISIT_TEACHER","name":"教职工访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"被访人审批","assignee":"TARGET"}]}', NOW(), NOW()),
 ('VISIT_MERCHANT', '商户访客流程', 1, 1,
- '{"code":"VISIT_MERCHANT","name":"商户访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"被访人审批","assignee":"TARGET"},{"seq":2,"name":"保卫复核","assignee":"SECURITY"}]}', NOW(), NOW()),
+ '{"code":"VISIT_MERCHANT","name":"商户访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"被访人审批","assignee":"TARGET"}]}', NOW(), NOW()),
 ('VISIT_CANTEEN', '食堂访客流程', 1, 1,
- '{"code":"VISIT_CANTEEN","name":"食堂访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"被访人审批","assignee":"TARGET"},{"seq":2,"name":"保卫复核","assignee":"SECURITY"}]}', NOW(), NOW()),
+ '{"code":"VISIT_CANTEEN","name":"食堂访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"被访人审批","assignee":"TARGET"}]}', NOW(), NOW()),
 ('VISIT_AFFILIATED_STUDENT', '实验学校学生访客流程', 1, 1,
- '{"code":"VISIT_AFFILIATED_STUDENT","name":"实验学校学生访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"班主任审批","assignee":"HEAD_TEACHER"},{"seq":2,"name":"辅导员审批","assignee":"COUNSELOR"}]}', NOW(), NOW());
+ '{"code":"VISIT_AFFILIATED_STUDENT","name":"实验学校学生访客流程","timeoutHours":24,"nodes":[{"seq":1,"name":"班主任审批","assignee":"HEAD_TEACHER"}]}', NOW(), NOW());
 
 -- 人员类型 → 流程 路由（学校/访客类型留空表示通配）
 INSERT IGNORE INTO vst_approval_rule (school_id, visitor_type, target_type, flow_code, priority, status, created_at, updated_at) VALUES
