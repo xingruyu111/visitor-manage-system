@@ -163,6 +163,54 @@ class ApprovalModuleIntegrationTest {
     }
 
     @Test
+    void listShowsOneCurrentVersionAndHistoricalVersionCanBePublished() {
+        String v1 = """
+                {"code":"VISIT_HISTORY_TEST","name":"历史版本流程v1","timeoutHours":24,
+                 "nodes":[{"seq":1,"name":"审批","assignee":"TARGET"}]}
+                """;
+        exchange("/web/websuper/approval-flows/VISIT_HISTORY_TEST/draft", HttpMethod.PUT, v1, superToken);
+        exchange("/web/websuper/approval-flows/VISIT_HISTORY_TEST/publish", HttpMethod.POST, null, superToken);
+
+        String v2 = """
+                {"code":"VISIT_HISTORY_TEST","name":"历史版本流程v2","timeoutHours":24,
+                 "nodes":[{"seq":1,"name":"审批","assignee":"TARGET"}]}
+                """;
+        exchange("/web/websuper/approval-flows/VISIT_HISTORY_TEST/draft", HttpMethod.PUT, v2, superToken);
+        exchange("/web/websuper/approval-flows/VISIT_HISTORY_TEST/publish", HttpMethod.POST, null, superToken);
+
+        List<?> list = (List<?>) exchange("/web/websuper/approval-flows", HttpMethod.GET,
+                null, superToken).get("data");
+        Map<String, Object> row = list.stream()
+                .map(item -> (Map<String, Object>) item)
+                .filter(item -> "VISIT_HISTORY_TEST".equals(item.get("flowCode")))
+                .findFirst().orElseThrow();
+        assertThat(((Number) row.get("version")).intValue()).isEqualTo(2);
+
+        Map<String, Object> published = exchange(
+                "/web/websuper/approval-flows/VISIT_HISTORY_TEST/versions/1/publish",
+                HttpMethod.POST, null, superToken);
+        assertThat(published.get("code")).isEqualTo(200);
+        assertThat(((Map<String, Object>) published.get("data")).get("version")).isEqualTo(1);
+
+        List<?> versions = (List<?>) exchange("/web/websuper/approval-flows/VISIT_HISTORY_TEST/versions",
+                HttpMethod.GET, null, superToken).get("data");
+        Map<String, Object> current = versions.stream()
+                .map(item -> (Map<String, Object>) item)
+                .filter(item -> ((Number) item.get("version")).intValue() == 1)
+                .findFirst().orElseThrow();
+        assertThat(current.get("status")).isEqualTo(1);
+
+        List<?> listAfter = (List<?>) exchange("/web/websuper/approval-flows", HttpMethod.GET,
+                null, superToken).get("data");
+        Map<String, Object> rowAfter = listAfter.stream()
+                .map(item -> (Map<String, Object>) item)
+                .filter(item -> "VISIT_HISTORY_TEST".equals(item.get("flowCode")))
+                .findFirst().orElseThrow();
+        assertThat(((Number) rowAfter.get("version")).intValue()).isEqualTo(1);
+        assertThat(rowAfter.get("status")).isEqualTo(1);
+    }
+
+    @Test
     void previewFlowNodes() {
         assertThat(exchange("/web/websuper/approval-flows/VISIT_DEFAULT", HttpMethod.GET,
                 null, superToken).get("code")).isEqualTo(200);

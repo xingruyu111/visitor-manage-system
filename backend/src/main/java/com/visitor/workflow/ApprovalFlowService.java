@@ -16,6 +16,8 @@ public interface ApprovalFlowService {
 
     ApprovalFlow publish(String code, Long operatorId);
 
+    ApprovalFlow publishVersion(String code, Integer version, Long operatorId);
+
     ApprovalFlow offline(String code, Long operatorId);
 
     List<ApprovalFlow> versions(String code);

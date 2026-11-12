@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ApprovalFlowServiceImpl implements ApprovalFlowService {
@@ -29,9 +32,17 @@ public class ApprovalFlowServiceImpl implements ApprovalFlowService {
 
     @Override
     public List<ApprovalFlow> list() {
-        return flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
+        List<ApprovalFlow> all = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
                 .orderByAsc(ApprovalFlow::getFlowCode)
                 .orderByDesc(ApprovalFlow::getVersion));
+        Map<String, ApprovalFlow> latest = new LinkedHashMap<>();
+        for (ApprovalFlow flow : all) {
+            ApprovalFlow current = latest.get(flow.getFlowCode());
+            if (current == null || (flow.getStatus() == 1 && current.getStatus() != 1)) {
+                latest.put(flow.getFlowCode(), flow);
+            }
+        }
+        return new ArrayList<>(latest.values());
     }
 
     @Override
@@ -112,6 +123,35 @@ public class ApprovalFlowServiceImpl implements ApprovalFlowService {
         draft.setUpdatedAt(now);
         flowMapper.updateById(draft);
         return draft;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApprovalFlow publishVersion(String code, Integer version, Long operatorId) {
+        ApprovalFlow selected = findByVersion(code, version);
+        if (selected == null) {
+            throw new BizException(404, "流程版本不存在");
+        }
+        List<String> errors = flowValidator.validate(read(selected.getDefinitionJson()));
+        if (!errors.isEmpty()) {
+            throw new BizException(400, "流程校验失败: " + String.join("; ", errors));
+        }
+        assertTargetTypesNotUsed(code, read(selected.getDefinitionJson()));
+        LocalDateTime now = LocalDateTime.now();
+        List<ApprovalFlow> published = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
+                .eq(ApprovalFlow::getFlowCode, code)
+                .eq(ApprovalFlow::getStatus, 1));
+        for (ApprovalFlow flow : published) {
+            flow.setStatus(2);
+            flow.setUpdatedAt(now);
+            flowMapper.updateById(flow);
+        }
+        selected.setStatus(1);
+        selected.setPublishedAt(now);
+        selected.setPublishedBy(operatorId);
+        selected.setUpdatedAt(now);
+        flowMapper.updateById(selected);
+        return selected;
     }
 
     @Override

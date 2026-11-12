@@ -64,6 +64,11 @@ public class ApprovalFlowController {
         return Result.success(flowService.publish(code, UserContext.getUserId()));
     }
 
+    @Operation(summary = "发布指定历史版本")
+    @PostMapping("/{code}/versions/{version}/publish")
+    public Result<ApprovalFlow> publishVersion(@PathVariable String code, @PathVariable Integer version) {
+        return Result.success(flowService.publishVersion(code, version, UserContext.getUserId()));
+    }
     @Operation(summary = "停用流程")
     @PostMapping("/{code}/offline")
     public Result<ApprovalFlow> offline(@PathVariable String code) {
