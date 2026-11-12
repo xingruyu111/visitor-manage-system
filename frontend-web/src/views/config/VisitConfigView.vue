@@ -23,7 +23,6 @@
         <el-table-column label="可预约时间段" min-width="320">
           <template #default="{ row }">{{ ruleSummary(row) }}</template>
         </el-table-column>
-        <el-table-column prop="sortNo" label="排序" width="80" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
@@ -69,7 +68,6 @@
           <el-input-number v-model="form.maxEntries" :min="0" :max="999999" />
           <span class="field-hint">0 表示不限次数</span>
         </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="form.sortNo" :min="0" /></el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
