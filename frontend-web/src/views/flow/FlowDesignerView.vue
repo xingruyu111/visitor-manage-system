@@ -57,7 +57,7 @@
             <el-table-column label="审批人" width="180">
               <template #default="{ row }">
                 <el-select v-model="row.assignee" size="small">
-                  <el-option v-for="item in ASSIGNEES" :key="item" :label="item" :value="item" />
+                  <el-option v-for="item in ASSIGNEES" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
               </template>
             </el-table-column>
@@ -95,7 +95,9 @@
       <el-table :data="preview" border size="small">
         <el-table-column prop="seq" label="序号" width="70" />
         <el-table-column prop="name" label="节点" />
-        <el-table-column prop="assigneeType" label="类型" width="120" />
+        <el-table-column label="类型" width="120">
+          <template #default="{ row }">{{ assigneeLabel(row.assigneeType) }}</template>
+        </el-table-column>
         <el-table-column label="预计审批人" width="140">
           <template #default="{ row }">{{ row.assigneeName || '管理员处理' }}</template>
         </el-table-column>
@@ -130,7 +132,13 @@ interface Node {
 
 const STATUS: Record<number, string> = { 0: '草稿', 1: '已发布', 2: '已停用' }
 const STATUS_TAG: Record<number, 'success' | 'info' | 'warning'> = { 0: 'warning', 1: 'success', 2: 'info' }
-const ASSIGNEES = ['TARGET', 'COUNSELOR', 'HEAD_TEACHER', 'SECURITY']
+const ASSIGNEES = [
+  { value: 'TARGET', label: '被访人' },
+  { value: 'COUNSELOR', label: '辅导员' },
+  { value: 'HEAD_TEACHER', label: '班主任' },
+  { value: 'SECURITY', label: '保卫处' },
+  { value: 'DEFAULT', label: '默认审核人' },
+]
 const TARGET_TYPES = [
   { value: 'TEACHER', label: '教职工' },
   { value: 'STUDENT', label: '学生' },
@@ -195,6 +203,10 @@ function addNode() {
 
 function removeNode(index: number) {
   form.nodes.splice(index, 1)
+}
+
+function assigneeLabel(value: string) {
+  return ASSIGNEES.find((item) => item.value === value)?.label || value
 }
 
 function targetTypesText(row: Flow) {
