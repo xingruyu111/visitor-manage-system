@@ -163,6 +163,40 @@ class ApprovalModuleIntegrationTest {
     }
 
     @Test
+    void previewFlowNodes() {
+        assertThat(exchange("/web/websuper/approval-flows/VISIT_DEFAULT", HttpMethod.GET,
+                null, superToken).get("code")).isEqualTo(200);
+        Map<String, Object> preview = exchange(
+                "/web/websuper/approval-flows/VISIT_DEFAULT/preview?targetId=" + teacherStaffId,
+                HttpMethod.POST, null, superToken);
+        assertThat(preview.get("code")).isEqualTo(200);
+        assertThat((List<?>) preview.get("data")).isNotEmpty();
+    }
+
+    @Test
+    void publishedFlowCannotReuseTargetType() {
+        String first = """
+                {"code":"VISIT_TARGET_A","name":"类型A流程","timeoutHours":24,
+                 "targetTypes":["TEACHER"],
+                 "nodes":[{"seq":1,"name":"审批","assignee":"TARGET"}]}
+                """;
+        exchange("/web/websuper/approval-flows/VISIT_TARGET_A/draft", HttpMethod.PUT, first, superToken);
+        assertThat(exchange("/web/websuper/approval-flows/VISIT_TARGET_A/publish",
+                HttpMethod.POST, null, superToken).get("code")).isEqualTo(200);
+
+        String second = """
+                {"code":"VISIT_TARGET_B","name":"类型B流程","timeoutHours":24,
+                 "targetTypes":["TEACHER"],
+                 "nodes":[{"seq":1,"name":"审批","assignee":"TARGET"}]}
+                """;
+        exchange("/web/websuper/approval-flows/VISIT_TARGET_B/draft", HttpMethod.PUT, second, superToken);
+        Map<String, Object> duplicate = exchange("/web/websuper/approval-flows/VISIT_TARGET_B/publish",
+                HttpMethod.POST, null, superToken);
+        assertThat(duplicate.get("code")).isEqualTo(400);
+        assertThat(duplicate.get("message")).asString().contains("已关联流程");
+    }
+
+    @Test
     void invalidFlowCannotBePublished() {
         String invalid = """
                 {"code":"VISIT_DEFAULT","name":"坏流程","nodes":[]}

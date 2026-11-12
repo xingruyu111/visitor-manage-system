@@ -96,6 +96,7 @@ public class ApprovalFlowServiceImpl implements ApprovalFlowService {
         if (!errors.isEmpty()) {
             throw new BizException(400, "流程校验失败: " + String.join("; ", errors));
         }
+        assertTargetTypesNotUsed(code, read(draft.getDefinitionJson()));
         List<ApprovalFlow> published = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
                 .eq(ApprovalFlow::getFlowCode, code)
                 .eq(ApprovalFlow::getStatus, 1));
@@ -191,8 +192,38 @@ public class ApprovalFlowServiceImpl implements ApprovalFlowService {
         return latest == null ? 0 : latest.getVersion();
     }
 
-    private FlowDefinition read(String json) {
-        try {
+    /**
+     * 一个被访人类型只能关联一条已发布流程。
+     */
+    private void assertTargetTypesNotUsed(String currentCode, FlowDefinition definition) {
+        if (definition.targetTypes() == null || definition.targetTypes().isEmpty()) {
+            return;
+        }
+        List<ApprovalFlow> published = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()
+                .eq(ApprovalFlow::getStatus, 1));
+        for (ApprovalFlow flow : published) {
+            if (currentCode.equals(flow.getFlowCode())) {
+                continue;
+            }
+            FlowDefinition other;
+            try {
+                other = read(flow.getDefinitionJson());
+            } catch (Exception e) {
+                continue;
+            }
+            if (other.targetTypes() == null) {
+                continue;
+            }
+            for (String targetType : definition.targetTypes()) {
+                if (other.targetTypes().contains(targetType)) {
+                    throw new BizException(400, "被访人类型 " + targetType
+                            + " 已关联流程 " + flow.getFlowCode() + "，不能重复关联");
+                }
+            }
+        }
+    }
+
+    private FlowDefinition read(String json) {        try {
             return objectMapper.readValue(json, FlowDefinition.class);
         } catch (Exception e) {
             throw new BizException(400, "流程定义不是合法 JSON");
