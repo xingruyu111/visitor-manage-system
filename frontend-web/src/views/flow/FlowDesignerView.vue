@@ -44,6 +44,7 @@
           <el-select v-model="form.targetTypes" multiple collapse-tags style="width: 100%" placeholder="不选表示未关联，按审批规则兜底">
             <el-option v-for="item in TARGET_TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
+          <div class="hint">一个被访人类型只能关联一条已发布流程；不选则按原审批规则兜底。</div>
         </el-form-item>
         <el-form-item label="审批节点">
           <el-table :data="form.nodes" border size="small" style="width: 100%">
