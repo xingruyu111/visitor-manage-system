@@ -307,6 +307,23 @@ public class ApprovalEngineImpl implements ApprovalEngine {
             reject(task.getId(), comment, true);
         }
     }
+    @Override
+    public boolean requiresHeadTeacher(String visitorType, String targetType, Long targetId,
+                                       Long schoolId, Long applicantId) {
+        if (targetType == null) {
+            return false;
+        }
+        String flowCode = resolveFlowCode(new StartCommand("VISITOR_RECORD", null, schoolId,
+                applicantId, visitorType, targetType, targetId, null, null));
+        ApprovalFlow flow = publishedFlow(flowCode);
+        if (flow == null) {
+            return false;
+        }
+        FlowDefinition definition = read(flow.getDefinitionJson());
+        return definition.nodes() != null && definition.nodes().stream()
+                .anyMatch(node -> "HEAD_TEACHER".equalsIgnoreCase(node.assignee()));
+    }
+
     private String resolveFlowCode(StartCommand command) {
         if (command.targetType() != null) {
             List<ApprovalFlow> flows = flowMapper.selectList(new LambdaQueryWrapper<ApprovalFlow>()

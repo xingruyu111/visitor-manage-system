@@ -982,6 +982,13 @@ class VisitorModuleIntegrationTest {
         rule.setUpdatedAt(LocalDateTime.now());
         ruleMapper.insert(rule);
 
+        Map<String, Object> requirements = exchange(
+                "/web/visitor/apply-requirements?targetId=" + affiliated.getId() + "&visitorType=NORMAL",
+                HttpMethod.GET, null, visitorToken);
+        assertThat(requirements.get("code")).isEqualTo(200);
+        assertThat((Map<String, Object>) requirements.get("data"))
+                .containsEntry("headTeacherRequired", true);
+
         String base = """
                 {"targetId":%d,"visitorType":"NORMAL","headTeacherNo":"%s","expectedTime":"%s","leaveTime":"%s"}
                 """;

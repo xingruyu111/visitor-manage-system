@@ -30,6 +30,9 @@ public interface ApprovalEngine {
 
     void emergencyHandle(Long instanceId, boolean approve, String comment);
 
+    boolean requiresHeadTeacher(String visitorType, String targetType, Long targetId,
+                                Long schoolId, Long applicantId);
+
     record StartCommand(String bizType, Long bizId, Long schoolId, Long applicantId,
                         String visitorType, String targetType, Long targetId, String flowCode, Long assigneeHint) {
 

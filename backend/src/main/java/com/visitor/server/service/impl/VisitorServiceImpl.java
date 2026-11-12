@@ -140,9 +140,12 @@ public class VisitorServiceImpl implements VisitorService {
         record.setPassMode(passMode);
 
         Long assigneeHint = null;
-        if (target.getPersonType() != null && "AFFILIATED_STUDENT".equals(target.getPersonType().name())) {
+        boolean headTeacherFlow = target.getPersonType() != null
+                && approvalEngine.requiresHeadTeacher(visitorType, target.getPersonType().name(),
+                target.getId(), target.getSchoolId(), userId);
+        if (headTeacherFlow) {
             if (dto.getHeadTeacherNo() == null || dto.getHeadTeacherNo().isBlank()) {
-                throw new BizException(400, "附属学生预约请填写班主任工号");
+                throw new BizException(400, "当前审批流程要求填写班主任工号");
             }
             Staff headTeacher = staffMapper.selectOne(new LambdaQueryWrapper<Staff>()
                     .eq(Staff::getJobNo, dto.getHeadTeacherNo().trim())
@@ -175,8 +178,8 @@ public class VisitorServiceImpl implements VisitorService {
         recordMapper.insert(record);
         User targetUser = target.getPhone() == null ? null : userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getPhone, target.getPhone()));
-        boolean affiliatedStudent = target.getPersonType() == PersonTypeEnum.AFFILIATED_STUDENT;
-        // 附属学生不参与审批，审批人是工号对应的班主任，避免给学生发“请及时审批”
+        boolean affiliatedStudent = headTeacherFlow;
+        // 走班主任审批的流程不参与被访人审批，避免给被访人发“请及时审批”
         if (targetUser != null && !affiliatedStudent) {
             notificationService.notifyUser(targetUser.getId(), "新的访客申请",
                     record.getVisitorName() + " 申请入校，请及时审批", "APPROVAL_RESULT",

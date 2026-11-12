@@ -84,10 +84,10 @@
       </van-field>
       <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" placeholder="机动车必填" />
       <van-field
-        v-if="isAffiliatedStudent"
+        v-if="headTeacherRequired"
         v-model="headTeacherNo"
         label="班主任工号"
-        placeholder="附属学生预约必填"
+        placeholder="当前审批流程必填"
       />
     </van-cell-group>
 
@@ -240,6 +240,7 @@ const purpose = ref('')
 const plate = ref('')
 const passMode = ref('WALK')
 const headTeacherNo = ref('')
+const headTeacherRequired = ref(false)
 const checkStatus = ref('NONE')
 const checkMessage = ref('')
 const visitorType = ref('NORMAL')
@@ -268,8 +269,6 @@ const isAlumni = computed(() => {
   if (!current) return false
   return current.personType === 7 || current.roles?.some((role) => role.code === 9) === true
 })
-
-const isAffiliatedStudent = computed(() => selectedTarget.value?.personType === 6)
 
 const visitorTypeOptions = computed(() => {
   if (isAlumni.value) {
@@ -457,14 +456,28 @@ function selectTarget(target: Staff) {
   targetId.value = target.id
   selectedTarget.value = target
   showTargets.value = false
-  if (target.personType !== 6) {
-    headTeacherNo.value = ''
+  headTeacherNo.value = ''
+  loadApplyRequirements(target)
+}
+
+async function loadApplyRequirements(target: Staff) {
+  try {
+    const data = await http.get<{ headTeacherRequired: boolean }>('/web/visitor/apply-requirements', {
+      targetId: target.id,
+      visitorType: visitorType.value,
+    })
+    headTeacherRequired.value = data.headTeacherRequired
+  } catch {
+    headTeacherRequired.value = false
   }
 }
 
 function onTypeConfirm({ selectedOptions }: PickerConfirm) {
   visitorType.value = selectedOptions[0]?.value ?? 'NORMAL'
   showTypePicker.value = false
+  if (selectedTarget.value) {
+    loadApplyRequirements(selectedTarget.value)
+  }
   loadFields()
 }
 
@@ -582,8 +595,8 @@ async function submit() {
     showToast('机动车通行请填写车牌号')
     return
   }
-  if (isAffiliatedStudent.value && !headTeacherNo.value) {
-    showToast('附属学生预约请填写班主任工号')
+  if (headTeacherRequired.value && !headTeacherNo.value) {
+    showToast('当前审批流程请填写班主任工号')
     return
   }
   const missing = fields.value.find((field) => field.required === 1
@@ -614,7 +627,7 @@ async function submit() {
       visitPurpose: purpose.value,
       passMode: passMode.value,
       plateNumber: plate.value || undefined,
-      headTeacherNo: isAffiliatedStudent.value ? headTeacherNo.value : undefined,
+      headTeacherNo: headTeacherRequired.value ? headTeacherNo.value : undefined,
       extra,
     })
     router.push('/v/records')

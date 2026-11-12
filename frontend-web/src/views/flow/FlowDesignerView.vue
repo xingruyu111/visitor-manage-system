@@ -168,7 +168,6 @@ const ASSIGNEES = [
   { value: 'COUNSELOR', label: '辅导员' },
   { value: 'HEAD_TEACHER', label: '班主任' },
   { value: 'SECURITY', label: '保卫处' },
-  { value: 'DEFAULT', label: '默认审核人' },
 ]
 const TARGET_TYPES = [
   { value: 'TEACHER', label: '教职工' },
