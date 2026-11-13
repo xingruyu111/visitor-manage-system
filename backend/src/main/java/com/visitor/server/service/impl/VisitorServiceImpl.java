@@ -337,6 +337,39 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
+    public PageResult<Map<String, Object>> batchImported(int page, int size) {
+        if (!roleAccessChecker.hasAny(RoleEnum.DEPT_OPERATOR, RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN)) {
+            throw new BizException(403, "仅部门经办人或保卫处管理员可查看批量导入记录");
+        }
+        boolean admin = roleAccessChecker.hasAny(RoleEnum.SECURITY_ADMIN, RoleEnum.SYSTEM_ADMIN);
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        LambdaQueryWrapper<VisitorRecord> query = new LambdaQueryWrapper<VisitorRecord>()
+                .isNull(VisitorRecord::getTargetId)
+                .orderByDesc(VisitorRecord::getId);
+        if (!admin) {
+            query.eq(VisitorRecord::getVisitorUserId, UserContext.getUserId());
+        }
+        Page<VisitorRecord> result = recordMapper.selectPage(new Page<>(safePage, safeSize), query);
+        java.util.List<Map<String, Object>> rows = new java.util.ArrayList<>();
+        for (VisitorRecord record : result.getRecords()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", record.getId());
+            row.put("visitorName", record.getVisitorName());
+            row.put("visitorPhone", record.getVisitorPhone());
+            row.put("expectedTime", record.getExpectedTime());
+            row.put("leaveTime", record.getLeaveTime());
+            row.put("visitPurpose", record.getVisitPurpose());
+            row.put("status", record.getStatus());
+            row.put("createdAt", record.getCreatedAt());
+            User operator = record.getVisitorUserId() == null ? null : userMapper.selectById(record.getVisitorUserId());
+            row.put("operatorName", operator == null ? null : operator.getName());
+            rows.add(row);
+        }
+        return PageResult.of(result.getTotal(), safePage, safeSize, rows);
+    }
+
+    @Override
     public java.util.Map<String, Object> approvalInfo(Long userId, Long recordId) {
         detail(userId, recordId);
         ApprovalInstance instance = instanceMapper.selectOne(new LambdaQueryWrapper<ApprovalInstance>()
@@ -424,7 +457,9 @@ public class VisitorServiceImpl implements VisitorService {
         java.util.List<Staff> staffList = staffMapper.selectList(new LambdaQueryWrapper<Staff>()
                 .eq(Staff::getStatus, 1)
                 .eq(Staff::getIsDeleted, 0)
-                .and(w -> w.eq(Staff::getName, value).or().eq(Staff::getPhone, value))
+                .and(w -> w.eq(Staff::getName, value)
+                        .or().eq(Staff::getPersonNo, value)
+                        .or().eq(Staff::getJobNo, value))
                 .orderByAsc(Staff::getId)
                 .last("LIMIT 10"));
         if (staffList.isEmpty()) {

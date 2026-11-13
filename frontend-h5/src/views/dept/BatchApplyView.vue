@@ -48,6 +48,43 @@
       </div>
     </div>
 
+    <div class="history-card">
+      <div class="history-head">
+        <strong>导入记录</strong>
+        <span>{{ isSecurityAdmin ? '显示全部经办人和自己的记录' : '仅显示自己导入的记录' }}</span>
+      </div>
+      <div v-if="recordsLoading" class="history-empty">加载中…</div>
+      <div v-else-if="records.length === 0" class="history-empty">暂无导入记录</div>
+      <div v-else class="table-scroll">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>到访时间</th>
+              <th>离校时间</th>
+              <th>事由</th>
+              <th>状态</th>
+              <th v-if="isSecurityAdmin">经办人</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in records" :key="item.id">
+              <td>{{ item.visitorName }}</td>
+              <td>{{ item.visitorPhone }}</td>
+              <td>{{ displayTime(item.expectedTime) }}</td>
+              <td>{{ displayTime(item.leaveTime) }}</td>
+              <td>{{ item.visitPurpose || '—' }}</td>
+              <td>
+                <van-tag :type="statusTag(item.status)">{{ statusText(item.status) }}</van-tag>
+              </td>
+              <td v-if="isSecurityAdmin">{{ item.operatorName || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="tip-card">
       <strong>模板列</strong>
       <p>姓名、手机号、到访时间、离校时间、事由。</p>
@@ -72,11 +109,25 @@ interface ImportResult {
   errors?: ImportError[]
 }
 
+interface BatchRecord {
+  id: number
+  visitorName: string
+  visitorPhone?: string
+  expectedTime?: string
+  leaveTime?: string
+  visitPurpose?: string
+  status?: number
+  operatorName?: string
+  createdAt?: string
+}
+
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File>()
 const uploading = ref(false)
 const isSecurityAdmin = ref(false)
 const result = ref<ImportResult>()
+const records = ref<BatchRecord[]>([])
+const recordsLoading = ref(false)
 
 const fileSize = computed(() => {
   if (!file.value) return ''
@@ -91,7 +142,48 @@ onMounted(async () => {
   } catch {
     isSecurityAdmin.value = false
   }
+  await loadRecords()
 })
+
+async function loadRecords() {
+  recordsLoading.value = true
+  try {
+    const data = await http.get<{ records: BatchRecord[] }>('/web/dept/visitor-records/batch/imported', {
+      page: 1,
+      size: 50,
+    })
+    records.value = data.records ?? []
+  } catch {
+    records.value = []
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+function displayTime(value?: string) {
+  return value ? value.replace('T', ' ') : '—'
+}
+
+const STATUS_TEXT: Record<number, string> = {
+  0: '待审批',
+  1: '已通过',
+  2: '已驳回',
+  3: '已入校',
+  4: '已离校',
+  5: '已取消',
+  6: '已过期',
+}
+
+function statusText(status?: number) {
+  return STATUS_TEXT[status ?? -1] ?? '未知'
+}
+
+function statusTag(status?: number): 'success' | 'warning' | 'danger' | 'default' {
+  if (status === 1 || status === 3 || status === 4) return 'success'
+  if (status === 0) return 'warning'
+  if (status === 2) return 'danger'
+  return 'default'
+}
 
 function onFileChange(event: Event) {
   const files = (event.target as HTMLInputElement).files
@@ -129,6 +221,7 @@ async function upload() {
     showToast('导入完成')
     file.value = undefined
     if (fileInput.value) fileInput.value.value = ''
+    await loadRecords()
   } catch (error) {
     showToast(error instanceof Error ? error.message : '导入失败')
   } finally {
@@ -146,6 +239,7 @@ async function upload() {
 .intro-card,
 .upload-card,
 .result-card,
+.history-card,
 .tip-card {
   margin: 12px 16px;
   padding: 16px;
@@ -153,6 +247,47 @@ async function upload() {
   background: #ffffff;
   border: 1px solid #e8f1fb;
   box-shadow: 0 6px 20px rgba(16, 42, 80, 0.05);
+}
+.history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.history-head strong {
+  color: #10233f;
+  font-size: 16px;
+}
+.history-head span,
+.history-empty {
+  color: #8a99ad;
+  font-size: 12px;
+}
+.history-empty {
+  padding: 18px 0;
+  text-align: center;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.history-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.history-table th,
+.history-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #edf2f8;
+  text-align: left;
+  white-space: nowrap;
+}
+.history-table th {
+  color: #61738c;
+  font-weight: 500;
+  background: #f7faff;
 }
 .intro-title {
   color: #10233f;

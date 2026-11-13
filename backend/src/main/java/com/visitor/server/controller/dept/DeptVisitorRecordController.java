@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,6 +47,14 @@ public class DeptVisitorRecordController {
     public Result<Map<String, Object>> batch(@Valid @RequestBody VisitorBatchDTO dto) {
         int created = visitorService.deptBatch(SchoolScopes.resolve(null), dto, UserContext.getUserId());
         return Result.success(Map.of("created", created));
+    }
+
+    @Operation(summary = "批量导入记录")
+    @GetMapping("/batch/imported")
+    public Result<com.visitor.common.core.PageResult<Map<String, Object>>> imported(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return Result.success(visitorService.batchImported(page, size));
     }
 
     @Operation(summary = "Excel 批量发起预约")

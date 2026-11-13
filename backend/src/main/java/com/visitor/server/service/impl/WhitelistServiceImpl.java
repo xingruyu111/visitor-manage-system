@@ -95,6 +95,22 @@ public class WhitelistServiceImpl implements WhitelistService {
     }
 
     @Override
+    public PageResult<AccessList> importedPage(int page, int size) {
+        requireUploader();
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Page<AccessList> result = accessListMapper.selectPage(new Page<>(safePage, safeSize),
+                new LambdaQueryWrapper<AccessList>()
+                        .eq(AccessList::getSchoolId, SchoolScopes.DEFAULT_SCHOOL_ID)
+                        .eq(AccessList::getListType, LIST_WHITE)
+                        .eq(AccessList::getTargetType, "PERSON")
+                        .eq(AccessList::getSource, "EXCEL")
+                        .eq(AccessList::getCreatedBy, UserContext.getUserId())
+                        .orderByDesc(AccessList::getId));
+        return PageResult.of(result.getTotal(), safePage, safeSize, result.getRecords());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public AccessList create(WhitelistSaveDTO dto) {
         requireUploader();

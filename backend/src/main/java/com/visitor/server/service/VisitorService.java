@@ -27,6 +27,8 @@ public interface VisitorService {
 
     int deptBatch(Long schoolId, VisitorBatchDTO dto, Long operatorId);
 
+    PageResult<java.util.Map<String, Object>> batchImported(int page, int size);
+
     int expireOverdue();
 
     java.util.List<VisitorRecord> queryByPlate(String plate);

@@ -12,6 +12,8 @@ public interface WhitelistService {
 
     PageResult<AccessList> page(String keyword, int page, int size);
 
+    PageResult<AccessList> importedPage(int page, int size);
+
     AccessList create(WhitelistSaveDTO dto);
 
     AccessList update(Long id, WhitelistSaveDTO dto);

@@ -40,6 +40,13 @@ public class WhitelistController {
         return Result.success(whitelistService.page(keyword, page, size));
     }
 
+    @Operation(summary = "我导入的白名单")
+    @GetMapping("/imported")
+    public Result<PageResult<AccessList>> imported(@RequestParam(defaultValue = "1") int page,
+                                                   @RequestParam(defaultValue = "50") int size) {
+        return Result.success(whitelistService.importedPage(page, size));
+    }
+
     @Operation(summary = "新增白名单")
     @PostMapping
     public Result<AccessList> create(@Valid @RequestBody WhitelistSaveDTO dto) {

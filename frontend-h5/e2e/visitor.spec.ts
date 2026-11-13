@@ -25,7 +25,7 @@ test('访客登录并提交预约、查看记录', async ({ page }) => {
   await page.getByText('预约申请').click()
   await expect(page).toHaveURL(/\/v\/apply/)
 
-  await page.getByPlaceholder('输入完整姓名或手机号').fill('E2E老师')
+  await page.getByPlaceholder('输入完整姓名或工号').fill('E2E老师')
   await page.getByRole('button', { name: '搜索' }).click()
   await expect(page.getByText('E2E老师').first()).toBeVisible()
   await page.locator('.target-dropdown .van-cell').first().click()

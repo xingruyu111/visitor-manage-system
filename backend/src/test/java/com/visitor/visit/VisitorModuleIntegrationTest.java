@@ -581,6 +581,13 @@ class VisitorModuleIntegrationTest {
                 .eq(ApprovalTask::getInstanceId, taskMapper.selectList(null).get(0).getInstanceId()));
         assertThat(task.getAssigneeId()).isNotNull();
 
+        Map<String, Object> imported = exchange("/web/dept/visitor-records/batch/imported?page=1&size=10",
+                HttpMethod.GET, null, deptToken);
+        assertThat(imported.get("code")).isEqualTo(200);
+        assertThat(((Number) ((Map<?, ?>) imported.get("data")).get("total")).intValue()).isEqualTo(1);
+        List<?> importedRows = (List<?>) ((Map<?, ?>) imported.get("data")).get("records");
+        assertThat(((Map<?, ?>) importedRows.get(0)).get("visitorName")).isEqualTo("部门访客");
+
         exchange("/web/approval/tasks/" + task.getId() + "/approve", HttpMethod.POST, null, adminToken);
 
         assertThat(recordMapper.selectById(record.getId()).getStatus()).isEqualTo(1);
@@ -602,6 +609,11 @@ class VisitorModuleIntegrationTest {
         assertThat(record.getStatus()).isEqualTo(1);
         assertThat(passMapper.selectCount(null)).isEqualTo(1L);
         assertThat(taskMapper.selectCount(null)).isZero();
+
+        Map<String, Object> imported = exchange("/web/dept/visitor-records/batch/imported?page=1&size=10",
+                HttpMethod.GET, null, adminToken);
+        assertThat(imported.get("code")).isEqualTo(200);
+        assertThat(((Number) ((Map<?, ?>) imported.get("data")).get("total")).intValue()).isEqualTo(1);
     }
 
     @Test

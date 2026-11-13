@@ -309,9 +309,15 @@ class WhitelistIntegrationTest {
             assertThat(result.get("failed")).isEqualTo(1);
             assertThat(accessListMapper.selectCount(new LambdaQueryWrapper<AccessList>()
                     .eq(AccessList::getTargetValue, "13900002008"))).isEqualTo(1);
+            assertThat(whitelistService.importedPage(1, 10).total()).isEqualTo(1);
         } finally {
             UserContext.clear();
         }
+
+        Map<String, Object> imported = exchange("/web/whitelist/imported?page=1&size=10",
+                HttpMethod.GET, null, adminToken);
+        assertThat(imported.get("code")).isEqualTo(200);
+        assertThat(((Number) ((Map<?, ?>) imported.get("data")).get("total")).intValue()).isEqualTo(1);
     }
 
     @Test

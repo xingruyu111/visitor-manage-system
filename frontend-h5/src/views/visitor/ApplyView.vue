@@ -12,7 +12,7 @@
       <div class="target-search">
         <van-field
           v-model="keyword"
-          placeholder="输入完整姓名或手机号"
+          placeholder="输入完整姓名或工号"
           @keyup.enter="search"
         >
           <template #button>
@@ -202,6 +202,8 @@ interface Staff {
   id: number
   name: string
   phone?: string
+  personNo?: string
+  jobNo?: string
   orgName?: string
   personType?: number
 }
@@ -656,7 +658,7 @@ async function loadProfile() {
 
 async function search() {
   if (!keyword.value.trim()) {
-    showToast('请输入完整姓名或手机号')
+    showToast('请输入完整姓名或工号')
     return
   }
   try {
@@ -675,7 +677,7 @@ async function search() {
 }
 
 function targetMeta(target: Staff) {
-  return [target.phone, target.orgName].filter(Boolean).join(' · ')
+  return [target.personNo || target.jobNo, target.orgName].filter(Boolean).join(' · ')
 }
 
 function selectTarget(target: Staff) {

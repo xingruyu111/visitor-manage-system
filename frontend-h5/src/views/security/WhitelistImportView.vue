@@ -47,6 +47,39 @@
       </div>
     </div>
 
+    <div class="history-card">
+      <div class="history-head">
+        <strong>导入记录</strong>
+        <span>仅显示自己导入的白名单</span>
+      </div>
+      <div v-if="recordsLoading" class="history-empty">加载中…</div>
+      <div v-else-if="records.length === 0" class="history-empty">暂无导入记录</div>
+      <div v-else class="table-scroll">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>车牌号</th>
+              <th>生效时间</th>
+              <th>失效时间</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in records" :key="item.id">
+              <td>{{ item.personName }}</td>
+              <td>{{ item.targetValue }}</td>
+              <td>{{ item.plateNumber || '—' }}</td>
+              <td>{{ displayTime(item.effectiveFrom) }}</td>
+              <td>{{ displayTime(item.effectiveTo) }}</td>
+              <td><van-tag :type="statusTag(item.status)">{{ statusText(item.status) }}</van-tag></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="tip-card">
       <strong>模板列</strong>
       <p>姓名、手机号、车牌号、生效时间、失效时间、原因。</p>
@@ -72,11 +105,23 @@ interface ImportResult {
   errors?: ImportError[]
 }
 
+interface WhitelistRecord {
+  id: number
+  personName: string
+  targetValue: string
+  plateNumber?: string
+  effectiveFrom?: string
+  effectiveTo?: string
+  status?: number
+}
+
 const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File>()
 const uploading = ref(false)
 const result = ref<ImportResult>()
+const records = ref<WhitelistRecord[]>([])
+const recordsLoading = ref(false)
 
 onMounted(async () => {
   try {
@@ -85,12 +130,44 @@ onMounted(async () => {
     if (!allowed) {
       showToast('仅保卫处管理员可导入白名单')
       router.replace('/v/home')
+      return
     }
+    await loadImported()
   } catch {
     showToast('获取身份失败')
     router.replace('/v/home')
   }
 })
+
+async function loadImported() {
+  recordsLoading.value = true
+  try {
+    const data = await http.get<{ records: WhitelistRecord[] }>('/web/whitelist/imported', {
+      page: 1,
+      size: 50,
+    })
+    records.value = data.records ?? []
+  } catch {
+    records.value = []
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+function displayTime(value?: string) {
+  return value ? value.replace('T', ' ') : '—'
+}
+
+function statusText(status?: number) {
+  return ({ 0: '待审批', 1: '有效', 2: '已拒绝', 3: '已停用' } as Record<number, string>)[status ?? -1] ?? '未知'
+}
+
+function statusTag(status?: number): 'success' | 'warning' | 'danger' | 'default' {
+  if (status === 1) return 'success'
+  if (status === 0) return 'warning'
+  if (status === 2) return 'danger'
+  return 'default'
+}
 
 const fileSize = computed(() => {
   if (!file.value) return ''
@@ -134,6 +211,7 @@ async function upload() {
     showToast('导入完成')
     file.value = undefined
     if (fileInput.value) fileInput.value.value = ''
+    await loadImported()
   } catch (error) {
     showToast(error instanceof Error ? error.message : '导入失败')
   } finally {
@@ -151,6 +229,7 @@ async function upload() {
 .intro-card,
 .upload-card,
 .result-card,
+.history-card,
 .tip-card {
   margin: 12px 16px;
   padding: 16px;
@@ -158,6 +237,47 @@ async function upload() {
   background: #ffffff;
   border: 1px solid #e8f1fb;
   box-shadow: 0 6px 20px rgba(16, 42, 80, 0.05);
+}
+.history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.history-head strong {
+  color: #10233f;
+  font-size: 16px;
+}
+.history-head span,
+.history-empty {
+  color: #8a99ad;
+  font-size: 12px;
+}
+.history-empty {
+  padding: 18px 0;
+  text-align: center;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.history-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.history-table th,
+.history-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #edf2f8;
+  text-align: left;
+  white-space: nowrap;
+}
+.history-table th {
+  color: #61738c;
+  font-weight: 500;
+  background: #f7faff;
 }
 .intro-title {
   color: #10233f;
