@@ -7,6 +7,7 @@ import com.visitor.domain.entity.VisitorType;
 import com.visitor.security.UserContext;
 import com.visitor.server.mapper.StaffMapper;
 import com.visitor.server.service.AlumniMonthlyPassService;
+import com.visitor.server.service.SystemSettingService;
 import com.visitor.server.service.VisitorTypeService;
 import com.visitor.workflow.ApprovalEngine;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,14 +30,17 @@ public class VisitorTypeController {
     private final AlumniMonthlyPassService alumniMonthlyPassService;
     private final StaffMapper staffMapper;
     private final ApprovalEngine approvalEngine;
+    private final SystemSettingService settingService;
 
     public VisitorTypeController(VisitorTypeService visitorTypeService,
                                  AlumniMonthlyPassService alumniMonthlyPassService,
-                                 StaffMapper staffMapper, ApprovalEngine approvalEngine) {
+                                 StaffMapper staffMapper, ApprovalEngine approvalEngine,
+                                 SystemSettingService settingService) {
         this.visitorTypeService = visitorTypeService;
         this.alumniMonthlyPassService = alumniMonthlyPassService;
         this.staffMapper = staffMapper;
         this.approvalEngine = approvalEngine;
+        this.settingService = settingService;
     }
 
     @Operation(summary = "启用中的访客类型")
@@ -66,6 +70,7 @@ public class VisitorTypeController {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("targetType", targetType);
         result.put("headTeacherRequired", headTeacherRequired);
+        result.put("maxStayHours", settingService.getInt("visit.max_stay_hours", 12));
         return Result.success(result);
     }
 }

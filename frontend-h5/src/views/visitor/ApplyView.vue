@@ -147,11 +147,12 @@
               v-model="dateValues"
               :min-date="minDate"
               :max-date="maxDate"
+              :filter="filterDate"
               :show-toolbar="false"
             />
           </van-tab>
           <van-tab title="时间">
-            <van-time-picker v-model="timeValues" :show-toolbar="false" />
+            <van-time-picker v-model="timeValues" :filter="filterTime" :show-toolbar="false" />
           </van-tab>
         </van-tabs>
       </div>
@@ -241,6 +242,7 @@ const plate = ref('')
 const passMode = ref('WALK')
 const headTeacherNo = ref('')
 const headTeacherRequired = ref(false)
+const maxStayHours = ref(12)
 const checkStatus = ref('NONE')
 const checkMessage = ref('')
 const visitorType = ref('NORMAL')
@@ -348,8 +350,103 @@ function withinRuleTime(rule: { startTime?: string; endTime?: string }, expected
   return minutes(from) >= parse(rule.startTime, 0) && minutes(to) <= parse(rule.endTime, 24 * 60 - 1)
 }
 
+function selectedPickerDate() {
+  const [year, month, day] = dateValues.value.map(Number)
+  return new Date(year || new Date().getFullYear(), (month || 1) - 1, day || 1)
+}
+
+function allowedRanges(date: Date) {
+  const rules = bookingRules()
+  return rules
+    .filter((rule) => rule.mode === 'UNLIMITED' || matchesDate(rule, date))
+    .map((rule) => ruleMinutes(rule))
+}
+
+function pickerTimeAllowed(date: Date, hour: number, minute: number) {
+  const ranges = allowedRanges(date)
+  if (ranges.length === 0) return true
+  const value = hour * 60 + minute
+  return ranges.some(([from, to]) => value >= from && value <= to)
+}
+
+function firstAllowedPickerTime(date: Date) {
+  const ranges = allowedRanges(date)
+  if (ranges.length === 0) return [9, 0] as const
+  const from = Math.min(...ranges.map(([start]) => start))
+  return [Math.floor(from / 60), from % 60] as const
+}
+
+function dateAllowed(date: Date) {
+  const rules = bookingRules()
+  if (rules.length === 0) return true
+  return rules.some((rule) => rule.mode === 'UNLIMITED' || matchesDate(rule, date))
+}
+
+function ruleMinutes(rule: { startTime?: string; endTime?: string }) {
+  const parse = (value: string | undefined, fallback: number) => {
+    if (!value) return fallback
+    const [hour, minute] = value.split(':').map(Number)
+    return hour * 60 + minute
+  }
+  return [parse(rule.startTime, 0), parse(rule.endTime, 24 * 60 - 1)] as const
+}
+
+function filterDate(type: string, options: any[]) {
+  if (type !== 'day' || bookingRules().length === 0) return options
+  const base = selectedPickerDate()
+  return options.filter((option) => dateAllowed(
+    new Date(base.getFullYear(), base.getMonth(), Number(option.value)),
+  ))
+}
+
+function filterTime(
+  type: string,
+  options: any[],
+  values: string[],
+) {
+  const rules = bookingRules()
+  if (rules.length === 0) return options
+  const date = selectedPickerDate()
+  const matched = rules.filter((rule) => rule.mode === 'UNLIMITED' || matchesDate(rule, date))
+  if (matched.length === 0) return []
+  if (type === 'hour') {
+    return options.filter((option) => {
+      const start = Number(option.value) * 60
+      return matched.some((rule) => {
+        const [from, to] = ruleMinutes(rule)
+        return start <= to && start + 60 > from
+      })
+    })
+  }
+  if (type === 'minute') {
+    const hour = Number(values[0] ?? timeValues.value[0] ?? 0)
+    return options.filter((option) => {
+      const value = hour * 60 + Number(option.value)
+      return matched.some((rule) => {
+        const [from, to] = ruleMinutes(rule)
+        return value >= from && value <= to
+      })
+    })
+  }
+  return options
+}
+
+function stayHours(from: string, to: string) {
+  const start = new Date(from.replace(' ', 'T')).getTime()
+  const end = new Date(to.replace(' ', 'T')).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 0
+  return (end - start) / 3600000
+}
+
 function localTime(offsetHours: number) {
   const date = new Date(Date.now() + offsetHours * 3600 * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function addHours(value: string, hours: number) {
+  const date = new Date(value.replace(' ', 'T'))
+  date.setHours(date.getHours() + hours)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
@@ -371,6 +468,11 @@ function openTimePicker(target: 'expectedTime' | 'leaveTime') {
   const pad = (n: number) => String(n).padStart(2, '0')
   dateValues.value = [String(date.getFullYear()), pad(date.getMonth() + 1), pad(date.getDate())]
   timeValues.value = [pad(date.getHours()), pad(date.getMinutes())]
+  const pickerDate = selectedPickerDate()
+  if (!pickerTimeAllowed(pickerDate, date.getHours(), date.getMinutes())) {
+    const [hour, minute] = firstAllowedPickerTime(pickerDate)
+    timeValues.value = [pad(hour), pad(minute)]
+  }
   timeTab.value = 0
   timePickerVisible.value = true
 }
@@ -387,6 +489,17 @@ function confirmTime() {
   if (picked.getTime() < Date.now() - 60 * 1000) {
     showToast('不能选择过去的时间')
     return
+  }
+  if (maxStayHours.value > 0) {
+    const other = timeTarget.value === 'expectedTime' ? leaveTime.value : expectedTime.value
+    if (other) {
+      const from = timeTarget.value === 'expectedTime' ? value : other
+      const to = timeTarget.value === 'expectedTime' ? other : value
+      if (stayHours(from, to) > maxStayHours.value) {
+        showToast(`单次最长在校时长为 ${maxStayHours.value} 小时`)
+        return
+      }
+    }
   }
   if (timeTarget.value === 'expectedTime') {
     if (leaveTime.value && !isTimeAllowed(value, leaveTime.value)) {
@@ -462,11 +575,16 @@ function selectTarget(target: Staff) {
 
 async function loadApplyRequirements(target: Staff) {
   try {
-    const data = await http.get<{ headTeacherRequired: boolean }>('/web/visitor/apply-requirements', {
-      targetId: target.id,
-      visitorType: visitorType.value,
-    })
+    const data = await http.get<{ headTeacherRequired: boolean; maxStayHours?: number }>(
+      '/web/visitor/apply-requirements',
+      { targetId: target.id, visitorType: visitorType.value },
+    )
     headTeacherRequired.value = data.headTeacherRequired
+    maxStayHours.value = data.maxStayHours ?? 12
+    if (maxStayHours.value > 0 && expectedTime.value && leaveTime.value
+      && stayHours(expectedTime.value, leaveTime.value) > maxStayHours.value) {
+      leaveTime.value = addHours(expectedTime.value, maxStayHours.value)
+    }
   } catch {
     headTeacherRequired.value = false
   }
@@ -597,6 +715,11 @@ async function submit() {
   }
   if (headTeacherRequired.value && !headTeacherNo.value) {
     showToast('当前审批流程请填写班主任工号')
+    return
+  }
+  if (maxStayHours.value > 0 && expectedTime.value && leaveTime.value
+    && stayHours(expectedTime.value, leaveTime.value) > maxStayHours.value) {
+    showToast(`单次最长在校时长为 ${maxStayHours.value} 小时`)
     return
   }
   const missing = fields.value.find((field) => field.required === 1

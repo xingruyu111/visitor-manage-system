@@ -498,6 +498,10 @@ public class VisitorServiceImpl implements VisitorService {
         if (leave.isBefore(LocalDateTime.now())) {
             throw new BizException(400, "离校时间已过");
         }
+        int maxStayHours = settingService.getInt("visit.max_stay_hours", 12);
+        if (maxStayHours > 0 && java.time.Duration.between(expected, leave).toMinutes() > maxStayHours * 60L) {
+            throw new BizException(400, "单次最长在校时长为 " + maxStayHours + " 小时");
+        }
     }
 
     private void assertNoOverlap(Long userId, LocalDateTime expected, LocalDateTime leave) {

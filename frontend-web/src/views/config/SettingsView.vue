@@ -41,11 +41,13 @@ interface Setting {
 
 const rows = ref<Setting[]>([])
 const loading = ref(false)
+const HIDDEN_KEYS = new Set(['visit.unusual_hours_start', 'visit.unusual_hours_end'])
 
 async function load() {
   loading.value = true
   try {
-    rows.value = await http.get<Setting[]>('/web/websuper/settings')
+    const data = await http.get<Setting[]>('/web/websuper/settings')
+    rows.value = data.filter((item) => !HIDDEN_KEYS.has(item.settingKey))
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '加载失败')
   } finally {
