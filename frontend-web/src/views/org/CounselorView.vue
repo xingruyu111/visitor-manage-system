@@ -22,8 +22,9 @@
         <el-table-column prop="orgName" label="负责组织" min-width="220" show-overflow-tooltip />
         <el-table-column prop="studentCount" label="覆盖学生" width="100" />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="90" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="remove(row)">移除</el-button>
           </template>
         </el-table-column>
@@ -39,7 +40,7 @@
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新增辅导员" width="520px">
+    <el-dialog v-model="visible" :title="editingId ? '编辑辅导员' : '新增辅导员'" width="520px">
       <el-form label-width="90px">
         <el-form-item label="辅导员">
           <el-select
@@ -48,6 +49,7 @@
             remote
             :remote-method="searchCandidates"
             :loading="candidateLoading"
+            :disabled="!!editingId"
             placeholder="搜索教职工姓名/工号/手机号"
             style="width: 100%"
           >
@@ -95,9 +97,11 @@ import { http } from '@/api/request'
 
 interface CounselorRow {
   id: number
+  counselorStaffId: number
   counselorName: string
   counselorPersonNo?: string
   counselorPhone?: string
+  orgId: number
   orgName?: string
   studentCount: number
   createdAt?: string
@@ -125,6 +129,7 @@ const loading = ref(false)
 const tree = ref<OrgNode[]>([])
 
 const visible = ref(false)
+const editingId = ref<number>()
 const saving = ref(false)
 const candidates = ref<Candidate[]>([])
 const candidateLoading = ref(false)
@@ -171,12 +176,28 @@ async function searchCandidates(query: string) {
 }
 
 function openCreate() {
+  editingId.value = undefined
   form.counselorStaffId = undefined
   form.orgId = undefined
   preview.value = undefined
   candidates.value = []
   visible.value = true
   searchCandidates('')
+}
+
+function openEdit(row: CounselorRow) {
+  editingId.value = row.id
+  form.counselorStaffId = row.counselorStaffId
+  form.orgId = row.orgId
+  preview.value = undefined
+  candidates.value = [{
+    id: row.counselorStaffId,
+    name: row.counselorName,
+    personNo: row.counselorPersonNo,
+    phone: row.counselorPhone,
+  }]
+  visible.value = true
+  previewOrg(row.orgId)
 }
 
 async function previewOrg(orgId?: number) {
@@ -199,11 +220,16 @@ async function save() {
   }
   saving.value = true
   try {
-    await http.post('/web/admin/counselors', {
-      counselorStaffId: form.counselorStaffId,
-      orgId: form.orgId,
-    })
-    ElMessage.success('已新增辅导员')
+    if (editingId.value) {
+      await http.put(`/web/admin/counselors/${editingId.value}?orgId=${form.orgId}`)
+      ElMessage.success('已修改负责组织')
+    } else {
+      await http.post('/web/admin/counselors', {
+        counselorStaffId: form.counselorStaffId,
+        orgId: form.orgId,
+      })
+      ElMessage.success('已新增辅导员')
+    }
     visible.value = false
     await load(1)
   } catch (e) {
