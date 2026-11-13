@@ -7,6 +7,7 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="role" clearable placeholder="全部" style="width: 180px" @change="load(1)">
+            <el-option label="访客" :value="4" />
             <el-option v-for="item in assignableRoles" :key="item.code" :label="item.name" :value="item.code" />
           </el-select>
         </el-form-item>
