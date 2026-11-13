@@ -369,6 +369,24 @@ function pickerTimeAllowed(date: Date, hour: number, minute: number) {
   return ranges.some(([from, to]) => value >= from && value <= to)
 }
 
+function selectedPickerDateTime(hour = 0, minute = 0) {
+  const date = selectedPickerDate()
+  date.setHours(hour, minute, 0, 0)
+  return date
+}
+
+function leaveTimeBounds() {
+  if (timeTarget.value !== 'leaveTime' || !expectedTime.value || maxStayHours.value <= 0) {
+    return null
+  }
+  const expected = new Date(expectedTime.value.replace(' ', 'T'))
+  if (Number.isNaN(expected.getTime())) return null
+  return {
+    min: new Date(expected.getTime() + 60 * 1000),
+    max: new Date(expected.getTime() + maxStayHours.value * 3600 * 1000),
+  }
+}
+
 function firstAllowedPickerTime(date: Date) {
   const ranges = allowedRanges(date)
   if (ranges.length === 0) return [9, 0] as const
@@ -392,11 +410,21 @@ function ruleMinutes(rule: { startTime?: string; endTime?: string }) {
 }
 
 function filterDate(type: string, options: any[]) {
-  if (type !== 'day' || bookingRules().length === 0) return options
+  if (type !== 'day') return options
+  const hasRules = bookingRules().length > 0
   const base = selectedPickerDate()
-  return options.filter((option) => dateAllowed(
-    new Date(base.getFullYear(), base.getMonth(), Number(option.value)),
-  ))
+  const bounds = leaveTimeBounds()
+  if (!hasRules && !bounds) return options
+  return options.filter((option) => {
+    const date = new Date(base.getFullYear(), base.getMonth(), Number(option.value))
+    if (hasRules && !dateAllowed(date)) return false
+    if (bounds) {
+      const dayStart = date.getTime()
+      const dayEnd = dayStart + 24 * 3600 * 1000 - 1
+      return dayEnd >= bounds.min.getTime() && dayStart <= bounds.max.getTime()
+    }
+    return true
+  })
 }
 
 function filterTime(
@@ -405,27 +433,37 @@ function filterTime(
   values: string[],
 ) {
   const rules = bookingRules()
-  if (rules.length === 0) return options
+  const hasRules = rules.length > 0
   const date = selectedPickerDate()
   const matched = rules.filter((rule) => rule.mode === 'UNLIMITED' || matchesDate(rule, date))
-  if (matched.length === 0) return []
+  if (hasRules && matched.length === 0) return []
+  const bounds = leaveTimeBounds()
   if (type === 'hour') {
     return options.filter((option) => {
       const start = Number(option.value) * 60
-      return matched.some((rule) => {
+      const inRule = !hasRules || matched.some((rule) => {
         const [from, to] = ruleMinutes(rule)
         return start <= to && start + 60 > from
       })
+      if (!inRule) return false
+      if (!bounds) return true
+      const hourStart = selectedPickerDateTime(Number(option.value), 0).getTime()
+      const hourEnd = hourStart + 3600 * 1000 - 1
+      return hourEnd >= bounds.min.getTime() && hourStart <= bounds.max.getTime()
     })
   }
   if (type === 'minute') {
     const hour = Number(values[0] ?? timeValues.value[0] ?? 0)
     return options.filter((option) => {
       const value = hour * 60 + Number(option.value)
-      return matched.some((rule) => {
+      const inRule = !hasRules || matched.some((rule) => {
         const [from, to] = ruleMinutes(rule)
         return value >= from && value <= to
       })
+      if (!inRule) return false
+      if (!bounds) return true
+      const candidate = selectedPickerDateTime(hour, Number(option.value)).getTime()
+      return candidate >= bounds.min.getTime() && candidate <= bounds.max.getTime()
     })
   }
   return options
@@ -451,6 +489,13 @@ function addHours(value: string, hours: number) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+function addMinutes(value: string, minutes: number) {
+  const date = new Date(value.replace(' ', 'T'))
+  date.setMinutes(date.getMinutes() + minutes)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 function backendTime(value: string) {
   if (!value) return ''
   const normalized = value.replace('T', ' ')
@@ -463,7 +508,12 @@ function displayTime(value: string) {
 
 function openTimePicker(target: 'expectedTime' | 'leaveTime') {
   timeTarget.value = target
-  const raw = target === 'expectedTime' ? expectedTime.value : leaveTime.value
+  const fallback = target === 'leaveTime' && expectedTime.value
+    ? addMinutes(expectedTime.value, 1)
+    : ''
+  const raw = target === 'expectedTime'
+    ? expectedTime.value
+    : (leaveTime.value || fallback)
   const date = raw ? new Date(raw) : new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   dateValues.value = [String(date.getFullYear()), pad(date.getMonth() + 1), pad(date.getDate())]
