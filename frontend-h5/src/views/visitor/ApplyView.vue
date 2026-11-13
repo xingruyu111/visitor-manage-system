@@ -651,6 +651,15 @@ function selectTarget(target: Staff) {
   loadApplyRequirements(target)
 }
 
+async function loadBookingConfig() {
+  try {
+    const data = await http.get<{ maxStayHours?: number }>('/web/visitor/booking-config')
+    maxStayHours.value = data.maxStayHours ?? 12
+  } catch {
+    // 保留默认值
+  }
+}
+
 async function loadApplyRequirements(target: Staff) {
   try {
     const data = await http.get<{ headTeacherRequired: boolean; maxStayHours?: number }>(
@@ -840,6 +849,7 @@ async function submit() {
 }
 
 onMounted(() => {
+  loadBookingConfig()
   loadProfile()
   loadPreCheck()
 })

@@ -55,6 +55,14 @@ public class VisitorTypeController {
         return Result.success(alumniMonthlyPassService.currentMonth());
     }
 
+    @Operation(summary = "预约基础配置")
+    @GetMapping("/booking-config")
+    public Result<Map<String, Object>> bookingConfig() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("maxStayHours", settingService.getInt("visit.max_stay_hours", 12));
+        return Result.success(result);
+    }
+
     @Operation(summary = "预约补充信息要求")
     @GetMapping("/apply-requirements")
     public Result<Map<String, Object>> applyRequirements(
