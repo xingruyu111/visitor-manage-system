@@ -241,7 +241,7 @@ const whiteForm = reactive({
 
 const isWhitelist = computed(() => activeTab.value === '2')
 const canApprove = computed(() => (me.value.roles ?? []).some((role) => role.code === 2 || role.code === 1))
-const dialogTitle = computed(() => (isWhitelist.value ? (whiteForm.id ? '编辑白名单' : '新增白名单') : editingId.value ? '编辑名单' : '新增名单'))
+const dialogTitle = computed(() => (isWhitelist.value ? (whiteForm.id ? '编辑白名单' : '新增白名单') : editingId.value ? '编辑黑名单' : '新增黑名单'))
 const importTitle = computed(() => (isWhitelist.value ? 'Excel 导入白名单' : 'Excel 导入黑名单'))
 const templateUrl = computed(() => (isWhitelist.value ? '/templates/whitelist-import.xlsx' : '/templates/access-list-import.xlsx'))
 const importUploadUrl = computed(() => (isWhitelist.value ? '/api/web/whitelist/import' : '/api/web/admin/access-list/import'))
