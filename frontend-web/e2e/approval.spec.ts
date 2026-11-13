@@ -45,7 +45,9 @@ test('审批人通过申请后记录变为已通过', async ({ page, request }) 
 
   const pad = (n: number) => String(n).padStart(2, '0')
   const start = new Date()
-  start.setDate(start.getDate() + 1 + (Date.now() % 27))
+  // 预约配置允许周一，取未来一个周一并错开周次，避免与历史记录重叠
+  const daysUntilMonday = (8 - start.getDay()) % 7 || 7
+  start.setDate(start.getDate() + daysUntilMonday + (Date.now() % 52) * 7)
   start.setHours(9, 0, 0, 0)
   const end = new Date(start.getTime() + 2 * 3600 * 1000)
   const format = (date: Date) =>
