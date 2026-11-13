@@ -375,15 +375,42 @@ function selectedPickerDateTime(hour = 0, minute = 0) {
   return date
 }
 
-function leaveTimeBounds() {
-  if (timeTarget.value !== 'leaveTime' || !expectedTime.value || maxStayHours.value <= 0) {
-    return null
+function timeBounds() {
+  if (maxStayHours.value <= 0) return null
+  const expected = expectedTime.value ? new Date(expectedTime.value.replace(' ', 'T')) : null
+  const leave = leaveTime.value ? new Date(leaveTime.value.replace(' ', 'T')) : null
+  if (timeTarget.value === 'leaveTime' && expected && !Number.isNaN(expected.getTime())) {
+    return {
+      min: new Date(expected.getTime() + 60 * 1000),
+      max: new Date(expected.getTime() + maxStayHours.value * 3600 * 1000),
+    }
   }
-  const expected = new Date(expectedTime.value.replace(' ', 'T'))
-  if (Number.isNaN(expected.getTime())) return null
-  return {
-    min: new Date(expected.getTime() + 60 * 1000),
-    max: new Date(expected.getTime() + maxStayHours.value * 3600 * 1000),
+  if (timeTarget.value === 'expectedTime' && leave && !Number.isNaN(leave.getTime())) {
+    return {
+      min: new Date(leave.getTime() - maxStayHours.value * 3600 * 1000),
+      max: new Date(leave.getTime() - 60 * 1000),
+    }
+  }
+  return null
+}
+
+function normalizePickerDate() {
+  const current = selectedPickerDate()
+  if ((bookingRules().length === 0 || dateAllowed(current)) && dateInBounds(current, timeBounds())) {
+    return
+  }
+  const today = new Date()
+  for (let offset = 0; offset <= 366; offset++) {
+    const candidate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset)
+    if (bookingRules().length > 0 && !dateAllowed(candidate)) continue
+    if (!dateInBounds(candidate, timeBounds())) continue
+    const pad = (n: number) => String(n).padStart(2, '0')
+    dateValues.value = [
+      String(candidate.getFullYear()),
+      pad(candidate.getMonth() + 1),
+      pad(candidate.getDate()),
+    ]
+    return
   }
 }
 
@@ -429,7 +456,7 @@ function monthHasAllowedDate(year: number, month: number, bounds: { min: Date; m
 
 function filterDate(type: string, options: any[], values: string[]) {
   const hasRules = bookingRules().length > 0
-  const bounds = leaveTimeBounds()
+  const bounds = timeBounds()
   if (!hasRules && !bounds) return options
   const base = selectedPickerDate()
   if (type === 'year') {
@@ -465,7 +492,7 @@ function filterTime(
   const date = selectedPickerDate()
   const matched = rules.filter((rule) => rule.mode === 'UNLIMITED' || matchesDate(rule, date))
   if (hasRules && matched.length === 0) return []
-  const bounds = leaveTimeBounds()
+  const bounds = timeBounds()
   if (type === 'hour') {
     return options.filter((option) => {
       const start = Number(option.value) * 60
@@ -536,15 +563,19 @@ function displayTime(value: string) {
 
 function openTimePicker(target: 'expectedTime' | 'leaveTime') {
   timeTarget.value = target
-  const fallback = target === 'leaveTime' && expectedTime.value
-    ? addMinutes(expectedTime.value, 1)
-    : ''
+  let fallback = ''
+  if (target === 'leaveTime' && expectedTime.value) {
+    fallback = addMinutes(expectedTime.value, 1)
+  } else if (target === 'expectedTime' && leaveTime.value) {
+    fallback = addMinutes(leaveTime.value, -Math.min(60, Math.max(1, maxStayHours.value) * 60))
+  }
   const raw = target === 'expectedTime'
-    ? expectedTime.value
+    ? (expectedTime.value || fallback)
     : (leaveTime.value || fallback)
   const date = raw ? new Date(raw) : new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   dateValues.value = [String(date.getFullYear()), pad(date.getMonth() + 1), pad(date.getDate())]
+  normalizePickerDate()
   timeValues.value = [pad(date.getHours()), pad(date.getMinutes())]
   const pickerDate = selectedPickerDate()
   if (!pickerTimeAllowed(pickerDate, date.getHours(), date.getMinutes())) {
@@ -580,6 +611,10 @@ function confirmTime() {
     }
   }
   if (timeTarget.value === 'expectedTime') {
+    if (leaveTime.value && value >= leaveTime.value) {
+      showToast('到访时间需早于离校时间')
+      return
+    }
     if (leaveTime.value && !isTimeAllowed(value, leaveTime.value)) {
       showToast('所选时间不在当前访客类型的可预约时段内')
       return
