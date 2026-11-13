@@ -8,10 +8,12 @@
       :text="checkMessage"
     />
 
-    <van-cell-group inset class="target-group" title="选择被访人">
+    <van-cell-group inset class="target-group">
+      <template #title><span class="required-group-title">选择被访人</span></template>
       <div class="target-search">
         <van-field
           v-model="keyword"
+          required
           placeholder="输入完整姓名或工号"
           @keyup.enter="search"
         >
@@ -42,12 +44,14 @@
       <van-field
         v-if="isAlumni"
         label="访客类型"
+        required
         :model-value="visitorTypeLabel"
         readonly
       />
       <van-field
         v-else
         label="访客类型"
+        required
         :model-value="visitorTypeLabel"
         readonly
         is-link
@@ -59,6 +63,7 @@
       <van-field
         readonly
         clickable
+        required
         label="到访时间"
         :model-value="displayTime(expectedTime)"
         placeholder="选择到访时间"
@@ -67,6 +72,7 @@
       <van-field
         readonly
         clickable
+        required
         label="离校时间"
         :model-value="displayTime(leaveTime)"
         placeholder="选择离校时间"
@@ -82,11 +88,12 @@
           </van-radio-group>
         </template>
       </van-field>
-      <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" placeholder="机动车必填" />
+      <van-field v-if="passMode !== 'WALK'" v-model="plate" label="车牌号" :required="passMode === 'CAR'" placeholder="机动车必填" />
       <van-field
         v-if="headTeacherRequired"
         v-model="headTeacherNo"
         label="班主任工号"
+        required
         placeholder="当前审批流程必填"
       />
     </van-cell-group>
@@ -97,6 +104,7 @@
           v-if="field.fieldType === 'SELECT'"
           readonly
           clickable
+          :required="field.required === 1"
           :label="field.label"
           :model-value="extra[field.fieldKey]"
           :placeholder="field.required === 1 ? '请选择（必填）' : '请选择'"
@@ -106,6 +114,7 @@
           v-else-if="field.fieldType === 'DATE'"
           readonly
           clickable
+          :required="field.required === 1"
           :label="field.label"
           :model-value="extra[field.fieldKey]"
           :placeholder="field.required === 1 ? '请选择日期（必填）' : '请选择日期'"
@@ -114,6 +123,7 @@
         <van-field
           v-else
           v-model="extra[field.fieldKey]"
+          :required="field.required === 1"
           :label="field.label"
           :type="fieldInputType(field)"
           :maxlength="fieldMaxLength(field)"
@@ -961,5 +971,10 @@ onMounted(() => {
 }
 .time-picker :deep(.van-picker__columns) {
   min-height: 220px;
+}
+.required-group-title::before {
+  content: '*';
+  margin-right: 2px;
+  color: #ee0a24;
 }
 </style>

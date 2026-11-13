@@ -107,9 +107,9 @@
         class="tip"
       />
       <el-form label-width="80px">
-        <el-form-item label="手机号"><el-input v-model="form.phone" /></el-form-item>
-        <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="角色">
+        <el-form-item label="手机号" required><el-input v-model="form.phone" /></el-form-item>
+        <el-form-item label="姓名" required><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="角色" required>
           <el-select v-model="form.role" style="width: 100%">
             <el-option v-for="item in assignableRoles" :key="item.code" :label="item.name" :value="item.code" />
           </el-select>

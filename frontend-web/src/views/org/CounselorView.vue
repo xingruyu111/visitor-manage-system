@@ -42,7 +42,7 @@
 
     <el-dialog v-model="visible" :title="editingId ? '编辑辅导员' : '新增辅导员'" width="520px">
       <el-form label-width="90px">
-        <el-form-item label="辅导员">
+        <el-form-item label="辅导员" required>
           <el-select
             v-model="form.counselorStaffId"
             filterable
@@ -61,7 +61,7 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="负责组织">
+        <el-form-item label="负责组织" required>
           <el-tree-select
             v-model="form.orgId"
             :data="tree"

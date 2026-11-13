@@ -49,16 +49,16 @@
 
     <el-dialog v-model="visible" :title="form.id ? '编辑字段' : '新增字段'" width="480px">
       <el-form label-width="90px">
-        <el-form-item label="访客类型">
+        <el-form-item label="访客类型" required>
           <el-select v-model="form.visitorType" style="width: 100%">
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="字段编码">
+        <el-form-item label="字段编码" required>
           <el-input v-model="form.fieldKey" :disabled="!!form.id" placeholder="如 company" />
         </el-form-item>
-        <el-form-item label="显示名称"><el-input v-model="form.label" placeholder="如 工作单位" /></el-form-item>
-        <el-form-item label="字段类型">
+        <el-form-item label="显示名称" required><el-input v-model="form.label" placeholder="如 工作单位" /></el-form-item>
+        <el-form-item label="字段类型" required>
           <el-select v-model="form.fieldType" style="width: 100%">
             <el-option v-for="item in FIELD_TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
@@ -66,7 +66,7 @@
         <el-form-item label="是否必填">
           <el-switch v-model="form.required" :active-value="1" :inactive-value="0" />
         </el-form-item>
-        <el-form-item v-if="form.fieldType === 'SELECT'" label="选项">
+        <el-form-item v-if="form.fieldType === 'SELECT'" label="选项" required>
           <el-input v-model="form.options" placeholder="逗号分隔，如 A,B,C" />
         </el-form-item>
         <el-form-item label="启用">

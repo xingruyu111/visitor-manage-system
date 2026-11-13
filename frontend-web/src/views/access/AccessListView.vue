@@ -109,12 +109,12 @@
     <el-dialog v-model="visible" :title="dialogTitle" width="520px">
       <el-form label-width="90px">
         <template v-if="isWhitelist">
-          <el-form-item label="姓名"><el-input v-model="whiteForm.personName" maxlength="64" /></el-form-item>
-          <el-form-item label="手机号"><el-input v-model="whiteForm.phone" maxlength="20" /></el-form-item>
+          <el-form-item label="姓名" required><el-input v-model="whiteForm.personName" maxlength="64" /></el-form-item>
+          <el-form-item label="手机号" required><el-input v-model="whiteForm.phone" maxlength="20" /></el-form-item>
           <el-form-item label="车牌号">
             <el-input v-model="whiteForm.plateNumber" placeholder="选填；有车牌按机动车通行" maxlength="20" />
           </el-form-item>
-          <el-form-item label="生效时间">
+          <el-form-item label="生效时间" required>
             <el-date-picker
               v-model="whiteForm.effectiveFrom"
               type="datetime"
@@ -122,7 +122,7 @@
               style="width: 100%"
             />
           </el-form-item>
-          <el-form-item label="失效时间">
+          <el-form-item label="失效时间" required>
             <el-date-picker
               v-model="whiteForm.effectiveTo"
               type="datetime"
@@ -141,14 +141,14 @@
         </template>
 
         <template v-else>
-          <el-form-item label="对象类型">
+          <el-form-item label="对象类型" required>
             <el-select v-model="form.targetType" style="width: 100%">
               <el-option label="人员" value="PERSON" />
               <el-option label="机动车" value="PLATE_MOTOR" />
               <el-option label="电动自行车" value="PLATE_EBIKE" />
             </el-select>
           </el-form-item>
-          <el-form-item label="手机号/车牌">
+          <el-form-item label="手机号/车牌" required>
             <el-input v-model="form.targetValue" placeholder="人员填手机号，车辆填车牌" />
           </el-form-item>
           <el-form-item label="生效时间">

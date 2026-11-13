@@ -35,10 +35,10 @@
 
     <el-dialog v-model="editVisible" :title="creating ? '新建流程' : `编辑：${form.code}`" width="760px">
       <el-form label-width="90px">
-        <el-form-item label="流程编码">
+        <el-form-item label="流程编码" required>
           <el-input v-model="form.code" :disabled="!creating" placeholder="如 VISIT_DEFAULT" />
         </el-form-item>
-        <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="名称" required><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="超时(小时)"><el-input-number v-model="form.timeoutHours" :min="1" :max="240" /></el-form-item>
         <el-form-item label="适用被访人类型">
           <el-select v-model="form.targetTypes" multiple collapse-tags style="width: 100%" placeholder="不选表示未关联，按审批规则兜底">
@@ -46,15 +46,18 @@
           </el-select>
           <div class="hint">一个被访人类型只能关联一条已发布流程；不选则按原审批规则兜底。</div>
         </el-form-item>
-        <el-form-item label="审批节点">
+        <el-form-item label="审批节点" required>
           <el-table :data="form.nodes" border size="small" style="width: 100%">
             <el-table-column label="序号" width="80">
+              <template #header>序号<span class="required-star">*</span></template>
               <template #default="{ row }"><el-input-number v-model="row.seq" :min="1" size="small" /></template>
             </el-table-column>
             <el-table-column label="节点名称">
+              <template #header>节点名称<span class="required-star">*</span></template>
               <template #default="{ row }"><el-input v-model="row.name" size="small" /></template>
             </el-table-column>
             <el-table-column label="审批人" width="180">
+              <template #header>审批人<span class="required-star">*</span></template>
               <template #default="{ row }">
                 <el-select v-model="row.assignee" size="small">
                   <el-option v-for="item in ASSIGNEES" :key="item.value" :label="item.label" :value="item.value" />
@@ -392,5 +395,9 @@ onMounted(load)
 .detail-title {
   margin: 16px 0 8px;
   font-weight: 600;
+}
+.required-star {
+  margin-left: 2px;
+  color: #f56c6c;
 }
 </style>

@@ -34,7 +34,7 @@
     </van-cell-group>
 
     <van-cell-group v-if="showQuery" inset title="车主查询">
-      <van-field v-model="plate" label="车牌号" placeholder="输入车牌查询预约" />
+      <van-field v-model="plate" label="车牌号" required placeholder="输入车牌查询预约" />
       <div class="actions">
         <van-button block plain type="primary" :loading="querying" @click="query">查询</van-button>
       </div>

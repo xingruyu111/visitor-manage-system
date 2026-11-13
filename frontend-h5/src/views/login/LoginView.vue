@@ -14,9 +14,9 @@
 
     <van-form @submit="accountLogin">
       <van-cell-group inset>
-        <van-field v-model="phone" label="手机号" placeholder="请输入手机号" :rules="[{ required: true, message: '请输入手机号' }]" />
-        <van-field v-model="password" type="password" label="密码" placeholder="请输入密码" />
-        <van-field v-if="captchaEnabled" v-model="captchaCode" label="验证码" placeholder="请输入验证码">
+        <van-field v-model="phone" label="手机号" required placeholder="请输入手机号" :rules="[{ required: true, message: '请输入手机号' }]" />
+        <van-field v-model="password" type="password" label="密码" required placeholder="请输入密码" />
+        <van-field v-if="captchaEnabled" v-model="captchaCode" label="验证码" required placeholder="请输入验证码">
           <template #button>
             <img :src="captchaImage" class="captcha" alt="验证码" @click="loadCaptcha" />
           </template>

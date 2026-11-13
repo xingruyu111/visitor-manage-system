@@ -5,13 +5,13 @@
       <p class="subtitle">Web 管理后台</p>
 
       <el-form :model="form" label-position="top" @submit.prevent>
-        <el-form-item label="账号（手机号）">
+        <el-form-item label="账号（手机号）" required>
           <el-input v-model="form.phone" placeholder="请输入手机号" />
         </el-form-item>
-        <el-form-item label="密码">
+        <el-form-item label="密码" required>
           <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
-        <el-form-item v-if="captchaEnabled" label="验证码">
+        <el-form-item v-if="captchaEnabled" label="验证码" required>
           <div class="captcha-row">
             <el-input v-model="form.captchaCode" placeholder="请输入验证码" />
             <img :src="captchaImage" class="captcha-img" alt="验证码" @click="loadCaptcha" />

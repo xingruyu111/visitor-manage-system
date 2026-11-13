@@ -39,6 +39,7 @@
           rows="4"
           maxlength="200"
           show-word-limit
+          :required="!commentApprove"
           :placeholder="commentApprove ? '请填写审批意见（选填）' : '请填写驳回原因'"
         />
       </div>

@@ -60,11 +60,11 @@
 
     <el-dialog v-model="visible" :title="form.id ? '编辑访客类型' : '新增访客类型'" width="760px">
       <el-form label-width="110px">
-        <el-form-item label="类型编码">
+        <el-form-item label="类型编码" required>
           <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 NORMAL，创建后不可修改" />
         </el-form-item>
-        <el-form-item label="显示名称"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="可通行次数">
+        <el-form-item label="显示名称" required><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="可通行次数" required>
           <el-input-number v-model="form.maxEntries" :min="0" :max="999999" />
           <span class="field-hint">0 表示不限次数</span>
         </el-form-item>

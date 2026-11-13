@@ -35,7 +35,7 @@
 
     <el-dialog v-model="visible" title="新增 IP 黑名单" width="420px">
       <el-form label-width="90px">
-        <el-form-item label="IP"><el-input v-model="form.ip" placeholder="如 1.2.3.4" /></el-form-item>
+        <el-form-item label="IP" required><el-input v-model="form.ip" placeholder="如 1.2.3.4" /></el-form-item>
         <el-form-item label="原因"><el-input v-model="form.reason" /></el-form-item>
         <el-form-item label="失效时间">
           <el-date-picker v-model="form.expireAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" placeholder="留空为永久" />

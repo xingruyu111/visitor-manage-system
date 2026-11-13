@@ -82,13 +82,13 @@
 
     <el-dialog v-model="visible" :title="form.id ? '编辑人员' : '新增人员'" width="520px">
       <el-form label-width="90px">
-        <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="工号/学号"><el-input v-model="form.personNo" placeholder="唯一，教职工填工号、学生填学号" /></el-form-item>
-        <el-form-item label="手机号">
+        <el-form-item label="姓名" required><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="工号/学号" required><el-input v-model="form.personNo" placeholder="唯一，教职工填工号、学生填学号" /></el-form-item>
+        <el-form-item label="手机号" required>
           <el-input v-model="form.phone" placeholder="必填，用于开通账号" />
           <div class="field-hint">修改后账号手机号会同步更新</div>
         </el-form-item>
-        <el-form-item label="类型">
+        <el-form-item label="类型" required>
           <el-select v-model="form.personType" style="width: 100%">
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
@@ -160,7 +160,7 @@
 
     <el-dialog v-model="deptVisible" :title="deptForm.id ? '编辑部门' : '新增部门'" width="420px">
       <el-form label-width="90px">
-        <el-form-item label="名称"><el-input v-model="deptForm.name" /></el-form-item>
+        <el-form-item label="名称" required><el-input v-model="deptForm.name" /></el-form-item>
         <el-form-item label="上级部门">
           <el-tree-select
             v-model="deptForm.parentId"
