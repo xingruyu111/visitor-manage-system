@@ -37,6 +37,9 @@ public class ApprovalFlowServiceImpl implements ApprovalFlowService {
                 .orderByDesc(ApprovalFlow::getVersion));
         Map<String, ApprovalFlow> latest = new LinkedHashMap<>();
         for (ApprovalFlow flow : all) {
+            if ("VISIT_DEPT_BATCH".equals(flow.getFlowCode())) {
+                continue;
+            }
             ApprovalFlow current = latest.get(flow.getFlowCode());
             if (current == null || (flow.getStatus() == 1 && current.getStatus() != 1)) {
                 latest.put(flow.getFlowCode(), flow);
