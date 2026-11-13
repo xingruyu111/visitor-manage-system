@@ -117,12 +117,31 @@ class DashboardTrendTest {
         assertThat(((Number) current.get("rejected")).intValue()).isEqualTo(1);
         assertThat(((Number) current.get("approvalRate")).doubleValue()).isEqualTo(50.0);
     }
+    @Test
+    void screenOverviewContainsAllDashboardSections() {
+        record(1);
+        record(2);
+
+        Map<String, Object> screen = dashboardService.screen();
+
+        assertThat(screen).containsKeys("summary", "trend", "monthly",
+                "statusDistribution", "visitorTypeDistribution", "targetTypeDistribution",
+                "hourly", "topTargets", "recent");
+        assertThat((List<?>) screen.get("statusDistribution")).hasSize(6);
+        assertThat((List<?>) screen.get("hourly")).hasSize(24);
+        assertThat((List<?>) screen.get("recent")).hasSize(2);
+        assertThat((List<?>) screen.get("visitorTypeDistribution")).isNotEmpty();
+        assertThat((List<?>) screen.get("topTargets")).isNotEmpty();
+    }
+
     private void record(int status) {
         VisitorRecord record = new VisitorRecord();
         record.setSchoolId(1L);
         record.setVisitorUserId(1L);
         record.setVisitorName("统计访客");
         record.setVisitorType("NORMAL");
+        record.setTargetName("张老师");
+        record.setTargetType("TEACHER");
         record.setExpectedTime(LocalDateTime.now().withHour(10));
         record.setLeaveTime(LocalDateTime.now().plusHours(2));
         record.setStatus(status);

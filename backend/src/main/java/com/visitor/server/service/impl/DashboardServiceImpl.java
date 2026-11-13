@@ -64,6 +64,70 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
+    public Map<String, Object> screen() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> summary = summary();
+        result.put("summary", summary);
+        result.put("trend", trend(14));
+        result.put("monthly", monthly(6));
+
+        List<Map<String, Object>> statuses = new ArrayList<>();
+        statuses.add(statusItem("待审批", summary.get("pending")));
+        statuses.add(statusItem("已通过", summary.get("approved")));
+        statuses.add(statusItem("已驳回", summary.get("rejected")));
+        statuses.add(statusItem("在校中", summary.get("inSchool")));
+        statuses.add(statusItem("已离校", summary.get("left")));
+        statuses.add(statusItem("已过期", summary.get("expired")));
+        result.put("statusDistribution", statuses);
+
+        result.put("visitorTypeDistribution", distribution("visitor_type"));
+        result.put("targetTypeDistribution", distribution("target_type"));
+
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> hourly = new ArrayList<>();
+        for (int hour = 0; hour < 24; hour++) {
+            long total = recordMapper.selectCount(new LambdaQueryWrapper<VisitorRecord>()
+                    .ge(VisitorRecord::getExpectedTime, today.atTime(hour, 0))
+                    .lt(VisitorRecord::getExpectedTime, today.atTime(hour, 0).plusHours(1)));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("hour", hour);
+            row.put("total", total);
+            hourly.add(row);
+        }
+        result.put("hourly", hourly);
+
+        result.put("topTargets", recordMapper.selectMaps(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<VisitorRecord>()
+                        .select("target_name AS name", "COUNT(*) AS total")
+                        .isNotNull("target_name")
+                        .ne("target_name", "")
+                        .groupBy("target_name")
+                        .orderByDesc("total")
+                        .last("LIMIT 5")));
+        result.put("recent", recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
+                .orderByDesc(VisitorRecord::getId)
+                .last("LIMIT 8")));
+        return result;
+    }
+
+    private Map<String, Object> statusItem(String name, Object value) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("name", name);
+        item.put("value", value == null ? 0 : value);
+        return item;
+    }
+
+    private List<Map<String, Object>> distribution(String column) {
+        return recordMapper.selectMaps(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<VisitorRecord>()
+                        .select(column + " AS type", "COUNT(*) AS total")
+                        .isNotNull(column)
+                        .ne(column, "")
+                        .groupBy(column)
+                        .orderByDesc("total"));
+    }
+
+    @Override
     public Map<String, Object> trend(int days) {
         int span = Math.min(Math.max(days, 1), 90);
         LocalDate end = LocalDate.now();

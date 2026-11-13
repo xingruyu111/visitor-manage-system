@@ -35,6 +35,12 @@ public class DashboardController {
         return Result.success(dashboardService.monthly(months));
     }
 
+    @Operation(summary = "数据大屏汇总")
+    @GetMapping("/screen")
+    public Result<Map<String, Object>> screen() {
+        return Result.success(dashboardService.screen());
+    }
+
     @Operation(summary = "统计概览")
     @GetMapping("/summary")
     public Result<Map<String, Object>> summary() {

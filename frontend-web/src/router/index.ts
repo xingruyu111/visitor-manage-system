@@ -10,6 +10,12 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/screen',
+      name: 'Screen',
+      component: () => import('@/views/screen/ScreenView.vue'),
+      meta: { title: '数据大屏' },
+    },
+    {
       path: '/',
       component: () => import('@/layouts/AdminLayout.vue'),
       redirect: '/dashboard',
@@ -19,12 +25,6 @@ const router = createRouter({
           name: 'Dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),
           meta: { title: '工作台' },
-        },
-        {
-          path: 'screen',
-          name: 'Screen',
-          component: () => import('@/views/screen/ScreenView.vue'),
-          meta: { title: '数据大屏' },
         },
         {
           path: 'visitor-records',
