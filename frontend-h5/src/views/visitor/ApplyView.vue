@@ -409,22 +409,50 @@ function ruleMinutes(rule: { startTime?: string; endTime?: string }) {
   return [parse(rule.startTime, 0), parse(rule.endTime, 24 * 60 - 1)] as const
 }
 
-function filterDate(type: string, options: any[]) {
-  if (type !== 'day') return options
+function dateInBounds(date: Date, bounds: { min: Date; max: Date } | null) {
+  if (!bounds) return true
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+  const dayEnd = dayStart + 24 * 3600 * 1000 - 1
+  return dayEnd >= bounds.min.getTime() && dayStart <= bounds.max.getTime()
+}
+
+function monthHasAllowedDate(year: number, month: number, bounds: { min: Date; max: Date } | null) {
   const hasRules = bookingRules().length > 0
-  const base = selectedPickerDate()
+  const days = new Date(year, month, 0).getDate()
+  for (let day = 1; day <= days; day++) {
+    const date = new Date(year, month - 1, day)
+    if (hasRules && !dateAllowed(date)) continue
+    if (dateInBounds(date, bounds)) return true
+  }
+  return false
+}
+
+function filterDate(type: string, options: any[], values: string[]) {
+  const hasRules = bookingRules().length > 0
   const bounds = leaveTimeBounds()
   if (!hasRules && !bounds) return options
-  return options.filter((option) => {
-    const date = new Date(base.getFullYear(), base.getMonth(), Number(option.value))
-    if (hasRules && !dateAllowed(date)) return false
-    if (bounds) {
-      const dayStart = date.getTime()
-      const dayEnd = dayStart + 24 * 3600 * 1000 - 1
-      return dayEnd >= bounds.min.getTime() && dayStart <= bounds.max.getTime()
-    }
-    return true
-  })
+  const base = selectedPickerDate()
+  if (type === 'year') {
+    return options.filter((option) => {
+      const year = Number(option.value)
+      for (let month = 1; month <= 12; month++) {
+        if (monthHasAllowedDate(year, month, bounds)) return true
+      }
+      return false
+    })
+  }
+  if (type === 'month') {
+    const year = Number(values[0] ?? base.getFullYear())
+    return options.filter((option) => monthHasAllowedDate(year, Number(option.value), bounds))
+  }
+  if (type === 'day') {
+    return options.filter((option) => {
+      const date = new Date(base.getFullYear(), base.getMonth(), Number(option.value))
+      if (hasRules && !dateAllowed(date)) return false
+      return dateInBounds(date, bounds)
+    })
+  }
+  return options
 }
 
 function filterTime(
