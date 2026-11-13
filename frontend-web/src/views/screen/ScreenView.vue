@@ -644,7 +644,7 @@ function updateClock() {
 
 async function load() {
   try {
-    const payload = await http.get<ScreenData>('/web/admin/dashboard/screen')
+    const payload = await http.get<ScreenData>('/web/public/screen')
     data.value = payload
     updatedText.value = payload.summary?.generatedAt
       ? payload.summary.generatedAt.replace('T', ' ').slice(11, 19)

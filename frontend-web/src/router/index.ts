@@ -13,7 +13,7 @@ const router = createRouter({
       path: '/screen',
       name: 'Screen',
       component: () => import('@/views/screen/ScreenView.vue'),
-      meta: { title: '数据大屏' },
+      meta: { title: '数据大屏', public: true },
     },
     {
       path: '/',

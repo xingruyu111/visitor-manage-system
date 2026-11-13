@@ -24,6 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/auth/wechat/phone",
                         "/auth/captcha",
                         "/auth/sso/**",
+                        "/web/public/**",
                         "/health",
                         "/error",
                         "/v3/api-docs/**",

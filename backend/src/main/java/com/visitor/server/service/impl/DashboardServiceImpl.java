@@ -104,9 +104,21 @@ public class DashboardServiceImpl implements DashboardService {
                         .groupBy("target_name")
                         .orderByDesc("total")
                         .last("LIMIT 5")));
-        result.put("recent", recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
+        List<VisitorRecord> recentRecords = recordMapper.selectList(new LambdaQueryWrapper<VisitorRecord>()
                 .orderByDesc(VisitorRecord::getId)
-                .last("LIMIT 8")));
+                .last("LIMIT 8"));
+        List<Map<String, Object>> recent = new ArrayList<>();
+        for (VisitorRecord record : recentRecords) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", record.getId());
+            item.put("visitorName", record.getVisitorName());
+            item.put("targetName", record.getTargetName());
+            item.put("visitorType", record.getVisitorType());
+            item.put("expectedTime", record.getExpectedTime());
+            item.put("status", record.getStatus());
+            recent.add(item);
+        }
+        result.put("recent", recent);
         return result;
     }
 
