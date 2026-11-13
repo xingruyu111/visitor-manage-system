@@ -141,12 +141,6 @@
         </template>
 
         <template v-else>
-          <el-form-item label="名单类型">
-            <el-radio-group v-model="form.listType">
-              <el-radio :value="1">黑名单</el-radio>
-              <el-radio :value="2">白名单</el-radio>
-            </el-radio-group>
-          </el-form-item>
           <el-form-item label="对象类型">
             <el-select v-model="form.targetType" style="width: 100%">
               <el-option label="人员" value="PERSON" />
