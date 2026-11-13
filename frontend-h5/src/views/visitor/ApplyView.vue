@@ -762,8 +762,6 @@ async function submit() {
 }
 
 onMounted(() => {
-  expectedTime.value = localTime(1)
-  leaveTime.value = localTime(3)
   loadProfile()
   loadPreCheck()
 })
