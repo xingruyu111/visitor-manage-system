@@ -106,8 +106,8 @@
       />
     </el-card>
 
-    <el-dialog v-model="visible" :title="dialogTitle" width="520px">
-      <el-form label-width="90px">
+    <el-dialog v-model="visible" :title="dialogTitle" width="560px">
+      <el-form label-width="120px">
         <template v-if="isWhitelist">
           <el-form-item label="姓名" required><el-input v-model="whiteForm.personName" maxlength="64" /></el-form-item>
           <el-form-item label="手机号" required><el-input v-model="whiteForm.phone" maxlength="20" /></el-form-item>
