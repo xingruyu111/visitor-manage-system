@@ -858,12 +858,13 @@ h1 {
   min-height: 0;
   grid-template-columns: .92fr 1.72fr 1.04fr;
   grid-template-rows: minmax(0, 1.08fr) minmax(0, .86fr) 158px;
-  gap: 13px;
+  gap: 16px;
   margin-top: 13px;
 }
 .panel {
   min-width: 0;
-  padding: 13px 15px;
+  overflow: hidden;
+  padding: 15px 17px;
   border: 1px solid rgba(96, 165, 250, .13);
   border-radius: 10px;
   background: linear-gradient(145deg, rgba(13, 30, 50, .9), rgba(7, 17, 30, .85));
@@ -872,8 +873,8 @@ h1 {
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .panel-head > div { display: flex; align-items: baseline; gap: 8px; }
 .panel-index { color: #38bdf8; font-family: 'Cascadia Mono', monospace; font-size: 10px; letter-spacing: 1px; }
-.panel h2 { margin: 0; color: #e2e8f0; font-size: 14px; font-weight: 500; letter-spacing: .8px; }
-.panel-sub { color: #475569; font-size: 9px; letter-spacing: 1.2px; white-space: nowrap; }
+.panel h2 { margin: 0; color: #e2e8f0; font-size: 15px; font-weight: 500; letter-spacing: .8px; }
+.panel-sub { color: #475569; font-size: 10px; letter-spacing: 1.2px; white-space: nowrap; }
 .chart { width: 100%; height: 100%; min-height: 0; }
 .status-body { display: flex; align-items: center; height: calc(100% - 30px); min-height: 180px; }
 .donut-wrap { position: relative; flex: 1.12; height: 100%; min-height: 180px; }
@@ -890,7 +891,7 @@ h1 {
 .donut-center strong { color: #f8fafc; font-family: 'Cascadia Mono', monospace; font-size: 27px; font-weight: 600; }
 .donut-center span { margin-top: 2px; color: #64748b; font-size: 10px; letter-spacing: 1px; }
 .status-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; padding-left: 6px; }
-.legend-row { display: flex; align-items: center; gap: 7px; color: #94a3b8; font-size: 11px; }
+.legend-row { display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 12px; }
 .legend-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
 .legend-name { flex: 1; }
 .legend-row strong { color: #cbd5e1; font-family: 'Cascadia Mono', monospace; font-size: 11px; font-weight: 500; }
@@ -919,8 +920,8 @@ h1 {
 .ring-inner strong small { color: #34d399; font-size: 11px; }
 .ring-inner span { margin-top: 2px; color: #64748b; font-size: 10px; }
 .health-metrics { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.health-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: #94a3b8; font-size: 11px; }
-.health-row strong { color: #e2e8f0; font-family: 'Cascadia Mono', monospace; font-size: 15px; font-weight: 500; }
+.health-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: #94a3b8; font-size: 12px; }
+.health-row strong { color: #e2e8f0; font-family: 'Cascadia Mono', monospace; font-size: 16px; font-weight: 500; }
 .health-row .warn { color: #fbbf24; }
 .health-row .danger { color: #fb7185; }
 .health-row .ok { color: #34d399; }
@@ -928,9 +929,9 @@ h1 {
 .monthly-chart { height: calc(100% - 28px); min-height: 155px; }
 .composition-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100% - 28px); min-height: 165px; }
 .composition-block { min-width: 0; }
-.mini-title { margin-bottom: 9px; color: #64748b; font-size: 10px; letter-spacing: 1.2px; }
-.bar-row { margin-bottom: 8px; }
-.bar-label { display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; }
+.mini-title { margin-bottom: 10px; color: #64748b; font-size: 11px; letter-spacing: 1.2px; }
+.bar-row { margin-bottom: 9px; }
+.bar-label { display: flex; justify-content: space-between; color: #94a3b8; font-size: 11px; }
 .bar-label strong { color: #cbd5e1; font-family: 'Cascadia Mono', monospace; font-weight: 500; }
 .bar-track { height: 4px; margin-top: 4px; overflow: hidden; border-radius: 4px; background: rgba(148, 163, 184, .12); }
 .bar-track i { display: block; height: 100%; border-radius: 4px; }
@@ -1018,6 +1019,10 @@ h1 {
   50% { opacity: .55; box-shadow: 0 0 0 7px rgba(52, 211, 153, .04); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (min-width: 1281px) and (max-height: 980px) {
+  .screen { height: auto; min-height: 100vh; overflow: auto; }
+  .main-grid { flex: none; grid-template-rows: 310px 245px 178px; }
+}
 @media (max-width: 1280px) {
   .screen { height: auto; min-height: 100vh; overflow: auto; padding: 18px 20px 14px; }
   .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
