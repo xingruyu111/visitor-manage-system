@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.exception.BizException;
 import com.visitor.common.utils.IdentityValidator;
 import com.visitor.domain.entity.FormField;
+import com.visitor.server.cache.ConfigCacheService;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.service.FormFieldService;
 import org.springframework.stereotype.Service;
@@ -17,18 +18,29 @@ import java.util.Map;
 public class FormFieldServiceImpl implements FormFieldService {
 
     private final FormFieldMapper mapper;
+    private final ConfigCacheService cache;
 
-    public FormFieldServiceImpl(FormFieldMapper mapper) {
+    public FormFieldServiceImpl(FormFieldMapper mapper, ConfigCacheService cache) {
         this.mapper = mapper;
+        this.cache = cache;
     }
 
     @Override
     public List<FormField> list(String visitorType, boolean onlyActive) {
-        return mapper.selectList(new LambdaQueryWrapper<FormField>()
+        String scope = visitorType == null || visitorType.isBlank()
+                ? "ALL" : visitorType.trim().toUpperCase();
+        String cacheKey = "form-fields:" + scope + ":" + onlyActive;
+        List<FormField> cached = cache.getList(cacheKey, FormField.class);
+        if (cached != null) {
+            return cached;
+        }
+        List<FormField> result = mapper.selectList(new LambdaQueryWrapper<FormField>()
                 .eq(visitorType != null && !visitorType.isBlank(), FormField::getVisitorType, visitorType)
                 .eq(onlyActive, FormField::getStatus, 1)
                 .orderByAsc(FormField::getSortNo)
                 .orderByAsc(FormField::getId));
+        cache.put(cacheKey, result);
+        return result;
     }
 
     @Override
@@ -53,6 +65,7 @@ public class FormFieldServiceImpl implements FormFieldService {
             throw new BizException(400, "该访客类型下字段已存在");
         }
         mapper.insert(entity);
+        evict(entity.getVisitorType());
         return entity;
     }
 
@@ -74,15 +87,23 @@ public class FormFieldServiceImpl implements FormFieldService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(entity);
+        evict(entity.getVisitorType());
         return entity;
     }
 
     @Override
     public void delete(Long id) {
-        if (mapper.selectById(id) == null) {
+        FormField entity = mapper.selectById(id);
+        if (entity == null) {
             throw new BizException(404, "字段不存在");
         }
         mapper.deleteById(id);
+        evict(entity.getVisitorType());
+    }
+
+    private void evict(String visitorType) {
+        cache.evict("form-fields:ALL:true", "form-fields:ALL:false",
+                "form-fields:" + visitorType + ":true", "form-fields:" + visitorType + ":false");
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.visitor.server.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.SystemSetting;
+import com.visitor.server.cache.ConfigCacheService;
 import com.visitor.server.mapper.SystemSettingMapper;
 import com.visitor.server.service.SystemSettingService;
 import org.springframework.stereotype.Service;
@@ -16,9 +17,11 @@ import java.util.List;
 public class SystemSettingServiceImpl implements SystemSettingService {
 
     private final SystemSettingMapper mapper;
+    private final ConfigCacheService cache;
 
-    public SystemSettingServiceImpl(SystemSettingMapper mapper) {
+    public SystemSettingServiceImpl(SystemSettingMapper mapper, ConfigCacheService cache) {
         this.mapper = mapper;
+        this.cache = cache;
     }
 
     @Override
@@ -38,14 +41,24 @@ public class SystemSettingServiceImpl implements SystemSettingService {
         setting.setSettingValue(value);
         setting.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(setting);
+        cache.evict("setting:" + key);
         return setting;
     }
 
     @Override
     public String get(String key, String defaultValue) {
+        String cacheKey = "setting:" + key;
+        String cached = cache.getObject(cacheKey, String.class);
+        if (cached != null) {
+            return cached;
+        }
         SystemSetting setting = mapper.selectOne(new LambdaQueryWrapper<SystemSetting>()
                 .eq(SystemSetting::getSettingKey, key));
-        return setting == null || setting.getSettingValue() == null ? defaultValue : setting.getSettingValue();
+        if (setting == null || setting.getSettingValue() == null) {
+            return defaultValue;
+        }
+        cache.put(cacheKey, setting.getSettingValue());
+        return setting.getSettingValue();
     }
 
     @Override

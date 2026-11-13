@@ -7,6 +7,7 @@ import com.visitor.common.exception.BizException;
 import com.visitor.domain.dto.BookingRule;
 import com.visitor.domain.dto.VisitorTypeSaveDTO;
 import com.visitor.domain.entity.VisitorType;
+import com.visitor.server.cache.ConfigCacheService;
 import com.visitor.server.mapper.FormFieldMapper;
 import com.visitor.server.mapper.VisitorTypeMapper;
 import com.visitor.server.service.VisitorTypeService;
@@ -31,20 +32,32 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
     private final VisitorTypeMapper mapper;
     private final ObjectMapper objectMapper;
     private final FormFieldMapper formFieldMapper;
+    private final ConfigCacheService cache;
+
+    private static final String KEY_ALL = "visitor-types:all";
+    private static final String KEY_ENABLED = "visitor-types:enabled";
 
     public VisitorTypeServiceImpl(VisitorTypeMapper mapper, ObjectMapper objectMapper,
-                                  FormFieldMapper formFieldMapper) {
+                                  FormFieldMapper formFieldMapper, ConfigCacheService cache) {
         this.mapper = mapper;
         this.objectMapper = objectMapper;
         this.formFieldMapper = formFieldMapper;
+        this.cache = cache;
     }
 
     @Override
     public List<VisitorType> list(boolean onlyEnabled) {
-        return mapper.selectList(new LambdaQueryWrapper<VisitorType>()
+        String cacheKey = onlyEnabled ? KEY_ENABLED : KEY_ALL;
+        List<VisitorType> cached = cache.getList(cacheKey, VisitorType.class);
+        if (cached != null) {
+            return cached;
+        }
+        List<VisitorType> result = mapper.selectList(new LambdaQueryWrapper<VisitorType>()
                 .eq(onlyEnabled, VisitorType::getStatus, 1)
                 .orderByAsc(VisitorType::getSortNo)
                 .orderByAsc(VisitorType::getId));
+        cache.put(cacheKey, result);
+        return result;
     }
 
     @Override
@@ -60,6 +73,7 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.insert(entity);
+        evictType(code);
         return entity;
     }
 
@@ -67,6 +81,7 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
     @Transactional(rollbackFor = Exception.class)
     public VisitorType update(Long id, VisitorTypeSaveDTO dto) {
         VisitorType entity = get(id);
+        String oldCode = entity.getCode();
         String code = normalizeCode(dto.getCode());
         Long exists = mapper.selectCount(new LambdaQueryWrapper<VisitorType>()
                 .eq(VisitorType::getCode, code)
@@ -77,6 +92,7 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         apply(entity, dto, code);
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(entity);
+        evictType(oldCode, code);
         return entity;
     }
 
@@ -89,6 +105,7 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         entity.setStatus(status);
         entity.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(entity);
+        evictType(entity.getCode());
         return entity;
     }
 
@@ -104,6 +121,18 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
             throw new BizException(400, "该类型已有表单字段，不能删除");
         }
         mapper.deleteById(id);
+        evictType(entity.getCode());
+    }
+
+    private void evictType(String... codes) {
+        java.util.List<String> keys = new java.util.ArrayList<>(java.util.List.of(KEY_ALL, KEY_ENABLED));
+        for (String code : codes) {
+            if (code != null) {
+                keys.add("visitor-type:rules:" + code);
+                keys.add("visitor-type:max:" + code);
+            }
+        }
+        cache.evict(keys.toArray(String[]::new));
     }
 
     private boolean isBuiltin(String code) {
@@ -115,15 +144,25 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         if (code == null || code.isBlank()) {
             return List.of();
         }
+        String normalized = code.trim().toUpperCase(Locale.ROOT);
+        String cacheKey = "visitor-type:rules:" + normalized;
+        List<BookingRule> cached = cache.getList(cacheKey, BookingRule.class);
+        if (cached != null) {
+            return cached;
+        }
         VisitorType type = mapper.selectOne(new LambdaQueryWrapper<VisitorType>()
-                .eq(VisitorType::getCode, code.trim().toUpperCase(Locale.ROOT))
+                .eq(VisitorType::getCode, normalized)
                 .last("LIMIT 1"));
         if (type == null || type.getBookingRulesJson() == null || type.getBookingRulesJson().isBlank()) {
+            cache.put(cacheKey, List.of());
             return List.of();
         }
         try {
-            return objectMapper.readValue(type.getBookingRulesJson(), new TypeReference<List<BookingRule>>() {
-            });
+            List<BookingRule> rules = objectMapper.readValue(type.getBookingRulesJson(),
+                    new TypeReference<List<BookingRule>>() {
+                    });
+            cache.put(cacheKey, rules);
+            return rules;
         } catch (Exception e) {
             throw new BizException(500, "访客类型可预约时间段配置有误");
         }
@@ -153,13 +192,23 @@ public class VisitorTypeServiceImpl implements VisitorTypeService {
         if (code == null || code.isBlank()) {
             return 1;
         }
-        VisitorType type = mapper.selectOne(new LambdaQueryWrapper<VisitorType>()
-                .eq(VisitorType::getCode, code.trim().toUpperCase(Locale.ROOT))
-                .last("LIMIT 1"));
-        if (type != null && type.getMaxEntries() != null) {
-            return type.getMaxEntries() == 0 ? 999999 : type.getMaxEntries();
+        String normalized = code.trim().toUpperCase(Locale.ROOT);
+        String cacheKey = "visitor-type:max:" + normalized;
+        Integer cached = cache.getObject(cacheKey, Integer.class);
+        if (cached != null) {
+            return cached;
         }
-        return "ALUMNI".equalsIgnoreCase(code) ? 999999 : 1;
+        VisitorType type = mapper.selectOne(new LambdaQueryWrapper<VisitorType>()
+                .eq(VisitorType::getCode, normalized)
+                .last("LIMIT 1"));
+        int result;
+        if (type != null && type.getMaxEntries() != null) {
+            result = type.getMaxEntries() == 0 ? 999999 : type.getMaxEntries();
+        } else {
+            result = "ALUMNI".equalsIgnoreCase(code) ? 999999 : 1;
+        }
+        cache.put(cacheKey, result);
+        return result;
     }
 
     private void apply(VisitorType entity, VisitorTypeSaveDTO dto, String code) {

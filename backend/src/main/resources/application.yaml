@@ -58,6 +58,11 @@ security:
     max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
     lock-minutes: ${LOGIN_LOCK_MINUTES:10}
 
+app:
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    ttl-seconds: ${CACHE_TTL_SECONDS:60}
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visitor.common.exception.BizException;
 import com.visitor.domain.entity.VisitConfig;
+import com.visitor.server.cache.ConfigCacheService;
 import com.visitor.server.mapper.VisitConfigMapper;
 import com.visitor.server.service.VisitConfigService;
 import org.springframework.stereotype.Service;
@@ -22,21 +23,33 @@ public class VisitConfigServiceImpl implements VisitConfigService {
 
     private final VisitConfigMapper mapper;
     private final ObjectMapper objectMapper;
+    private final ConfigCacheService cache;
+    private static final String KEY_ALUMNI_MONTHS = "visit-config:alumni-months";
 
-    public VisitConfigServiceImpl(VisitConfigMapper mapper, ObjectMapper objectMapper) {
+    public VisitConfigServiceImpl(VisitConfigMapper mapper, ObjectMapper objectMapper,
+                                  ConfigCacheService cache) {
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.cache = cache;
     }
 
     @Override
     public List<Integer> alumniMonths() {
+        List<Integer> cached = cache.getList(KEY_ALUMNI_MONTHS, Integer.class);
+        if (cached != null) {
+            return cached;
+        }
         VisitConfig config = getOrCreate();
         if (config.getAlumniMonthsJson() == null || config.getAlumniMonthsJson().isBlank()) {
+            cache.put(KEY_ALUMNI_MONTHS, List.of());
             return List.of();
         }
         try {
-            return objectMapper.readValue(config.getAlumniMonthsJson(), new TypeReference<List<Integer>>() {
-            });
+            List<Integer> months = objectMapper.readValue(config.getAlumniMonthsJson(),
+                    new TypeReference<List<Integer>>() {
+                    });
+            cache.put(KEY_ALUMNI_MONTHS, months);
+            return months;
         } catch (Exception e) {
             return List.of();
         }
@@ -61,6 +74,7 @@ public class VisitConfigServiceImpl implements VisitConfigService {
         }
         config.setUpdatedAt(LocalDateTime.now());
         mapper.updateById(config);
+        cache.evict(KEY_ALUMNI_MONTHS);
     }
 
     private VisitConfig getOrCreate() {
