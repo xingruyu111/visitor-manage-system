@@ -126,7 +126,10 @@ async function load(targetPage = page.value) {
   loading.value = true
   try {
     const data = await http.get<{ total: number; records: VisitorRecord[] }>('/web/admin/visitor-records', {
-      params: { page: page.value, size: size.value, status: status.value, keyword: keyword.value || undefined },
+      page: page.value,
+      size: size.value,
+      status: status.value,
+      keyword: keyword.value || undefined,
     })
     rows.value = data.records
     total.value = data.total
