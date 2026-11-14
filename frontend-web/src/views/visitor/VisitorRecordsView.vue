@@ -63,6 +63,7 @@
         <el-descriptions-item label="事由">{{ current.visitPurpose || '-' }}</el-descriptions-item>
         <el-descriptions-item label="到访">{{ current.expectedTime }}</el-descriptions-item>
         <el-descriptions-item label="离校">{{ current.leaveTime }}</el-descriptions-item>
+        <el-descriptions-item label="申请时间">{{ current.createdAt || '-' }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ STATUS[current.status] }}</el-descriptions-item>
         <el-descriptions-item
           v-for="entry in extraEntries"
@@ -97,6 +98,7 @@ interface VisitorRecord {
   status: number
   visitorType?: string
   extraJson?: string
+  createdAt?: string
 }
 
 const STATUS: Record<number, string> = {
