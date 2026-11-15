@@ -5,7 +5,7 @@
     <div class="intro-card">
       <div class="intro-title">Excel 批量导入</div>
       <p>按人员导入，每人一行；同一车牌可以有多人。导入后直接生效，有效期内不限次进出。</p>
-      <a class="template-link" href="/templates/whitelist-import.xlsx" download>
+      <a class="template-link" :href="`${base}templates/whitelist-import.xlsx`" download>
         下载导入模板
       </a>
     </div>
@@ -116,6 +116,7 @@ interface WhitelistRecord {
 }
 
 const router = useRouter()
+const base = import.meta.env.BASE_URL
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File>()
 const uploading = ref(false)

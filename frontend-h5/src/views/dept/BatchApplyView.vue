@@ -6,7 +6,7 @@
       <div class="intro-title">Excel 批量预约</div>
       <p v-if="isSecurityAdmin">按人员填写，每人一行；保卫处管理员提交后直接生效并签发通行凭证。</p>
       <p v-else>按人员填写，每人一行；提交后进入保卫处审批，通过后自动签发通行凭证。</p>
-      <a class="template-link" href="/templates/batch-apply-import.xlsx" download>
+      <a class="template-link" :href="`${base}templates/batch-apply-import.xlsx`" download>
         下载导入模板
       </a>
     </div>
@@ -122,6 +122,7 @@ interface BatchRecord {
 }
 
 const fileInput = ref<HTMLInputElement>()
+const base = import.meta.env.BASE_URL
 const file = ref<File>()
 const uploading = ref(false)
 const isSecurityAdmin = ref(false)
