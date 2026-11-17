@@ -1,16 +1,5 @@
 <template>
   <div class="dashboard">
-    <section class="welcome">
-      <div>
-        <p class="welcome-kicker">今日校园运行概览</p>
-        <h2>{{ greeting }}，{{ userName || '管理员' }}</h2>
-        <p class="welcome-desc">访客预约、审批与在校状态，已为你汇总到这一页。</p>
-      </div>
-      <div class="quick-actions">
-        <el-button @click="router.push('/visitor-records')">查看访客记录</el-button>
-        <el-button type="primary" @click="router.push('/screen')">打开数据大屏</el-button>
-      </div>
-    </section>
 
     <div class="kpi-grid">
       <article v-for="card in cards" :key="card.key" class="kpi-card" :class="card.tone">
@@ -69,24 +58,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowRight, Calendar, Clock, Files, Monitor, OfficeBuilding, Setting, Tickets } from '@element-plus/icons-vue'
 import { http } from '@/api/request'
 
 const router = useRouter()
-const userName = localStorage.getItem('userName') || ''
 const loading = ref(false)
 const data = ref<Record<string, number>>({})
 
-const greeting = computed(() => {
-  const hour = new Date().getHours()
-  if (hour < 6) return '夜深了'
-  if (hour < 12) return '上午好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
-})
 
 const cards = [
   { key: 'today', label: '今日预约', note: '今日计划来访', tone: 'tone-blue', icon: Calendar },
@@ -134,41 +115,6 @@ onMounted(load)
   gap: 18px;
 }
 
-.welcome {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 4px 2px;
-}
-
-.welcome-kicker {
-  margin: 0 0 8px;
-  color: var(--vst-primary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-}
-
-.welcome h2 {
-  margin: 0;
-  color: var(--vst-text);
-  font-size: 26px;
-  font-weight: 650;
-  letter-spacing: -0.5px;
-}
-
-.welcome-desc {
-  margin: 8px 0 0;
-  color: var(--vst-text-secondary);
-  font-size: 13px;
-}
-
-.quick-actions {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-}
 
 .kpi-grid {
   display: grid;
@@ -328,27 +274,13 @@ onMounted(load)
 }
 
 @media (max-width: 700px) {
-  .welcome {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .welcome h2 {
-    font-size: 22px;
-  }
 
   .kpi-grid,
   .metric-grid {
     grid-template-columns: 1fr;
   }
 
-  .quick-actions {
-    width: 100%;
-  }
 
-  .quick-actions .el-button {
-    flex: 1;
-  }
 }
 .shortcuts {
   padding: 2px;
