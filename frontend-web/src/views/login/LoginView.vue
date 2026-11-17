@@ -1,8 +1,27 @@
 <template>
   <div class="login-page">
-    <el-card class="login-card">
-      <h1>访客管理系统</h1>
-      <p class="subtitle">Web 管理后台</p>
+    <div class="login-glow login-glow-a"></div>
+    <div class="login-glow login-glow-b"></div>
+    <div class="login-grid"></div>
+
+    <section class="login-intro">
+      <div class="intro-mark">访</div>
+      <p class="intro-kicker">智慧校园 · 安全运营</p>
+      <h1>让每一次来访<br /><span>都有序可循</span></h1>
+      <p class="intro-desc">访客预约、审批流转、通行核验与安全数据，在同一处完成。</p>
+      <div class="intro-points">
+        <span>预约审批</span>
+        <span>通行核验</span>
+        <span>安全态势</span>
+      </div>
+    </section>
+
+    <el-card class="login-card" shadow="never">
+      <div class="login-head">
+        <p class="card-kicker">管理后台</p>
+        <h2>登录工作台</h2>
+        <p>使用管理员账号继续</p>
+      </div>
 
       <el-form :model="form" label-position="top" @submit.prevent>
         <el-form-item label="账号（手机号）" required>
@@ -108,50 +127,169 @@ onMounted(loadCaptcha)
 
 <style scoped>
 .login-page {
-  height: 100%;
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 460px);
   align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  background-image: linear-gradient(#e8e8e8 1px, transparent 1px),
-    linear-gradient(90deg, #e8e8e8 1px, transparent 1px);
-  background-size: 40px 40px;
+  gap: 7vw;
+  height: 100%;
+  overflow: hidden;
+  padding: 7vh 8vw;
+  box-sizing: border-box;
+  background:
+    radial-gradient(900px 600px at 15% 0%, rgba(37, 99, 235, 0.32), transparent 65%),
+    linear-gradient(135deg, #071421 0%, #0b2137 48%, #0b1a2b 100%);
+}
+
+.login-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(90deg, black, transparent 76%);
+}
+
+.login-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.login-glow-a {
+  top: -180px;
+  left: 12%;
+  width: 480px;
+  height: 480px;
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.login-glow-b {
+  right: -160px;
+  bottom: -220px;
+  width: 520px;
+  height: 520px;
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.login-intro {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  color: #dbeafe;
+}
+
+.intro-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 32px;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  border-radius: 13px;
+  box-shadow: 0 8px 26px rgba(37, 99, 235, 0.35);
+}
+
+.intro-kicker {
+  margin: 0 0 16px;
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.4px;
+}
+
+.login-intro h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(38px, 4.2vw, 58px);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+}
+
+.login-intro h1 span {
+  color: #93c5fd;
+}
+
+.intro-desc {
+  max-width: 420px;
+  margin: 24px 0 0;
+  color: #9fb3c8;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.intro-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.intro-points span {
+  padding: 6px 11px;
+  color: #bfdbfe;
+  font-size: 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(147, 197, 253, 0.16);
+  border-radius: 999px;
 }
 
 .login-card {
-  width: 400px;
-  padding: 20px 16px 12px;
-  border: 1px solid #0a0a0a;
-  border-radius: 10px;
-  box-shadow: 8px 8px 0 #0a0a0a;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 18px;
+  box-shadow: 0 28px 70px rgba(2, 12, 27, 0.4);
 }
 
-h1 {
-  margin: 4px 0 6px;
-  font-size: 22px;
-  letter-spacing: 0.5px;
-  text-align: center;
-  color: #0a0a0a;
+.login-head {
+  margin-bottom: 26px;
 }
 
-.subtitle {
-  margin: 0 0 24px;
-  text-align: center;
-  color: #6b6b6b;
+.card-kicker {
+  margin: 0 0 8px;
+  color: var(--vst-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.login-head h2 {
+  margin: 0;
+  color: var(--vst-text);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+
+.login-head > p:last-child {
+  margin: 8px 0 0;
+  color: var(--vst-text-secondary);
   font-size: 13px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
 }
 
 .submit {
   width: 100%;
-  margin-top: 8px;
+  height: 42px;
+  margin-top: 6px;
+  font-size: 14px;
 }
 
 .tip {
-  margin: 16px 0 0;
-  font-size: 12px;
-  color: #b1b3b8;
+  margin: 20px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -162,10 +300,47 @@ h1 {
 }
 
 .captcha-img {
-  height: 40px;
   width: 120px;
+  height: 38px;
   cursor: pointer;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  border: 1px solid var(--vst-border);
+  border-radius: 8px;
+}
+
+@media (max-width: 960px) {
+  .login-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 34px;
+    padding: 8vh 24px;
+  }
+
+  .login-intro {
+    width: min(100%, 460px);
+  }
+
+  .intro-mark {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 20px;
+    font-size: 18px;
+  }
+
+  .login-intro h1 {
+    font-size: clamp(30px, 7vw, 42px);
+  }
+
+  .intro-desc {
+    margin-top: 16px;
+  }
+
+  .intro-points {
+    margin-top: 20px;
+  }
+
+  .login-card {
+    width: min(100%, 460px);
+  }
 }
 </style>
