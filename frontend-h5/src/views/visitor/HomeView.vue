@@ -330,7 +330,7 @@ const heroTitle = computed(() => {
 })
 
 const heroSubtitle = computed(() => {
-  if (isVisitorMenu.value) return '填写来访信息，选择到访时段，即可提交预约。'
+  if (isVisitorMenu.value) return '选择到访时段，填写信息即可预约。'
   if (menuKinds.value.includes('APPROVER') || menuKinds.value.includes('SECURITY_ADMIN')) {
     return '待办与历史审批集中查看，及时完成访客审核。'
   }
