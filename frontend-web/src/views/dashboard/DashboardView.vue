@@ -1,5 +1,12 @@
 <template>
   <div class="dashboard">
+    <section class="dashboard-top">
+      <p class="welcome-kicker">今日校园运行概览</p>
+      <div class="quick-actions">
+        <el-button @click="router.push('/visitor-records')">查看访客记录</el-button>
+        <el-button type="primary" @click="router.push('/screen')">打开数据大屏</el-button>
+      </div>
+    </section>
 
     <div class="kpi-grid">
       <article v-for="card in cards" :key="card.key" class="kpi-card" :class="card.tone">
@@ -73,7 +80,7 @@ const cards = [
   { key: 'today', label: '今日预约', note: '今日计划来访', tone: 'tone-blue', icon: Calendar },
   { key: 'pending', label: '待审批', note: '等待处理', tone: 'tone-amber', icon: Clock },
   { key: 'inSchool', label: '当前在校', note: '实时在访人数', tone: 'tone-green', icon: OfficeBuilding },
-  { key: 'pendingTasks', label: '待办任务', note: '审批任务', tone: 'tone-rose', icon: Tickets },
+  { key: 'pendingTasks', label: '审批待办', note: '全流程待处理', tone: 'tone-rose', icon: Tickets },
 ]
 
 const shortcuts = [
@@ -90,7 +97,7 @@ const metrics = [
   { key: 'inSchool', label: '已入校', color: '#0ea5e9' },
   { key: 'left', label: '已离校', color: '#8b5cf6' },
   { key: 'expired', label: '已过期', color: '#94a3b8' },
-  { key: 'pendingTasks', label: '待办审批', color: '#d97706' },
+  { key: 'pendingTasks', label: '审批待办', color: '#d97706' },
   { key: 'activeBlacklist', label: '有效黑名单', color: '#e11d48' },
 ]
 
@@ -113,6 +120,28 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.dashboard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 2px;
+}
+
+.welcome-kicker {
+  margin: 0;
+  color: var(--vst-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 
@@ -274,13 +303,23 @@ onMounted(load)
 }
 
 @media (max-width: 700px) {
+  .dashboard-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quick-actions {
+    width: 100%;
+  }
+
+  .quick-actions .el-button {
+    flex: 1;
+  }
 
   .kpi-grid,
   .metric-grid {
     grid-template-columns: 1fr;
   }
-
-
 }
 .shortcuts {
   padding: 2px;
