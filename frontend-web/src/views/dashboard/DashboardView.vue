@@ -38,11 +38,7 @@
         </div>
       </div>
 
-      <div v-if="(data.pendingTasks ?? 0) > 0" class="pending-banner">
-        <el-icon><Clock /></el-icon>
-        <span>当前有 <strong>{{ data.pendingTasks }}</strong> 个审批待办，建议及时处理。</span>
-        <el-button link type="primary" @click="router.push('/visitor-records')">去处理</el-button>
-      </div>
+
     </el-card>
 
     <section class="shortcuts">
@@ -80,7 +76,7 @@ const cards = [
   { key: 'today', label: '今日预约', note: '今日计划来访', tone: 'tone-blue', icon: Calendar },
   { key: 'pending', label: '待审批', note: '等待处理', tone: 'tone-amber', icon: Clock },
   { key: 'inSchool', label: '当前在校', note: '实时在访人数', tone: 'tone-green', icon: OfficeBuilding },
-  { key: 'pendingTasks', label: '审批待办', note: '全流程待处理', tone: 'tone-rose', icon: Tickets },
+  { key: 'total', label: '累计预约', note: '历史预约总量', tone: 'tone-violet', icon: Tickets },
 ]
 
 const shortcuts = [
@@ -97,7 +93,6 @@ const metrics = [
   { key: 'inSchool', label: '已入校', color: '#0ea5e9' },
   { key: 'left', label: '已离校', color: '#8b5cf6' },
   { key: 'expired', label: '已过期', color: '#94a3b8' },
-  { key: 'pendingTasks', label: '审批待办', color: '#d97706' },
   { key: 'activeBlacklist', label: '有效黑名单', color: '#e11d48' },
 ]
 
@@ -214,7 +209,7 @@ onMounted(load)
 .tone-blue { --tone: #2563eb; --tone-soft: #eff6ff; }
 .tone-amber { --tone: #d97706; --tone-soft: #fffbeb; }
 .tone-green { --tone: #16a34a; --tone-soft: #f0fdf4; }
-.tone-rose { --tone: #e11d48; --tone-soft: #fff1f2; }
+.tone-violet { --tone: #7c3aed; --tone-soft: #f5f3ff; }
 
 .overview :deep(.el-card__header) {
   padding: 17px 20px;
@@ -278,22 +273,6 @@ onMounted(load)
   border-radius: 0 3px 0 0;
 }
 
-.pending-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 10px 13px;
-  color: #92400e;
-  font-size: 12px;
-  background: #fffbeb;
-  border: 1px solid #fef3c7;
-  border-radius: 9px;
-}
-
-.pending-banner .el-button {
-  margin-left: auto;
-}
 
 @media (max-width: 1100px) {
   .kpi-grid,
