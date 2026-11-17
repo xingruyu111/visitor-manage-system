@@ -2,19 +2,34 @@
   <div class="page">
     <van-nav-bar title="访客预约" left-arrow @click-left="$router.back()" />
 
-    <van-notice-bar
-      v-if="checkMessage"
-      :type="checkStatus === 'BLACKLIST' ? 'error' : 'success'"
-      :text="checkMessage"
-    />
+    <section class="apply-hero">
+      <div class="apply-hero-copy">
+        <span>访客预约</span>
+        <h1>访客预约登记</h1>
+        <p>提前填写到访信息，通行更顺畅</p>
+      </div>
+      <div class="apply-art" aria-hidden="true">
+        <span class="apply-art-card art-card-a"><van-icon name="records-o" /></span>
+        <span class="apply-art-card art-card-b"><van-icon name="qr" /></span>
+        <span class="apply-art-ring"></span>
+      </div>
+    </section>
+
+    <div class="form-body">
+      <van-notice-bar
+        v-if="checkMessage"
+        :type="checkStatus === 'BLACKLIST' ? 'error' : 'success'"
+        :text="checkMessage"
+      />
 
     <van-cell-group inset class="target-group">
       <template #title><span class="required-group-title">选择被访人</span></template>
       <div class="target-search">
         <van-field
           v-model="keyword"
+          label="被访人"
           required
-          placeholder="输入完整姓名或工号"
+          placeholder="输入姓名或工号"
           @keyup.enter="search"
         >
           <template #button>
@@ -131,6 +146,8 @@
         />
       </template>
     </van-cell-group>
+
+    </div>
 
     <div class="actions">
       <van-button round block type="primary" :loading="submitting" @click="submit">提交申请</van-button>
@@ -905,9 +922,199 @@ onMounted(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: transparent;
+  background: #f2f6fc;
   padding-bottom: 96px;
 }
+
+:deep(.van-nav-bar) {
+  background: #ffffff;
+}
+
+:deep(.van-nav-bar::after) {
+  display: none;
+}
+
+.apply-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 20px 44px;
+  color: #fff;
+  background:
+    radial-gradient(180px 140px at 88% 10%, rgba(147, 197, 253, 0.42), transparent 70%),
+    linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #3b82f6 100%);
+}
+
+.apply-hero::after {
+  content: '';
+  position: absolute;
+  right: -36px;
+  bottom: -60px;
+  width: 210px;
+  height: 140px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+}
+
+.apply-hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 72%;
+}
+
+.apply-hero-copy > span {
+  display: inline-flex;
+  padding: 3px 9px;
+  color: #dbeafe;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.apply-hero h1 {
+  margin: 10px 0 7px;
+  color: #fff;
+  font-size: 23px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+}
+
+.apply-hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+}
+
+.apply-art {
+  position: absolute;
+  right: -4px;
+  bottom: 14px;
+  width: 132px;
+  height: 112px;
+  pointer-events: none;
+}
+
+.apply-art-ring {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 100px;
+  height: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.apply-art-card {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #fff;
+  font-size: 21px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 13px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.art-card-a {
+  top: 18px;
+  right: 42px;
+  transform: rotate(-8deg);
+}
+
+.art-card-b {
+  top: 56px;
+  right: 6px;
+  transform: rotate(8deg) scale(0.86);
+}
+
+.form-body {
+  position: relative;
+  z-index: 2;
+  margin-top: -22px;
+  padding-top: 16px;
+  background: #f2f6fc;
+  border-radius: 22px 22px 0 0;
+}
+
+.form-body :deep(.van-cell-group--inset) {
+  margin: 0 14px 16px;
+  background: #fff;
+  border: 1px solid rgba(226, 236, 249, 0.9);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(16, 42, 80, 0.05);
+}
+
+.form-body :deep(.target-group) {
+  overflow: visible;
+}
+
+.form-body :deep(.van-cell-group__title) {
+  position: relative;
+  margin: 0;
+  padding: 2px 4px 9px 14px;
+  color: #14213d;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+.form-body :deep(.van-cell-group__title)::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 8px;
+  left: 2px;
+  width: 3px;
+  background: #2563eb;
+  border-radius: 2px;
+}
+
+.form-body :deep(.van-field) {
+  padding: 13px 15px;
+}
+
+.form-body :deep(.van-field__label) {
+  width: 5.2em;
+  color: #3b4a60;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.form-body :deep(.van-field__control) {
+  color: #14213d;
+  font-size: 13px;
+  text-align: right;
+}
+
+.form-body :deep(.van-field__control::placeholder) {
+  color: #b7c3d3;
+}
+
+.form-body :deep(.van-field__button) {
+  padding-left: 10px;
+}
+
+.form-body :deep(.van-field__button .van-button) {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.form-body :deep(.van-notice-bar) {
+  margin: 0 14px 14px;
+  border-radius: 10px;
+}
+
 .target-group {
   overflow: visible;
 }
@@ -936,7 +1143,15 @@ onMounted(() => {
   z-index: 30;
   margin: 0;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(242, 247, 253, 0), #f2f7fd 38%);
+  background: linear-gradient(180deg, rgba(242, 246, 252, 0), #f2f6fc 36%);
+}
+
+.actions :deep(.van-button--primary) {
+  min-height: 48px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.24);
 }
 .time-picker {
   padding-bottom: env(safe-area-inset-bottom);
@@ -972,9 +1187,5 @@ onMounted(() => {
 .time-picker :deep(.van-picker__columns) {
   min-height: 220px;
 }
-.required-group-title::before {
-  content: '*';
-  margin-right: 2px;
-  color: #ee0a24;
-}
+
 </style>
