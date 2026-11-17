@@ -27,7 +27,7 @@
         <el-table-column prop="handledAt" label="处理时间" width="180" />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.handled === 0" link type="primary" @click="handle(row)">标记处理</el-button>
+            <el-button v-if="row.handled === 0" link type="success" @click="handle(row)">标记处理</el-button>
           </template>
         </el-table-column>
       </el-table>

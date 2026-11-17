@@ -30,7 +30,7 @@
         </el-table-column>
         <el-table-column label="操作" width="90" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+            <el-button link @click="openDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
