@@ -24,10 +24,10 @@
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" :disabled="row.status === 1" @click="publish(row)">发布</el-button>
-            <el-button link type="primary" :disabled="row.status !== 1" @click="offline(row)">停用</el-button>
-            <el-button link type="primary" @click="openVersions(row)">历史版本</el-button>
-            <el-button link type="primary" @click="openPreview(row)">预览</el-button>
+            <el-button link type="success" :disabled="row.status === 1" @click="publish(row)">发布</el-button>
+            <el-button link type="warning" :disabled="row.status !== 1" @click="offline(row)">停用</el-button>
+            <el-button link @click="openVersions(row)">历史版本</el-button>
+            <el-button link @click="openPreview(row)">预览</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -96,8 +96,8 @@
         <el-table-column prop="publishedAt" label="发布时间" width="165" />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="viewVersion(row)">查看详情</el-button>
-            <el-button link type="primary" :disabled="row.status === 1" @click="publishVersion(row)">发布</el-button>
+            <el-button link @click="viewVersion(row)">查看详情</el-button>
+            <el-button link type="success" :disabled="row.status === 1" @click="publishVersion(row)">发布</el-button>
           </template>
         </el-table-column>
       </el-table>

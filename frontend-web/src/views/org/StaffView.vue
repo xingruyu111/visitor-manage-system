@@ -6,8 +6,8 @@
           <div class="tree-title">组织架构</div>
           <div class="tree-actions">
             <el-button link type="primary" @click="openDeptCreate">新增</el-button>
-            <el-button link type="primary" @click="openOrgImport">导入</el-button>
-            <el-button link type="primary" :disabled="!currentDept" @click="openDeptEdit">编辑</el-button>
+            <el-button link @click="openOrgImport">导入</el-button>
+            <el-button link :disabled="!currentDept" @click="openDeptEdit">编辑</el-button>
             <el-button link type="danger" :disabled="!currentDept" @click="removeDept">删除</el-button>
           </div>
         </div>
