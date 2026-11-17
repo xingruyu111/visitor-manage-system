@@ -46,3 +46,4 @@ blob-report/
 
 /批量预约导入测试4-13000000000.xlsx
 .deploy/
+.deploy-web.zip

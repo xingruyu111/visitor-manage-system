@@ -48,6 +48,23 @@
         <el-button link type="primary" @click="router.push('/visitor-records')">去处理</el-button>
       </div>
     </el-card>
+
+    <section class="shortcuts">
+      <div class="shortcut-head">
+        <h3>常用入口</h3>
+        <span>高频操作，一步直达</span>
+      </div>
+      <div class="shortcut-grid">
+        <button v-for="item in shortcuts" :key="item.path" type="button" class="shortcut-card" @click="router.push(item.path)">
+          <span class="shortcut-icon"><el-icon><component :is="item.icon" /></el-icon></span>
+          <span class="shortcut-copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.desc }}</small>
+          </span>
+          <el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
+        </button>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -55,7 +72,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Calendar, Clock, OfficeBuilding, Tickets } from '@element-plus/icons-vue'
+import { ArrowRight, Calendar, Clock, Files, Monitor, OfficeBuilding, Setting, Tickets } from '@element-plus/icons-vue'
 import { http } from '@/api/request'
 
 const router = useRouter()
@@ -76,6 +93,13 @@ const cards = [
   { key: 'pending', label: '待审批', note: '等待处理', tone: 'tone-amber', icon: Clock },
   { key: 'inSchool', label: '当前在校', note: '实时在访人数', tone: 'tone-green', icon: OfficeBuilding },
   { key: 'pendingTasks', label: '待办任务', note: '审批任务', tone: 'tone-rose', icon: Tickets },
+]
+
+const shortcuts = [
+  { label: '访客记录', desc: '查询预约与通行状态', path: '/visitor-records', icon: Tickets },
+  { label: '名单管理', desc: '维护黑名单与白名单', path: '/access-list', icon: Files },
+  { label: '预约配置', desc: '设置访客类型与时间段', path: '/visit-config', icon: Setting },
+  { label: '数据大屏', desc: '查看校园访客态势', path: '/screen', icon: Monitor },
 ]
 
 const metrics = [
@@ -324,6 +348,103 @@ onMounted(load)
 
   .quick-actions .el-button {
     flex: 1;
+  }
+}
+.shortcuts {
+  padding: 2px;
+}
+
+.shortcut-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.shortcut-head h3 {
+  margin: 0;
+  color: var(--vst-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.shortcut-head span {
+  color: var(--vst-text-secondary);
+  font-size: 12px;
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shortcut-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--vst-border);
+  border-radius: var(--vst-radius);
+  box-shadow: var(--vst-shadow);
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shortcut-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+
+.shortcut-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  color: var(--vst-primary);
+  background: var(--vst-primary-soft);
+  border-radius: 9px;
+}
+
+.shortcut-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.shortcut-copy strong {
+  color: var(--vst-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.shortcut-copy small {
+  overflow: hidden;
+  color: var(--vst-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shortcut-arrow {
+  margin-left: auto;
+  color: #cbd5e1;
+}
+
+@media (max-width: 1100px) {
+  .shortcut-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .shortcut-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
